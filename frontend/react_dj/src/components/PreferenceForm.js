@@ -27,7 +27,7 @@ function PreferenceForm({ onSubmit }) {
   };
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form id="preference-form" onSubmit={handleSubmit}>
       <div>
         <label htmlFor="prompt">Describe the music you want:</label>
         <textarea

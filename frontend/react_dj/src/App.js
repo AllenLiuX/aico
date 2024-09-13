@@ -1,24 +1,32 @@
 // import logo from './logo.svg';
 // import './App.css';
 
+// // App.js
+// import React, { useState } from 'react';
+// // import React from 'react';
+// import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+// import PreferenceForm from './components/PreferenceForm';
+// import Playlist from './components/Playlist';
+// import ShareButton from './components/ShareButton';
+
+// import Homepage from './components/Homepage';
+// import CreateRoom from './components/CreateRoom';
+// import JoinRoom from './components/JoinRoom';
+// import PlaylistGenerator from './components/PlaylistGenerator';
+// import './App.css';
+
 // function App() {
 //   return (
-//     <div className="App">
-//       <header className="App-header">
-//         <img src={logo} className="App-logo" alt="logo" />
-//         <p>
-//           Edit <code>src/App.js</code> and save to reload.
-//         </p>
-//         <a
-//           className="App-link"
-//           href="https://reactjs.org"
-//           target="_blank"
-//           rel="noopener noreferrer"
-//         >
-//           Learn React
-//         </a>
-//       </header>
-//     </div>
+//     <Router>
+//       <div className="App">
+//         <Routes>
+//           <Route path="/homepage" element={<Homepage />} />
+//           <Route path="/create_room" element={<CreateRoom />} />
+//           <Route path="/join_room" element={<JoinRoom />} />
+//           <Route path="/app" element={<PlaylistGenerator />} />
+//         </Routes>
+//       </div>
+//     </Router>
 //   );
 // }
 
@@ -26,41 +34,34 @@
 
 
 // App.js
-import React, { useState } from 'react';
-import PreferenceForm from './components/PreferenceForm';
-import Playlist from './components/Playlist';
-import ShareButton from './components/ShareButton';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Header from './components/Header';
+import Homepage from './components/Homepage';
+import CreateRoom from './components/CreateRoom';
+import JoinRoom from './components/JoinRoom';
+import PlaylistGenerator from './components/PlaylistGenerator';
+import PlayRoom from './components/Playroom';
+import AboutUs from './components/AboutUs';
 import './App.css';
 
 function App() {
-  const [playlist, setPlaylist] = useState(null);
-
-  const generatePlaylist = async (preferences) => {
-    try {
-      const response = await fetch('/api/generate-playlist', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(preferences),
-      });
-      const data = await response.json();
-      setPlaylist(data.playlist);
-    } catch (error) {
-      console.error('Error generating playlist:', error);
-    }
-  };
-
   return (
-    <div className="App">
-      {/* <h1>AICO AI DJ Playlist Generator</h1> */}
-      <header>
-        <h1>ALCO Room</h1>
-        <ShareButton />
-      </header>
-      <PreferenceForm onSubmit={generatePlaylist} />
-      {playlist && <Playlist tracks={playlist} />}
-    </div>
+    <Router>
+      <div className="App">
+        <Header />
+        <main>
+          <Routes>
+            <Route path="/homepage" element={<Homepage />} />
+            <Route path="/create_room" element={<CreateRoom />} />
+            <Route path="/join_room" element={<JoinRoom />} />
+            <Route path="/playlist" element={<PlaylistGenerator />} />
+            <Route path="/playroom" element={<PlayRoom />} />
+            <Route path="/about" element={<AboutUs />} />
+          </Routes>
+        </main>
+      </div>
+    </Router>
   );
 }
 

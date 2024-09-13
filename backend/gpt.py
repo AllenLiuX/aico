@@ -51,11 +51,17 @@ models = {
         "name": "gpt-4-1106-preview", 
         "azure_endpoint": "https://search-va.byteintl.net/gpt/openapi/online/v2/crawl", 
         "api_key": "Qbj2AeJBxQoENtAthOI7SFZ6BTWf2yEs"
-    }
+    },
+    "gpt4o": {
+        "name":"gpt-4o-2024-05-13", 
+        "azure_endpoint": "https://search-va.byteintl.net/gpt/openapi/online/v2/crawl", 
+        "api_key": "Qbj2AeJBxQoENtAthOI7SFZ6BTWf2yEs"
+    },
 }
 
 model_choice = "128k"
 model_choice = "8k"
+# model_choice = 'gpt4o'
 
 perplexity_api_key = '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'
 perplexity_client = OpenAI(api_key=perplexity_api_key, base_url="https://api.perplexity.ai")
