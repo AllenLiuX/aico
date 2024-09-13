@@ -1,3 +1,4 @@
 draft/
 *.out
 backend/nohup.out
+frontend/react_dj/node_modules
