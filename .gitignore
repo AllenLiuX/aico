@@ -3,3 +3,4 @@ draft/
 backend/nohup.out
 frontend/react_dj/node_modules
 __pycache__/
+myenv/

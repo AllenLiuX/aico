@@ -419,7 +419,7 @@ main {
 } */
 
 /* Add or update these styles in your App.css */
-
+/* 
 .play-room {
   display: flex;
   flex-direction: column;
@@ -470,4 +470,128 @@ main {
     flex-direction: row;
     gap: 1rem;
   }
+} */
+ /* Add or update these styles in your App.css */
+
+.play-room {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  color: #e0e0e0;
 }
+
+.play-room header {
+  width: 100%;
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.play-room h1 {
+  color: #bb86fc;
+  margin-bottom: 10px;
+}
+
+.playlist-container {
+  width: 100%;
+  max-width: 800px;
+}
+
+.playlist-container h2 {
+  color: #03dac6;
+  margin-bottom: 20px;
+}
+
+.playlist {
+  list-style-type: none;
+  padding: 0;
+}
+
+.playlist-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #1e1e1e;
+  margin-bottom: 10px;
+  padding: 15px;
+  border-radius: 4px;
+}
+
+.track-info {
+  flex-grow: 1;
+  margin-right: 15px;
+}
+
+.spotify-link {
+  background-color: #1DB954;
+  color: white;
+  text-decoration: none;
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 0.9em;
+  transition: background-color 0.3s;
+  white-space: nowrap;
+}
+
+.spotify-link:hover {
+  background-color: #1ed760;
+}
+
+/* share button */
+/* Add or update these styles in your App.css */
+
+.play-room header {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.room-info {
+  text-align: left;
+}
+
+.share-button-container {
+  position: relative;
+}
+
+.share-button {
+  background-color: #bb86fc;
+  color: #121212;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: background-color 0.3s;
+}
+
+.share-button:hover {
+  background-color: #a66ffe;
+}
+
+.tooltip {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: #03dac6;
+  color: #121212;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 14px;
+  margin-top: 5px;
+  white-space: nowrap;
+}
+
+/* Adjust existing styles */
+.play-room h1 {
+  color: #bb86fc;
+  margin-bottom: 5px;
+}
+
+.play-room header p {
+  margin-top: 0;
+}
+
+/* ... (keep other existing styles) ... */

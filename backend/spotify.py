@@ -28,7 +28,7 @@ def get_access_token(client_id, client_secret):
     }
     data = {"grant_type": "client_credentials"}
     
-    response = requests.post(url, headers=headers, data=data)
+    response = requests.post(url, headers=headers, data=data, verify=False)
     json_result = json.loads(response.content)
     return json_result['access_token']
 
@@ -47,7 +47,7 @@ def search_artist_tracks(artist_name, track_name, access_token):
     all_tracks = []
     
     # while True:
-    response = requests.get(url, headers=headers, params=params)
+    response = requests.get(url, headers=headers, params=params, verify=False)
     
     json_result = json.loads(response.content)
     # print(json_result)

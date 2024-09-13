@@ -46,8 +46,8 @@ def generate_playlist():
     prompt = data.get('prompt')
     genre = data.get('genre')
     occasion = data.get('occasion')
-    # room_name = data.get('room_name')
-    room_name = 'test'
+    room_name = data.get('room_name')
+    # room_name = 'test'
 
 
     print(prompt)

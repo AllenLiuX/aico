@@ -10,12 +10,13 @@ function CreateRoom() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    navigate(`/playlist?room_name=${encodeURIComponent(roomName)}&moderation=${moderation}`);
     // Here you would typically send this data to your backend
     const roomSettings = { roomName, password, moderation };
     console.log({ roomName, password, moderation });
     // For now, we'll just navigate to the main app page
     // navigate('/app');
-    navigate('/playlist', { state: roomSettings });
+    // navigate('/playlist', { state: roomSettings });
   };
 
   return (

@@ -13,7 +13,7 @@ function JoinRoom() {
     console.log({ roomNumber });
     // For now, we'll just navigate to the main app page
     // navigate('/app');
-    navigate('/playlist', { state: { roomNumber } });
+    // navigate('/playlist', { state: { roomNumber } });
   };
 
   return (

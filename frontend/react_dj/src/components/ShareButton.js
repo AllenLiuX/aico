@@ -11,6 +11,8 @@ function ShareButton() {
   const copyShareLink = () => {
     const roomId = generateRoomId();
     const shareLink = `www.aico.com/share?roomId=${roomId}`;
+    // const shareLink = `http://localhost:3000/playroom?room_name={roomId}&is_host=False`;
+    
     navigator.clipboard.writeText(shareLink).then(() => {
       setShowTooltip(true);
       setTimeout(() => setShowTooltip(false), 2000);
@@ -20,7 +22,7 @@ function ShareButton() {
   return (
     <div className="share-button-container">
       <button onClick={copyShareLink} className="share-button">
-        Share
+        Share Room and Invite Friends ⚡️
       </button>
       {showTooltip && <div className="tooltip">Link copied!</div>}
     </div>
