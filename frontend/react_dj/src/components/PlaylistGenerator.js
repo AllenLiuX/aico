@@ -42,7 +42,7 @@ function PlaylistGenerator() {
     <div className="playlist-generator">
       <header>
         <h1>ALCO Room: {roomName || 'Unnamed Room'}</h1>
-        <ShareButton />
+        {/* <ShareButton /> */}
       </header>
       <PreferenceForm onSubmit={generatePlaylist} />
       {playlist && <Playlist tracks={playlist} />}

@@ -4,6 +4,8 @@ source ~/.bash_profile
 
 python3 --version
 
+pip3 install --upgrade pip
+
 python3 -m venv venv 
 . venv/bin/activate
 
