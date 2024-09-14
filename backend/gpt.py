@@ -61,7 +61,7 @@ models = {
 
 model_choice = "128k"
 model_choice = "8k"
-# model_choice = 'gpt4o'
+model_choice = 'gpt4o'
 
 perplexity_api_key = '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'
 perplexity_client = OpenAI(api_key=perplexity_api_key, base_url="https://api.perplexity.ai")
@@ -149,7 +149,8 @@ def query_perplexity(question, perplexity_client=perplexity_client, experiment_d
 
    
     answer = perplexity_client.chat.completions.create(
-                model="llama-3-sonar-small-32k-online",
+                # model="llama-3-sonar-small-32k-online",
+                model="llama-3.1-sonar-small-128k-chat",
                 # model="sonar-medium-chat",
                 # model="sonar-medium-online",
                 messages=chat_log,

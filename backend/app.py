@@ -69,8 +69,8 @@ def generate_playlist():
     """
     print('--- sending gpt request')
     # Generate the playlist using the GPT model
-    # reply = gpt.gpt_single_reply(final_prompt)
-    reply = gpt.query_perplexity(final_prompt)
+    reply = gpt.gpt_single_reply(final_prompt)
+    # reply = gpt.query_perplexity(final_prompt)
     
     print(reply)
     # reply = gpt.query_perplexity(prompt)

@@ -6,6 +6,11 @@ OR check the code in build.sh and run correspondingly.
 
 ## Installation
 
+### NPM
+
+```npm install```
+
+
 ### Redis
 
 Mac:
