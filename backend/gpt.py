@@ -2,44 +2,21 @@ from datetime import datetime, timedelta
 import time
 import os, sys
 import csv
-# import bytedtqs
+
 from pathlib import Path
-# import euler
+
 import pandas as pd
 import re
 import openai
 from openai import OpenAI
-# import subprocess
-# import asyncio
-# import httpx
 import numpy as np
 import sys
-# import concurrent
 from enum import Enum, unique
 import re
 from keys import *
 
 USE_GPT = True
 
-# """TQS Parameters"""
-# # TQS_APP_ID="sKwa3b1yrMTaFriJrmO4EUxVVe1FwRLza0oQaST3nccJfgoO"
-# # TQS_APP_KEY="AK6rBdnwKQ3QIFlQpL0WXgVavidppr1b4GhAL45hom4vYyeC"
-# TQS_APP_ID = 'XWzffeiSC5mpFHQD9oILgaSng5QYwa0Bn1NjR7gA41UAuuqN'
-# TQS_APP_KEY = 'd6gvLmhvcRv5IvmPcy74pXbnCol4gosMqNdWHoLTINs3u9fR'
-# TQS_CLUSTER="va"
-# TQS_PREFIX = """
-#             set tqs.query.engine.type=Presto; 
-# """
-# # TQS_USERNAME="meng.meng"
-# TQS_USERNAME="vincent.liu"
-# TQS_CONF = {
-#     'yarn.cluster.name': 'momet',
-#     'mapreduce.job.queuename': 'root.momet_tiktok_data_us_nuf'
-# }
-# root.momet_tiktok_data_us_nuf
-# root.macaw_tiktok_data_us_local_ssd
-# TQS_CONF = {'yarn.cluster.name':'mouse','mapreduce.job.queuename':'root.mouse_tiktok_data_us'}
-# csv.field_size_limit(2000 * 1024 * 1024) # Needed to increase fetch size
 pd.set_option('display.max_columns', None)
 
 models = {
@@ -71,16 +48,6 @@ model_choice = 'gpt4o_mini'
 
 perplexity_api_key = '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'
 perplexity_client = OpenAI(api_key=perplexity_api_key, base_url="https://api.perplexity.ai")
-
-@unique
-class QueryType(Enum):
-    EVENT: str = 'Event'
-    POST: str = 'Post'
-    NEWS: str = 'News'
-    CRISIS: str = 'Crisis'
-    GENERAL: str = 'General'    # non TikTok Question
-    ALL: str = 'All'
-
 
 
 def memoize(f):
@@ -120,7 +87,6 @@ def personal_gpt(prompt):
 
     return completion.choices[0].message.content
     # except Exception as e:
-
 
 
 @memoize
@@ -191,28 +157,8 @@ def print_log(myStr):
     print("\n\n==========\n{myStr}\n==========".format(myStr=myStr))
 
 
-# async def main(prompts):
-#     client = openai.AzureOpenAI(
-#         azure_endpoint="https://search-va.byteintl.net/gpt/openapi/offline/v2/crawl",
-#         api_version="2023-07-01-preview",
-#         api_key="1vteiIwAkTG2Lh7Az7ymhp0AqgcDCHM3"
-#     )    
-#     results = [] 
-#     with concurrent.futures.ThreadPoolExecutor() as executor:
-#         tasks = [loop.run_in_executor(executor, call_openai_chat_completions, client, prompt) for prompt in prompts]
-#         for response in await asyncio.gather(*tasks):
-#             results.append(response.strip("\n"))
-    
-#     return results
-
-
 @memoize
 def gpt_single_reply(prompt):
-    # client = openai.AzureOpenAI(
-    #     azure_endpoint="https://search-va.byteintl.net/gpt/openapi/offline/v2/crawl",
-    #     api_version="2023-07-01-preview",
-    #     api_key="1vteiIwAkTG2Lh7Az7ymhp0AqgcDCHM3"
-    # )    
     client = openai.AzureOpenAI(
             azure_endpoint=models[model_choice]['azure_endpoint'],
             api_version="2023-07-01-preview",
@@ -245,8 +191,3 @@ if __name__ == "__main__":
 
     # log_path = Path(__file__).parent / 'logs'
     # entrance(message, prompt_template, log_path)
-
-
-
-
-    

@@ -1,11 +1,14 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import gpt
+from pathlib import Path
 import spotify
 import time
 
 import redis
 import json
+
+from util.generation import *
 
 
 redis_client = redis.Redis(host='localhost', port=6379, db=0)
@@ -127,6 +130,13 @@ def get_room_playlist():
     # Fetch the playlist for the given room_name from your database
     # For now, we'll return a dummy playlist
 
+    output_filename = Path(__file__).parent.parent / 'frontend' / 'react_dj' / 'public' / 'images' / f"qr_code_{room_name}.png"
+    generate_qr_code_with_logo(f'http://aico-music.com/playroom?room_name={room_name}', output_filename)
+
+    output_filename = Path(__file__).parent.parent / 'frontend' / 'react_dj' / 'build' / 'images' / f"qr_code_{room_name}.png"
+    generate_qr_code_with_logo(f'http://aico-music.com/playroom?room_name={room_name}', output_filename)
+
+    
     playlist_json = redis_client.get(f"playlist:{room_name}")
 
     if playlist_json:

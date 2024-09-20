@@ -50,7 +50,7 @@ def search_artist_tracks(artist_name, track_name, access_token):
     response = requests.get(url, headers=headers, params=params, verify=False)
     
     json_result = json.loads(response.content)
-    print(json_result)
+    # print(json_result)
     
     if 'tracks' in json_result and 'items' in json_result['tracks']:
         tracks = json_result['tracks']['items']

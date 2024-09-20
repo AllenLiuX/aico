@@ -13,3 +13,5 @@ openai
 pandas
 Requests
 redis
+Pillow
+qrcode
