@@ -1,16 +1,17 @@
-// components/PlayRoom.js
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 function PlayRoom() {
   const [playlist, setPlaylist] = useState([]);
+  const [introduction, setIntroduction] = useState('');
+  const [settings, setSettings] = useState({});
   const [showTooltip, setShowTooltip] = useState(false);
+  const [showQRCode, setShowQRCode] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const queryParams = new URLSearchParams(location.search);
   const roomName = queryParams.get('room_name');
   const isHost = queryParams.get('is_host') === 'True';
-  const [showQRCode, setShowQRCode] = useState(false);
 
   useEffect(() => {
     if (!roomName) {
@@ -18,17 +19,19 @@ function PlayRoom() {
       return;
     }
 
-    const fetchPlaylist = async () => {
+    const fetchRoomData = async () => {
       try {
         const response = await fetch(`http://13.56.253.58:5000/api/room-playlist?room_name=${roomName}`);
         const data = await response.json();
         setPlaylist(data.playlist);
+        setIntroduction(data.introduction);
+        setSettings(data.settings);
       } catch (error) {
-        console.error('Error fetching playlist:', error);
+        console.error('Error fetching room data:', error);
       }
     };
 
-    fetchPlaylist();
+    fetchRoomData();
   }, [roomName, navigate]);
 
   const copyShareLink = () => {
@@ -111,7 +114,7 @@ function PlayRoom() {
         <div className="room-info">
           <h1>Room: {roomName}</h1>
           <p>You are {isHost ? 'the host' : 'a guest'}</p>
-          <button onClick={handleQRCodeClick}>
+          <button onClick={handleQRCodeClick} className="qr-code-button">
             QR Code
           </button>  
         </div>
@@ -125,6 +128,17 @@ function PlayRoom() {
       </header>
 
       <div id="embed-iframe"></div>
+
+      <section className="playlist-info">
+        <h2>Playlist Information</h2>
+        <p>{introduction}</p>
+        <div className="playlist-settings">
+          <h3>Playlist Settings</h3>
+          <p><strong>Prompt:</strong> {settings.prompt}</p>
+          <p><strong>Genre:</strong> {settings.genre}</p>
+          <p><strong>Occasion:</strong> {settings.occasion}</p>
+        </div>
+      </section>
 
       <main className="playlist-container">
         <h2>The Playlist</h2>
@@ -144,6 +158,7 @@ function PlayRoom() {
           ))}
         </ul>
       </main>
+
       {showQRCode && (
         <div className="qr-code-overlay">
           <div className="qr-code-modal">
