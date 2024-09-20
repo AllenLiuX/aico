@@ -115,15 +115,18 @@ def generate_playlist():
     artists = artists.split(';')
     
     urls = []
+    ids = []
     for title, artist in zip(titles, artists):
         try:
             print(f'getting links for {title}...')
-            url = spotify.get_song_url(artist, title)
+            url, id = spotify.get_song_url(artist, title)
         except Exception as e:
             print(f'----failed for {title}, {artist}', e)
             url = ''
+            id = ''
         urls.append(url)
-    playlist = [{"title": title, "artist": artist, "url": url} for title, artist, url in zip(titles, artists, urls)]
+        ids.append(id)
+    playlist = [{"title": title, "artist": artist, "url": url, "id": id} for title, artist, url, id in zip(titles, artists, urls, ids)]
     
     print(playlist)
 
@@ -180,6 +183,11 @@ def get_room_playlist():
     else:
         introduction = ""
 
+    print({
+        "playlist": playlist,
+        "introduction": introduction,
+        "settings": settings
+    })
     # Now return the decoded and JSON-parsed data
     return jsonify({
         "playlist": playlist,
