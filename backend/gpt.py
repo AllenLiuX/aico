@@ -17,6 +17,7 @@ import sys
 # import concurrent
 from enum import Enum, unique
 import re
+from keys import *
 
 USE_GPT = True
 
@@ -57,11 +58,16 @@ models = {
         "azure_endpoint": "https://search-va.byteintl.net/gpt/openapi/online/v2/crawl", 
         "api_key": "Qbj2AeJBxQoENtAthOI7SFZ6BTWf2yEs"
     },
+    "gpt4o_mini": {
+        "name":"gpt-4o-mini",
+        "api_key": api_key
+    }
 }
 
 model_choice = "128k"
 model_choice = "8k"
 model_choice = 'gpt4o'
+model_choice = 'gpt4o_mini'
 
 perplexity_api_key = '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'
 perplexity_client = OpenAI(api_key=perplexity_api_key, base_url="https://api.perplexity.ai")
@@ -94,6 +100,28 @@ def is_number(string):
     except ValueError:
         # If a ValueError occurs, the string cannot be converted to a number
         return False
+
+def personal_gpt(prompt):    
+    # try:
+    client = OpenAI(api_key=models[model_choice]['api_key'])
+
+    completion = client.chat.completions.create(
+        model=models[model_choice]['name'],
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant."},
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        temperature=0.00,
+        max_tokens=4000
+    )
+
+    return completion.choices[0].message.content
+    # except Exception as e:
+
+
 
 @memoize
 def call_openai_chat_completions(client, request_content):
@@ -197,8 +225,13 @@ def gpt_single_reply(prompt):
 
 if __name__ == "__main__":
 
+    # print('sending perplexity request test...')
     prompt = "what's the recent minor protection policy in United States for social media apps?"
-    reply = gpt_single_reply(prompt)
+    # reply = query_perplexity(prompt)
+    # print(reply)
+    print('sending gpt request test...')
+    # reply = gpt_single_reply(prompt)
+    reply = personal_gpt(prompt)
     print(reply)
     # if len(sys.argv) == 2:
     #     message = sys.argv[1]

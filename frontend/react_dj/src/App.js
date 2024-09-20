@@ -35,7 +35,7 @@
 
 // App.js
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Header from './components/Header';
 import Homepage from './components/Homepage';
 import CreateRoom from './components/CreateRoom';
@@ -52,6 +52,7 @@ function App() {
         <Header />
         <main>
           <Routes>
+            <Route exact path="/" render={() => <Navigate to="/homepage" />} />
             <Route path="/homepage" element={<Homepage />} />
             <Route path="/create_room" element={<CreateRoom />} />
             <Route path="/join_room" element={<JoinRoom />} />

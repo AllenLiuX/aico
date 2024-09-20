@@ -20,7 +20,8 @@ function PlaylistGenerator() {
 
   const generatePlaylist = async (preferences) => {
     try {
-      const response = await fetch('http://127.0.0.1:4999/api/generate-playlist', {
+      // const response = await fetch('http://127.0.0.1:5000/api/generate-playlist', {  # local
+      const response = await fetch('http://13.56.253.58:5000/api/generate-playlist', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

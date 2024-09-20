@@ -4,3 +4,6 @@ backend/nohup.out
 frontend/react_dj/node_modules
 __pycache__/
 myenv/
+
+venv/
+keys.py

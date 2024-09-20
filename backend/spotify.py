@@ -32,7 +32,7 @@ def get_access_token(client_id, client_secret):
     json_result = json.loads(response.content)
     return json_result['access_token']
 
-@memoize
+# @memoize
 def search_artist_tracks(artist_name, track_name, access_token):
     url = "https://api.spotify.com/v1/search"
     headers = {
@@ -50,14 +50,14 @@ def search_artist_tracks(artist_name, track_name, access_token):
     response = requests.get(url, headers=headers, params=params, verify=False)
     
     json_result = json.loads(response.content)
-    # print(json_result)
+    print(json_result)
     
     if 'tracks' in json_result and 'items' in json_result['tracks']:
         tracks = json_result['tracks']['items']
         all_tracks.extend(tracks)
         
-        if json_result['tracks']['next']:
-            params['offset'] = json_result['tracks']['offset'] + len(tracks)
+        # if json_result['tracks']['next']:
+        #     params['offset'] = json_result['tracks']['offset'] + len(tracks)
     #     else:
     #         break
     # else:

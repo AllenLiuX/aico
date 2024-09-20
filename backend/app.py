@@ -55,12 +55,20 @@ def generate_playlist():
     print(occasion)
     print(room_name)
 
-    final_prompt = f"""I'll give you a music requirement, genre, and an occasion, and you'll generate a playlist of music for me. Make sure the playlist is suitable for the given genre and occasion.
-    The output format of the playlist should be two list seperated by ;. the two list titles and artists are stored in two lines in the below format. such that the title is and only is the full name of the song, and artist is and only is the full name of the corresponding musician. do not provide any extra information. Each one separated by a semicolon ;, and the sequence and length should be matched.
+    final_prompt = f"""
+    I'll give you a music requirement possibly with genre and an occasion, and you'll generate a playlist of at least 10 songs for me. Make sure the playlist is suitable for the given genre and occasion.
+    The output format of the playlist should be two list seperated by ;. The two list titles and artists are stored in two lines in the below format. such that the title is and only is the full name of the song, and artist is and only is the full name of the corresponding musician. 
+    do not provide any extra information. Each one separated by a semicolon ;, and the sequence and item number should be matched.
 
+    Output Format:
+    titles: <titles separated by ;>
+    artists: <artists separated by ;>
+    
     Output Example:
-    titles: music1;music2;music3;
-    artists: artist1;artist2;artist3;
+    titles: music1;music2;music3;...;
+    artists: artist1;artist2;artist3;...;
+
+    Do not use new line when listing the titles and artists, but make them into one line.
 
     The given input is as followed:
     music requirement: {prompt}
@@ -69,8 +77,9 @@ def generate_playlist():
     """
     print('--- sending gpt request')
     # Generate the playlist using the GPT model
-    reply = gpt.gpt_single_reply(final_prompt)
+    # reply = gpt.gpt_single_reply(final_prompt)
     # reply = gpt.query_perplexity(final_prompt)
+    reply = gpt.personal_gpt(final_prompt)
     
     print(reply)
     # reply = gpt.query_perplexity(prompt)
@@ -135,4 +144,5 @@ def get_room_playlist():
 
 if __name__ == '__main__':
     # app.run(port=3000, host='10.72.252.213', debug=True)
-    app.run(port=4999, debug=True)
+    app.run(port=5000, host='0.0.0.0', debug=True)
+    # http://13.56.253.58/

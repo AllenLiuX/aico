@@ -17,7 +17,18 @@ pip3 install -r backend/requirements.txt
 cd frontend/react_dj || exit
 
 # Run npm start
-nohup npm start &
+# nohup npm start &
+# Test
+nohup npm start -- --disable-host-check &
+
+# BUID
+npm run build
+sudo npm install -g serve
+# sudo serve -s build
+nohup sudo serve -s build -l 80 &
 
 cd ../../backend || exit
 nohup python3 app.py &
+
+# sudo lsof -i :5000
+# kill -9 <PID>
