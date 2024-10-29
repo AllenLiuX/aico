@@ -201,6 +201,49 @@ def get_room_playlist():
     #     {"id": "spotify:track:9101", "title": "Song 3", "artist": "Artist 3"},
     # ]
     # return jsonify({"playlist": playlist, "introduction": introduction, "settings": settings})
+    
+
+@app.route('/api/search-music', methods=['GET'])
+def search_music():
+    query = request.args.get('query')
+    tracks, json_result = spotify.search_spotify(query)
+
+    # Get the first 30 tracks from the search results, each track should have title, artist, url, id, image url
+    tracks = tracks[:30]
+
+    # Extract required information for each track
+    results = [{
+        "title": track.get('name'),
+        "artist": track['artists'][0]['name'] if track.get('artists') else "Unknown Artist",
+        "url": track['external_urls']['spotify'] if track.get('external_urls') else "",
+        "id": track.get('id'),
+        "image_url": track['album']['images'][0]['url'] if track.get('album') and track['album'].get('images') else ""
+    } for track in tracks]
+
+    return jsonify({"tracks": results})
+
+
+@app.route('/api/add-to-playlist', methods=['POST'])
+def add_to_playlist():
+    data = request.json
+    room_name = data.get('room_name')
+    track = data.get('track')
+
+    # Fetch the existing playlist for the given room_name from Redis
+    playlist_json = redis_client.get(f"playlist:{room_name}")
+    if playlist_json:
+        playlist = json.loads(playlist_json.decode('utf-8'))
+    else:
+        playlist = []
+
+    # Add the new track to the playlist
+    playlist.append(track)
+
+    # Update the playlist in Redis
+    redis_client.set(f"playlist:{room_name}", json.dumps(playlist))
+
+    return jsonify({"message": "Track added successfully"})
+
 
 if __name__ == '__main__':
     # app.run(port=3000, host='10.72.252.213', debug=True)

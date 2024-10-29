@@ -125,6 +125,10 @@ function PlayRoom() {
     document.body.removeChild(link);
   };
 
+  const handleSearchMusic = () => {
+    navigate(`/search-music?room=${roomName}`);
+  };
+
   useEffect(() => {
     // if (!firstTrackId) return;
     console.log("Loading Spotify player with track ID:", firstTrackId); // Debug log
@@ -176,7 +180,8 @@ function PlayRoom() {
           <p>You are {isHost ? 'the host' : 'a guest'}</p>
           <button onClick={handleQRCodeClick} className="qr-code-button">
             QR Code
-          </button>  
+          </button>
+          <button onClick={handleSearchMusic}>Search and Add Music</button>  
         </div>
         <div className="share-button-container">
           <button onClick={copyShareLink} className="share-button">

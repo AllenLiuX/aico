@@ -11,3 +11,86 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+.search-music {
+  padding: 20px;
+  background-color: #f9f9f9;
+  color: #333;
+}
+
+.search-music h1 {
+  font-size: 24px;
+  margin-bottom: 20px;
+}
+
+.search-music form {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.search-music input[type="text"] {
+  flex: 1;
+  padding: 10px;
+  font-size: 16px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-right: 10px;
+}
+
+.search-music button[type="submit"] {
+  padding: 10px 20px;
+  font-size: 16px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.search-music button[type="submit"]:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.search-music .error {
+  color: red;
+  margin-bottom: 20px;
+}
+
+.search-music .search-results {
+  list-style-type: none;
+  padding: 0;
+}
+
+.search-music .track-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border-bottom: 1px solid #ccc;
+}
+
+.search-music .track-info h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.search-music .track-info p {
+  margin: 0;
+  color: #666;
+}
+
+.search-music .track-item button {
+  padding: 5px 10px;
+  font-size: 16px;
+  background-color: #28a745;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.search-music .track-item button:hover {
+  background-color: #218838;
+}

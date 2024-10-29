@@ -43,6 +43,7 @@ import JoinRoom from './components/JoinRoom';
 import PlaylistGenerator from './components/PlaylistGenerator';
 import PlayRoom from './components/Playroom';
 import AboutUs from './components/AboutUs';
+import SearchMusic from './components/SearchMusic';
 import './App.css';
 
 function App() {
@@ -59,6 +60,7 @@ function App() {
             <Route path="/playlist" element={<PlaylistGenerator />} />
             <Route path="/playroom" element={<PlayRoom />} />
             <Route path="/about" element={<AboutUs />} />
+            <Route path="/search_music" element={<SearchMusic />} />
           </Routes>
         </main>
       </div>
