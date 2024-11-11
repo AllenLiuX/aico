@@ -62,8 +62,12 @@ function PlayRoom() {
 
     const fetchRoomData = async () => {
       try {
-        const response = await fetch(`http://13.56.253.58:5000/api/room-playlist?room_name=${roomName}`);
+
+        const response = await fetch(`http://127.0.0.1:5000/api/room-playlist?room_name=${roomName}`);
+
+        // const response = await fetch(`http://13.56.253.58:5000/api/room-playlist?room_name=${roomName}`);
         const data = await response.json();
+        console.log(data)
         setPlaylist(data.playlist);
         setIntroduction(data.introduction);
         setSettings(data.settings);
@@ -129,43 +133,7 @@ function PlayRoom() {
     navigate(`/search-music?room=${roomName}`);
   };
 
-  useEffect(() => {
-    // if (!firstTrackId) return;
-    console.log("Loading Spotify player with track ID:", firstTrackId); // Debug log
 
-    // Load Spotify IFrame API
-    const script = document.createElement('script');
-    script.src = "https://open.spotify.com/embed/iframe-api/v1";
-    script.async = true;
-    script.onload = () => {
-      window.onSpotifyIframeApiReady = (IFrameAPI) => {
-        const element = document.getElementById('embed-iframe');
-        const options = {
-          width: '100%',
-          height: '160',
-          uri: `spotify:track:${firstTrackId}`,
-          // uri: 'spotify:track:52yAKumXlqPjUsIBlmiMvo',
-          // allow: "encrypted-media"
-          allow: "encrypted-media; clipboard-write; autoplay" ,
-        };
-        // track/39uLYYZytVUwcjgeYLI409?utm_source=generator
-        const callback = (EmbedController) => {
-          document.querySelectorAll('.episode').forEach(episode => {
-            episode.addEventListener('click', () => {
-              EmbedController.loadUri(episode.dataset.spotifyId);
-            });
-          });
-        };
-        IFrameAPI.createController(element, options, callback);
-      };
-    };
-    document.body.appendChild(script);
-    
-    // Cleanup script on component unmount
-    return () => {
-      document.body.removeChild(script);
-    };
-  }, []);
 
   // //  Function to manually test different track IDs
   //  const testTrackId = (id) => {

@@ -154,11 +154,14 @@ def get_room_playlist():
     # Fetch the playlist for the given room_name from your database
     # For now, we'll return a dummy playlist
 
-    output_filename = Path(__file__).parent.parent / 'frontend' / 'react_dj' / 'public' / 'images' / f"qr_code_{room_name}.png"
-    generate_qr_code_with_logo(f'http://aico-music.com/playroom?room_name={room_name}', output_filename)
+# Only generate QR code if it doesn't exist
+    qr_code_path = Path(__file__).parent.parent / 'frontend' / 'react_dj' / 'public' / 'images' / f"qr_code_{room_name}.png"
+    if not qr_code_path.exists():
+        generate_qr_code_with_logo(f'http://aico-music.com/playroom?room_name={room_name}', qr_code_path)
+        
+        build_path = Path(__file__).parent.parent / 'frontend' / 'react_dj' / 'build' / 'images' / f"qr_code_{room_name}.png"
+        generate_qr_code_with_logo(f'http://aico-music.com/playroom?room_name={room_name}', build_path)
 
-    output_filename = Path(__file__).parent.parent / 'frontend' / 'react_dj' / 'build' / 'images' / f"qr_code_{room_name}.png"
-    generate_qr_code_with_logo(f'http://aico-music.com/playroom?room_name={room_name}', output_filename)
 
     
     playlist_json = redis_client.get(f"playlist:{room_name}")
