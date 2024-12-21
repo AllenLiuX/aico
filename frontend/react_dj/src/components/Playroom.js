@@ -130,7 +130,7 @@ function PlayRoom() {
   };
 
   const handleSearchMusic = () => {
-    navigate(`/search-music?room=${roomName}`);
+    navigate(`/search_music?room=${roomName}`);
   };
 
 

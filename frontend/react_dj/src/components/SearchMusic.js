@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import './SearchMusic.css'; // Importing the dedicated CSS file
 
 function SearchMusic() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -62,14 +63,15 @@ function SearchMusic() {
       </header>
 
       <section className="playlist-info">
-        <form onSubmit={handleSearch}>
+        <form onSubmit={handleSearch} className="search-form">
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Enter song or artist name"
+            className="search-input"
           />
-          <button type="submit" disabled={isLoading}>
+          <button type="submit" disabled={isLoading} className="search-button">
             {isLoading ? 'Searching...' : 'Search'}
           </button>
         </form>
@@ -81,18 +83,32 @@ function SearchMusic() {
         <ul className="search-results">
           {searchResults.map((track) => (
             <li key={track.id} className="track-item">
+              <img src={track.image_url} alt={`${track.title} cover`} className="track-image" />
               <div className="track-info">
-                <h3>{track.name}</h3>
-                <p>{track.artists.map(artist => artist.name).join(', ')}</p>
+                <h3>{track.title}</h3>
+                <p>{track.artist}</p>
               </div>
-              <button onClick={() => handleAddToPlaylist(track)}>+</button>
+              <a 
+                href={track.url} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="spotify-link"
+              >
+                Listen
+              </a>
+              <button onClick={() => handleAddToPlaylist(track)} className="add-button">
+                Add
+              </button>
             </li>
           ))}
         </ul>
       </main>
 
-      <button onClick={() => navigate(`/playroom?room_name=${roomName}`)}>
-        Back to Playroom
+      <button
+        onClick={() => navigate(`/playroom?room_name=${roomName}`)}
+        className="back-button"
+      >
+        🔙
       </button>
     </div>
   );

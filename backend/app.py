@@ -229,6 +229,8 @@ def search_music():
         "id": track.get('id'),
         "image_url": track['album']['images'][0]['url'] if track.get('album') and track['album'].get('images') else ""
     } for track in tracks]
+    
+    logger.info(str(results))
 
     return jsonify({"tracks": results})
 
