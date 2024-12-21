@@ -4,11 +4,18 @@ import gpt
 from pathlib import Path
 import spotify
 import time
+import logging
+
 
 import redis
 import json
 
 from util.generation import *
+from util.all_utils import *
+
+log_path = Path(__file__).parent.parent / "logs" / "backend.online.log"
+logger_setup(log_path=log_path, debug=False)
+logger = logging.getLogger(__name__)
 
 
 redis_client = redis.Redis(host='localhost', port=6379, db=0)
@@ -62,10 +69,10 @@ def generate_playlist():
     # room_name = 'test'
 
 
-    print(prompt)
-    print(genre)
-    print(occasion)
-    print(room_name)
+    logger.info(str(prompt))
+    logger.info(str(genre))
+    logger.info(str(occasion))
+    logger.info(str(room_name))
 
     settings = {
         "prompt": prompt,
@@ -96,20 +103,20 @@ def generate_playlist():
     Genre: {genre}
     Occasion: {occasion}
     """
-    print('--- sending gpt request')
+    logger.info('--- sending gpt request')
     # Generate the playlist using the GPT model
     # reply = gpt.gpt_single_reply(final_prompt)
     # reply = gpt.query_perplexity(final_prompt)
     reply = gpt.personal_gpt(final_prompt)
     
-    print(reply)
+    logger.info(reply)
     # reply = gpt.query_perplexity(prompt)
 
     titles, artists, introduction = parse_answer_playlist(reply)
     
-    print(titles)
-    print(artists)
-    print(introduction)
+    logger.info(str(titles))
+    logger.info(str(artists))
+    logger.info(str(introduction))
     
     titles = titles.split(';')
     artists = artists.split(';')
@@ -118,25 +125,25 @@ def generate_playlist():
     ids = []
     for title, artist in zip(titles, artists):
         try:
-            print(f'getting links for {title}...')
+            logger.info(f'getting links for {title}...')
             url, id = spotify.get_song_url(artist, title)
         except Exception as e:
-            print(f'----failed for {title}, {artist}', e)
+            logger.info(f'----failed for {title}, {artist}', e)
             url = ''
             id = ''
         urls.append(url)
         ids.append(id)
     playlist = [{"title": title, "artist": artist, "url": url, "id": id} for title, artist, url, id in zip(titles, artists, urls, ids)]
     
-    print(playlist)
+    logger.info(str(playlist))
 
     # Store the playlist in Redis
     redis_client.set(f"playlist:{room_name}", json.dumps(playlist))
     redis_client.set(f"settings:{room_name}", json.dumps(settings))
     redis_client.set(f"intro:{room_name}", introduction)
 
-    print(f'Time taken: {time.time() -  start_time}')
-    # print(urls)
+    logger.info(f'Time taken: {time.time() -  start_time}')
+    # logger.info(urls)
     
     # Here you would implement your playlist generation logic
     # For now, we'll return a dummy playlist
@@ -186,11 +193,11 @@ def get_room_playlist():
     else:
         introduction = ""
 
-    print({
+    logger.info(str({
         "playlist": playlist,
         "introduction": introduction,
         "settings": settings
-    })
+    }))
     # Now return the decoded and JSON-parsed data
     return jsonify({
         "playlist": playlist,

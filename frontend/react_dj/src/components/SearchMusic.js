@@ -57,32 +57,39 @@ function SearchMusic() {
 
   return (
     <div className="search-music">
-      <h1>Search Music</h1>
-      <form onSubmit={handleSearch}>
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Enter song or artist name"
-        />
-        <button type="submit" disabled={isLoading}>
-          {isLoading ? 'Searching...' : 'Search'}
-        </button>
-      </form>
+      <header>
+        <h1>Search Music</h1>
+      </header>
+
+      <section className="playlist-info">
+        <form onSubmit={handleSearch}>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Enter song or artist name"
+          />
+          <button type="submit" disabled={isLoading}>
+            {isLoading ? 'Searching...' : 'Search'}
+          </button>
+        </form>
+      </section>
 
       {error && <p className="error">{error}</p>}
 
-      <ul className="search-results">
-        {searchResults.map((track) => (
-          <li key={track.id} className="track-item">
-            <div className="track-info">
-              <h3>{track.name}</h3>
-              <p>{track.artists.map(artist => artist.name).join(', ')}</p>
-            </div>
-            <button onClick={() => handleAddToPlaylist(track)}>+</button>
-          </li>
-        ))}
-      </ul>
+      <main className="playlist-container">
+        <ul className="search-results">
+          {searchResults.map((track) => (
+            <li key={track.id} className="track-item">
+              <div className="track-info">
+                <h3>{track.name}</h3>
+                <p>{track.artists.map(artist => artist.name).join(', ')}</p>
+              </div>
+              <button onClick={() => handleAddToPlaylist(track)}>+</button>
+            </li>
+          ))}
+        </ul>
+      </main>
 
       <button onClick={() => navigate(`/playroom?room_name=${roomName}`)}>
         Back to Playroom

@@ -10,7 +10,7 @@ function ShareButton() {
 
   const copyShareLink = () => {
     const roomId = generateRoomId();
-    const shareLink = `www.aico.com/share?roomId=${roomId}`;
+    const shareLink = `www.aico-music.com/share?roomId=${roomId}`;
     // const shareLink = `http://localhost:3000/playroom?room_name={roomId}&is_host=False`;
     
     navigator.clipboard.writeText(shareLink).then(() => {

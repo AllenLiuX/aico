@@ -1,5 +1,7 @@
 draft/
 *.out
+*.out2
+logs/
 backend/nohup.out
 frontend/react_dj/node_modules
 __pycache__/

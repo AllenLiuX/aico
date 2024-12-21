@@ -63,9 +63,9 @@ function PlayRoom() {
     const fetchRoomData = async () => {
       try {
 
-        const response = await fetch(`http://127.0.0.1:5000/api/room-playlist?room_name=${roomName}`);
+        // const response = await fetch(`http://127.0.0.1:5000/api/room-playlist?room_name=${roomName}`);
 
-        // const response = await fetch(`http://13.56.253.58:5000/api/room-playlist?room_name=${roomName}`);
+        const response = await fetch(`http://13.56.253.58:5000/api/room-playlist?room_name=${roomName}`);
         const data = await response.json();
         console.log(data)
         setPlaylist(data.playlist);
@@ -149,7 +149,6 @@ function PlayRoom() {
           <button onClick={handleQRCodeClick} className="qr-code-button">
             QR Code
           </button>
-          <button onClick={handleSearchMusic}>Search and Add Music</button>  
         </div>
         <div className="share-button-container">
           <button onClick={copyShareLink} className="share-button">
@@ -212,6 +211,7 @@ function PlayRoom() {
 
       <main className="playlist-container">
         <h2>The Playlist</h2>
+        <button onClick={handleSearchMusic} className="qr-code-button">Search and Add Music</button>  
         <ul className="playlist">
           {playlist.map((track, index) => (
             <li key={index} className="playlist-item">

@@ -97,10 +97,10 @@ def get_song_url(artist_name, track_name):
     # track_name = "Can't Stop the Feeling!"
     access_token = get_access_token(CLIENT_ID, CLIENT_SECRET)
     tracks, json_result = search_artist_tracks(artist_name, track_name, access_token)
-    print('============ tracks ===============')
-    print(tracks)
-    print('============ result ===============')
-    print(json_result)
+    # print('============ tracks ===============')
+    # print(tracks)
+    # print('============ result ===============')
+    # print(json_result)
     
     url = json_result['tracks']['items'][0]['external_urls']['spotify']
     id = json_result['tracks']['items'][0]['id']
