@@ -236,6 +236,9 @@ def get_room_playlist():
 @app.route('/api/search-music', methods=['GET'])
 def search_music():
     query = request.args.get('query')
+    search_type = request.args.get('search_type')
+
+    logger.info(f'query:{query}; search_type:{search_type}')
     # tracks, json_result = spotify.search_spotify(query)
 
     # # Get the first 30 tracks from the search results, each track should have title, artist, url, id, image url
@@ -252,7 +255,11 @@ def search_music():
     
     # logger.info(str(results))
 
-    results = youtube_music.search_artist_tracks(query, max_results=30)
+    if search_type == 'artist':
+        results = youtube_music.search_artist_tracks(query, max_results=30)
+    else:
+        results = youtube_music.search_song_tracks(query, max_results=30)
+        
     tracks = []
     for result in results:
         track = {
@@ -261,6 +268,8 @@ def search_music():
                 "url": result["song_url"],
                 "image_url": result["cover_img_url"],
                 "artist": result["artist"],
+                "album": result["album"],
+                "duration_seconds": result["duration_seconds"],
             }
         tracks.append(track)
 

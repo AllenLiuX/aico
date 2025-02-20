@@ -111,6 +111,47 @@ def search_artist_tracks(artist_name, max_results=10):
 
 
 
+def search_song_tracks(song_name, max_results=10):
+    """
+    Search for tracks related to a song name on YouTube Music and return a list of song details.
+
+    :param song_name: str, name of the song to search
+    :param max_results: int, number of songs to return (default: 10)
+    :return: list of dicts containing song info (song_id, song_url, cover_img_url, title, artist, album, duration_seconds)
+    """
+    ytmusic = YTMusic()
+
+    # Search for the song
+    search_results = ytmusic.search(song_name, filter="songs")
+    if not search_results:
+        return {"error": "No songs found."}
+
+    # Extract song details
+    song_list = []
+    for song in search_results[:max_results]:  # Limit the number of results
+        song_id = song.get("videoId")
+
+        # Get full song details for high-resolution cover and duration
+        full_song_data = ytmusic.get_song(song_id) if song_id else {}
+
+        # Extract highest resolution cover image
+        thumbnails = full_song_data.get("videoDetails", {}).get("thumbnail", {}).get("thumbnails", [])
+        full_cover_url = thumbnails[-1]["url"] if thumbnails else song.get("thumbnails", [{}])[-1].get("url", "")
+
+        song_info = {
+            "song_id": song_id,
+            "song_url": f"https://music.youtube.com/watch?v={song_id}" if song_id else None,
+            "cover_img_url": full_cover_url,
+            "title": song.get("title"),
+            "artist": ", ".join([a["name"] for a in song.get("artists", [])]),
+            "album": song.get("album", {}).get("name"),
+            "duration_seconds": full_song_data.get("videoDetails", {}).get("lengthSeconds", 0),
+        }
+        song_list.append(song_info)
+
+    return song_list[:max_results]  # Limit results
+
+
 if __name__=='__main__':
     # artist_name = "Eason Chen"
     # # artist_name = "Taylor Swift"

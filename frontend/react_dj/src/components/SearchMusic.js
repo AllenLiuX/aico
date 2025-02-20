@@ -7,6 +7,8 @@ function SearchMusic() {
   const [searchResults, setSearchResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [searchType, setSearchType] = useState('artist'); // Default search type is 'artist'
+  
   const location = useLocation();
   const navigate = useNavigate();
   const queryParams = new URLSearchParams(location.search);
@@ -18,7 +20,7 @@ function SearchMusic() {
     setError(null);
 
     try {
-      const response = await fetch(`http://13.56.253.58:5000/api/search-music?query=${encodeURIComponent(searchQuery)}`);
+      const response = await fetch(`http://13.56.253.58:5000/api/search-music?query=${encodeURIComponent(searchQuery)}&search_type=${searchType}`);
       if (!response.ok) {
         throw new Error('Failed to fetch search results');
       }
@@ -56,6 +58,10 @@ function SearchMusic() {
     }
   };
 
+  const toggleSearchType = () => {
+    setSearchType(prevType => prevType === 'artist' ? 'song' : 'artist');
+  };
+
   return (
     <div className="search-music">
       <header>
@@ -68,13 +74,26 @@ function SearchMusic() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Enter song or artist name"
+            placeholder={`Enter ${searchType === 'artist' ? 'artist' : 'song'} name`}
             className="search-input"
           />
           <button type="submit" disabled={isLoading} className="search-button">
             {isLoading ? 'Searching...' : 'Search'}
           </button>
         </form>
+        
+        <div className="search-toggle">
+          <span className={searchType === 'artist' ? 'active' : ''}>Artist</span>
+          <label className="switch">
+            <input 
+              type="checkbox" 
+              checked={searchType === 'song'}
+              onChange={toggleSearchType}
+            />
+            <span className="slider round"></span>
+          </label>
+          <span className={searchType === 'song' ? 'active' : ''}>Song</span>
+        </div>
       </section>
 
       {error && <p className="error">{error}</p>}

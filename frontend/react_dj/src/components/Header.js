@@ -9,7 +9,7 @@ function Header() {
         <ul>
           <li><Link to="/homepage">Home</Link></li>
           <li><Link to="/about">About Us</Link></li>
-          <li><Link to="/search_music">Search</Link></li>
+          {/* <li><Link to="/search_music">Search</Link></li> */}
         </ul>
       </nav>
     </header>
