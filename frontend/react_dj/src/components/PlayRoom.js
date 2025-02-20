@@ -41,8 +41,8 @@ function PlayRoom() {
     const fetchRoomData = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`http://13.56.253.58:5000/api/room-playlist?room_name=${roomName}`);
-        
+        const response = await fetch(`http://127.0.0.1:5000/api/room-playlist?room_name=${roomName}`);
+        // const response = await fetch(`http://13.56.253.58:5000/api/room-playlist?room_name=${roomName}`);
         if (!response.ok) {
           throw new Error(`Failed to fetch playlist (${response.status})`);
         }
@@ -143,20 +143,27 @@ function PlayRoom() {
     // YT.PlayerState values:
     // -1 (unstarted), 0 (ended), 1 (playing), 2 (paused), 3 (buffering), 5 (video cued)
     const playerState = event.data;
-    console.log(`Player state changed to ${playerState}. Current track index: ${currentTrack}`);
+    console.log(`Player state changed to ${playerState}`);
     
     // Handle track ending
     if (playerState === 0) {
-      // Get the current index directly from state to ensure accuracy
-      const currentIndex = currentTrack;
-      const nextIndex = (currentIndex + 1) % playlist.length;
-      console.log(`Song ended. Moving from track index ${currentIndex} to ${nextIndex}`);
-      
-      // First update state, then load the video with a slight delay to ensure state updates
-      setCurrentTrack(nextIndex);
-      setTimeout(() => {
-        loadVideo(nextIndex);
-      }, 50);
+      // Use functional update to ensure we're using the latest state
+      setCurrentTrack(prevTrack => {
+        const nextIndex = (prevTrack + 1) % playlist.length;
+        console.log(`Song ended. Moving from track index ${prevTrack} to ${nextIndex}`);
+        
+        // Load the next video with the correct index
+        setTimeout(() => {
+          if (playerRef.current) {
+            const videoId = extractVideoId(playlist[nextIndex].url);
+            if (videoId) {
+              playerRef.current.loadVideoById(videoId);
+            }
+          }
+        }, 50);
+        
+        return nextIndex;
+      });
     }
     
     // Update playing state based on player state
