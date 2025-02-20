@@ -243,3 +243,116 @@ function PlayRoom() {
 }
 
 export default PlayRoom;
+
+
+// // Updated PlayRoom.js with Spotify Web Playback SDK Integration
+
+// import React, { useEffect, useState } from 'react';
+
+// const SPOTIFY_CLIENT_ID = '1bf7160dc56446378b569f7a74064a12'; // Replace with your Spotify Client ID
+// const REDIRECT_URI = 'http://localhost:3000/callback'; // Update this if your redirect URI differs
+
+// const PlayRoom = ({ playlist, roomName }) => {
+//   const [spotifyPlayer, setSpotifyPlayer] = useState(null);
+//   const [isAuthorized, setIsAuthorized] = useState(false);
+
+//   const getSpotifyToken = () => {
+//     const hash = window.location.hash;
+//     const token = hash
+//       .substring(1)
+//       .split('&')
+//       .find(elem => elem.startsWith('access_token'))
+//       ?.split('=')[1];
+//     return token;
+//   };
+
+//   const loginToSpotify = () => {
+//     const scope = 'streaming user-read-email user-read-private';
+//     const authURL = `https://accounts.spotify.com/authorize?response_type=token&client_id=${SPOTIFY_CLIENT_ID}&scope=${encodeURIComponent(scope)}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
+//     window.location.href = authURL;
+//   };
+
+//   useEffect(() => {
+//     const token = getSpotifyToken();
+//     if (!token) {
+//       loginToSpotify();
+//       return;
+//     }
+
+//     setIsAuthorized(true);
+
+//     const script = document.createElement('script');
+//     script.src = 'https://sdk.scdn.co/spotify-player.js';
+//     script.async = true;
+//     document.body.appendChild(script);
+
+//     window.onSpotifyWebPlaybackSDKReady = () => {
+//       const player = new window.Spotify.Player({
+//         name: 'PlayRoom Player',
+//         getOAuthToken: cb => { cb(token); },
+//         volume: 0.8,
+//       });
+
+//       player.connect();
+
+//       player.addListener('ready', ({ device_id }) => {
+//         console.log('Device ID:', device_id);
+//       });
+
+//       player.addListener('player_state_changed', state => {
+//         console.log('Player state changed:', state);
+//       });
+
+//       setSpotifyPlayer(player);
+//     };
+//   }, []);
+
+//   const playTrack = async (spotifyUri) => {
+//     if (!spotifyPlayer) {
+//       alert('Player is not ready yet. Please wait.');
+//       return;
+//     }
+
+//     const token = getSpotifyToken();
+//     const deviceId = spotifyPlayer._options.id;
+
+//     await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
+//       method: 'PUT',
+//       headers: {
+//         Authorization: `Bearer ${token}`,
+//         'Content-Type': 'application/json',
+//       },
+//       body: JSON.stringify({ uris: [spotifyUri] }),
+//     });
+//   };
+
+//   return (
+//     <div className="playroom">
+//       <header>
+//         <h1>Welcome to {roomName} PlayRoom</h1>
+//       </header>
+
+//       {!isAuthorized && <p>Redirecting to Spotify for authentication...</p>}
+
+//       {isAuthorized && (
+//         <div className="playlist-container">
+//           <h2>Playlist</h2>
+//           {playlist.map((track, index) => (
+//             <div key={index} className="track-item">
+//               <p>
+//                 <strong>{track.title}</strong> by {track.artist}
+//               </p>
+//               <button onClick={() => playTrack(track.id)}>Play</button>
+//             </div>
+//           ))}
+//         </div>
+//       )}
+
+//       <footer>
+//         <button onClick={() => alert('Back to Room Selection!')}>Back</button>
+//       </footer>
+//     </div>
+//   );
+// };
+
+// export default PlayRoom;

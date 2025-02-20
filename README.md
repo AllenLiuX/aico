@@ -30,3 +30,9 @@ Mac:
 
 <!-- setting at /usr/local/etc/redis.conf -->
 
+
+## Online Serving
+
+```screen -ls```
+screen -r xxx
+ctrl -A -D

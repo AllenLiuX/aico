@@ -1,0 +1,11 @@
+{
+    "web":
+    {
+        "client_id":"1465211353-n3b507r1urah1u0s0gpk2tahp911b284.apps.googleusercontent.com",
+        "project_id":"halogen-eon-342923",
+        "auth_uri":"https://accounts.google.com/o/oauth2/auth",
+        "token_uri":"https://oauth2.googleapis.com/token",
+        "auth_provider_x509_cert_url":"https://www.googleapis.com/oauth2/v1/certs",
+        "client_secret":"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"
+    }
+}

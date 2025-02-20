@@ -35,7 +35,7 @@ function Playlist({ tracks }) {
               rel="noopener noreferrer"
               className="spotify-button"
             >
-              Listen on Spotify
+              Listen on YouTube
             </a>
           </li>
         ))}

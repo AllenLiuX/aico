@@ -5,6 +5,8 @@ from pathlib import Path
 import spotify
 import time
 import logging
+import util.youtube_music as youtube_music
+import util.redis_api as redis_api
 
 
 import redis
@@ -20,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 redis_client = redis.Redis(host='localhost', port=6379, db=0)
 
+redis_version = '_v1'
 
 app = Flask(__name__)
 
@@ -123,24 +126,36 @@ def generate_playlist():
     
     urls = []
     ids = []
+    cover_img_urls = []
     for title, artist in zip(titles, artists):
         try:
             logger.info(f'getting links for {title}...')
-            url, id = spotify.get_song_url(artist, title)
+            # url, id = spotify.get_song_url(artist, title)
+            song_info = youtube_music.get_song_info(song_name=title, artist_name=artist)
+            url, id, cover_img_url = song_info['song_url'], song_info['song_id'], song_info['cover_img_url']
+
         except Exception as e:
             logger.info(f'----failed for {title}, {artist}', e)
             url = ''
             id = ''
+            cover_img_url = ''
         urls.append(url)
         ids.append(id)
+        cover_img_urls.append(cover_img_url)
+
+    # playlist = [{"title": title, "artist": artist, "url": url, "id": id} for title, artist, url, id in zip(titles, artists, urls, ids)]
     playlist = [{"title": title, "artist": artist, "url": url, "id": id} for title, artist, url, id in zip(titles, artists, urls, ids)]
     
     logger.info(str(playlist))
 
-    # Store the playlist in Redis
-    redis_client.set(f"playlist:{room_name}", json.dumps(playlist))
-    redis_client.set(f"settings:{room_name}", json.dumps(settings))
-    redis_client.set(f"intro:{room_name}", introduction)
+    # # Store the playlist in Redis
+    # redis_client.set(f"playlist:{room_name}", json.dumps(playlist))
+    # redis_client.set(f"settings:{room_name}", json.dumps(settings))
+    # redis_client.set(f"intro:{room_name}", introduction)
+
+    redis_api.write_hash(f"playlist{redis_version}", room_name, json.dumps(playlist))
+    redis_api.write_hash(f"settings{redis_version}", room_name, json.dumps(settings))
+    redis_api.write_hash(f"intro{redis_version}", room_name, introduction)
 
     logger.info(f'Time taken: {time.time() -  start_time}')
     # logger.info(urls)
@@ -171,27 +186,32 @@ def get_room_playlist():
 
 
     
-    playlist_json = redis_client.get(f"playlist:{room_name}")
-    settings_json = redis_client.get(f"settings:{room_name}")
-    introduction = redis_client.get(f"intro:{room_name}")
+    # playlist_json = redis_client.get(f"playlist:{room_name}")
+    # settings_json = redis_client.get(f"settings:{room_name}")
+    # introduction = redis_client.get(f"intro:{room_name}")
 
-    # Decode settings_json and playlist_json from bytes to str before using json.loads()
-    if settings_json:
-        settings = json.loads(settings_json.decode('utf-8'))
-    else:
-        settings = {}
+    # # Decode settings_json and playlist_json from bytes to str before using json.loads()
+    # if settings_json:
+    #     settings = json.loads(settings_json.decode('utf-8'))
+    # else:
+    #     settings = {}
 
-    if playlist_json:
-        playlist = json.loads(playlist_json.decode('utf-8'))
-    else:
-        # Return an empty playlist if not found
-        playlist = []
+    # if playlist_json:
+    #     playlist = json.loads(playlist_json.decode('utf-8'))
+    # else:
+    #     # Return an empty playlist if not found
+    #     playlist = []
 
-    # Decode introduction from bytes to str if it exists
-    if introduction:
-        introduction = introduction.decode('utf-8')
-    else:
-        introduction = ""
+    # # Decode introduction from bytes to str if it exists
+    # if introduction:
+    #     introduction = introduction.decode('utf-8')
+    # else:
+    #     introduction = ""
+
+    playlist = redis_api.get_hash(f"playlist{redis_version}", room_name)
+    settings = redis_api.get_hash(f"settings{redis_version}", room_name)
+    introduction = redis_api.get_hash(f"intro{redis_version}", room_name)
+
 
     logger.info(str({
         "playlist": playlist,
@@ -216,23 +236,36 @@ def get_room_playlist():
 @app.route('/api/search-music', methods=['GET'])
 def search_music():
     query = request.args.get('query')
-    tracks, json_result = spotify.search_spotify(query)
+    # tracks, json_result = spotify.search_spotify(query)
 
-    # Get the first 30 tracks from the search results, each track should have title, artist, url, id, image url
-    tracks = tracks[:30]
+    # # Get the first 30 tracks from the search results, each track should have title, artist, url, id, image url
+    # tracks = tracks[:30]
 
-    # Extract required information for each track
-    results = [{
-        "title": track.get('name'),
-        "artist": track['artists'][0]['name'] if track.get('artists') else "Unknown Artist",
-        "url": track['external_urls']['spotify'] if track.get('external_urls') else "",
-        "id": track.get('id'),
-        "image_url": track['album']['images'][0]['url'] if track.get('album') and track['album'].get('images') else ""
-    } for track in tracks]
+    # # Extract required information for each track
+    # results = [{
+    #     "title": track.get('name'),
+    #     "artist": track['artists'][0]['name'] if track.get('artists') else "Unknown Artist",
+    #     "url": track['external_urls']['spotify'] if track.get('external_urls') else "",
+    #     "id": track.get('id'),
+    #     "image_url": track['album']['images'][0]['url'] if track.get('album') and track['album'].get('images') else ""
+    # } for track in tracks]
     
-    logger.info(str(results))
+    # logger.info(str(results))
 
-    return jsonify({"tracks": results})
+    results = youtube_music.search_artist_tracks(query, max_results=30)
+    tracks = []
+    for result in results:
+        track = {
+                "id": result["song_id"],
+                "title": result["title"],
+                "url": result["song_url"],
+                "image_url": result["cover_img_url"],
+                "artist": result["artist"],
+            }
+        tracks.append(track)
+
+    logger.info(f"{tracks}")
+    return jsonify({"tracks": tracks})
 
 
 @app.route('/api/add-to-playlist', methods=['POST'])

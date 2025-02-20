@@ -26,9 +26,14 @@ npm run build
 sudo npm install -g serve
 # sudo serve -s build
 nohup sudo serve -s build -l 80 &
+# sudo serve -s build -l 80
 
 cd ../../backend || exit
 nohup python3 app.py &
 
 # sudo lsof -i :5000
+# sudo lsof -i :80
 # kill -9 <PID>
+# screen -ls
+# screen -S backend     // create
+

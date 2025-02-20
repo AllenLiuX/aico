@@ -15,3 +15,4 @@ Requests
 redis
 Pillow
 qrcode
+ytmusicapi
