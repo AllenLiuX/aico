@@ -153,8 +153,12 @@ if __name__ == '__main__':
 
     room_name = 'eason'
     redis_version = '_v1'
-    playlist = get_hash(f"playlist{redis_version}", room_name)
-    settings = get_hash(f"settings{redis_version}", room_name)
+    # playlist = get_hash(f"playlist{redis_version}", room_name)
+    # settings = get_hash(f"settings{redis_version}", room_name)
+    # introduction = get_hash(f"intro{redis_version}", room_name)
+
+    playlist = json.loads(get_hash(f"playlist{redis_version}", room_name))
+    settings = json.loads(get_hash(f"settings{redis_version}", room_name))
     introduction = get_hash(f"intro{redis_version}", room_name)
     print(f"playlist: {playlist}")
     print(f"settings: {settings}")

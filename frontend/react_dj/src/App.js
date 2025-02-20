@@ -41,9 +41,11 @@ import Homepage from './components/Homepage';
 import CreateRoom from './components/CreateRoom';
 import JoinRoom from './components/JoinRoom';
 import PlaylistGenerator from './components/PlaylistGenerator';
-import PlayRoom from './components/Playroom';
+import PlayRoom from './components/PlayRoom';
 import AboutUs from './components/AboutUs';
 import SearchMusic from './components/SearchMusic';
+import SimplePlayerPage from './components/SimplePlayerPage'; // Import the new simple player page
+
 import './App.css';
 
 function App() {
@@ -61,6 +63,7 @@ function App() {
             <Route path="/playroom" element={<PlayRoom />} />
             <Route path="/about" element={<AboutUs />} />
             <Route path="/search_music" element={<SearchMusic />} />
+            <Route path="/player" element={<SimplePlayerPage />} /> {/* Add the new route */}
           </Routes>
         </main>
       </div>

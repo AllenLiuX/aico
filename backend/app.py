@@ -144,7 +144,7 @@ def generate_playlist():
         cover_img_urls.append(cover_img_url)
 
     # playlist = [{"title": title, "artist": artist, "url": url, "id": id} for title, artist, url, id in zip(titles, artists, urls, ids)]
-    playlist = [{"title": title, "artist": artist, "url": url, "id": id} for title, artist, url, id in zip(titles, artists, urls, ids)]
+    playlist = [{"title": title, "artist": artist, "url": url, "id": id, "cover_img_url": cover_img_url} for title, artist, url, id, cover_img_url in zip(titles, artists, urls, ids, cover_img_urls)]
     
     logger.info(str(playlist))
 
@@ -208,8 +208,8 @@ def get_room_playlist():
     # else:
     #     introduction = ""
 
-    playlist = redis_api.get_hash(f"playlist{redis_version}", room_name)
-    settings = redis_api.get_hash(f"settings{redis_version}", room_name)
+    playlist = json.loads(redis_api.get_hash(f"playlist{redis_version}", room_name))
+    settings = json.loads(redis_api.get_hash(f"settings{redis_version}", room_name))
     introduction = redis_api.get_hash(f"intro{redis_version}", room_name)
 
 
@@ -275,17 +275,25 @@ def add_to_playlist():
     track = data.get('track')
 
     # Fetch the existing playlist for the given room_name from Redis
-    playlist_json = redis_client.get(f"playlist:{room_name}")
-    if playlist_json:
-        playlist = json.loads(playlist_json.decode('utf-8'))
-    else:
-        playlist = []
+    # playlist_json = redis_client.get(f"playlist:{room_name}")
+
+    # if playlist_json:
+    #     playlist = json.loads(playlist_json.decode('utf-8'))
+    # else:
+    #     playlist = []
+
+    playlist = json.loads(redis_api.get_hash(f"playlist{redis_version}", room_name))
 
     # Add the new track to the playlist
     playlist.append(track)
+    logger.info(f'added track:{track} in room:{room_name}')
+    logger.info(f'new playlist:{playlist}')
 
     # Update the playlist in Redis
-    redis_client.set(f"playlist:{room_name}", json.dumps(playlist))
+    # redis_client.set(f"playlist:{room_name}", json.dumps(playlist))
+    
+    redis_api.write_hash(f"playlist{redis_version}", room_name, json.dumps(playlist))
+
 
     return jsonify({"message": "Track added successfully"})
 
