@@ -307,6 +307,27 @@ def add_to_playlist():
     return jsonify({"message": "Track added successfully"})
 
 
+@app.route('/api/remove-from-playlist', methods=['POST'])
+def remove_from_playlist():
+    data = request.json
+    room_name = data.get('room_name')
+    track_id = data.get('track_id')
+
+    # Fetch the existing playlist for the given room_name
+    playlist = json.loads(redis_api.get_hash(f"playlist{redis_version}", room_name))
+
+    # Find and remove the track with the matching ID
+    updated_playlist = [track for track in playlist if track.get('id') != track_id]
+    
+    # Log the removal operation
+    logger.info(f'removed track with id:{track_id} from room:{room_name}')
+    logger.info(f'new playlist:{updated_playlist}')
+
+    # Update the playlist in Redis
+    redis_api.write_hash(f"playlist{redis_version}", room_name, json.dumps(updated_playlist))
+
+    return jsonify({"message": "Track removed successfully", "playlist": updated_playlist})
+
 if __name__ == '__main__':
     # app.run(port=3000, host='10.72.252.213', debug=True)
     app.run(port=5000, host='0.0.0.0', debug=True)

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import './PlayRoom.css';
+import PlaylistTrack from './PlaylistTrack'; 
+
 
 function PlayRoom() {
   // State variables
@@ -165,6 +167,7 @@ function PlayRoom() {
         return nextIndex;
       });
     }
+   
     
     // Update playing state based on player state
     const isNowPlaying = playerState === 1; // YT.PlayerState.PLAYING = 1
@@ -356,6 +359,38 @@ function PlayRoom() {
 
   // Get current track info
   const currentSong = playlist[currentTrack] || {};
+  const handleTrackDelete = (newPlaylist) => {
+    // Cleanup player state
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+  
+    // If there are songs remaining in the playlist
+    if (newPlaylist.length > 0) {
+      // If deleting current track, move to next song or previous if at end
+      if (currentTrack >= newPlaylist.length) {
+        setCurrentTrack(newPlaylist.length - 1);
+      }
+      // Load the new track
+      const nextVideoId = extractVideoId(newPlaylist[currentTrack].url);
+      if (playerRef.current && nextVideoId) {
+        playerRef.current.loadVideoById(nextVideoId);
+      }
+    } else {
+      // If no songs left, reset player
+      setCurrentTrack(0);
+      setIsPlaying(false);
+      if (playerRef.current) {
+        playerRef.current.stopVideo();
+      }
+    }
+  
+    // Update playlist
+    setPlaylist(newPlaylist);
+  };
+
+
 
   return (
     <div className="play-room">
@@ -433,42 +468,28 @@ function PlayRoom() {
         </div>
 
         <div className="playlist-section">
-          <div className="playlist-header">
-            <h3>Playlist ({playlist.length} songs)</h3>
-            <button onClick={handleSearchMusic} className="search-music-button">
-              Add Music
-            </button>
-          </div>
-          <ul className="track-list">
-            {playlist.map((track, index) => (
-              <li 
-                key={index}
-                className={index === currentTrack ? 'active' : ''}
-                onClick={() => playSpecificTrack(index)}
-              >
-                {track.cover_img_url && (
-                  <img 
-                    src={track.cover_img_url} 
-                    alt=""
-                    className="track-thumbnail"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.style.display = 'none';
-                    }}
-                  />
-                )}
-                <span className="track-number">{index + 1}</span>
-                <div className="track-details">
-                  <span className="track-title">{track.title}</span>
-                  <span className="track-artist">{track.artist}</span>
-                </div>
-                {index === currentTrack && (
-                  <span className="now-playing">▶</span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
+  <div className="playlist-header">
+    <h3>Playlist ({playlist.length} songs)</h3>
+    <button onClick={handleSearchMusic} className="search-music-button">
+      Add Music
+    </button>
+  </div>
+  <ul className="track-list">
+  {playlist.map((track, index) => (
+    <PlaylistTrack
+      key={index}
+      track={track}
+      index={index}
+      isHost={isHost}
+      isCurrentTrack={index === currentTrack}
+      roomName={roomName}
+      onTrackClick={playSpecificTrack}
+      onTrackDelete={handleTrackDelete}
+      stopProgressTracking={stopProgressTracking}  // Pass the existing stopProgressTracking function
+    />
+  ))}
+</ul>
+</div>
       </div>
 
       <section className="playlist-info">
