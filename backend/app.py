@@ -127,24 +127,34 @@ def generate_playlist():
     urls = []
     ids = []
     cover_img_urls = []
+    playlist = []
+    # for title, artist in zip(titles, artists):
+    #     try:
+    #         logger.info(f'getting links for {title}...')
+    #         # url, id = spotify.get_song_url(artist, title)
+    #         song_info = youtube_music.get_song_info(song_name=title, artist_name=artist)
+    #         url, id, cover_img_url = song_info['song_url'], song_info['song_id'], song_info['cover_img_url']
+
+    #     except Exception as e:
+    #         logger.info(f'----failed for {title}, {artist}', e)
+    #         url = ''
+    #         id = ''
+    #         cover_img_url = ''
+    #     urls.append(url)
+    #     ids.append(id)
+    #     cover_img_urls.append(cover_img_url)
+
+    # # playlist = [{"title": title, "artist": artist, "url": url, "id": id} for title, artist, url, id in zip(titles, artists, urls, ids)]
+    # playlist = [{"title": title, "artist": artist, "url": url, "id": id, "cover_img_url": cover_img_url} for title, artist, url, id, cover_img_url in zip(titles, artists, urls, ids, cover_img_urls)]
+
     for title, artist in zip(titles, artists):
         try:
             logger.info(f'getting links for {title}...')
-            # url, id = spotify.get_song_url(artist, title)
             song_info = youtube_music.get_song_info(song_name=title, artist_name=artist)
-            url, id, cover_img_url = song_info['song_url'], song_info['song_id'], song_info['cover_img_url']
+            playlist.append(song_info)
 
         except Exception as e:
             logger.info(f'----failed for {title}, {artist}', e)
-            url = ''
-            id = ''
-            cover_img_url = ''
-        urls.append(url)
-        ids.append(id)
-        cover_img_urls.append(cover_img_url)
-
-    # playlist = [{"title": title, "artist": artist, "url": url, "id": id} for title, artist, url, id in zip(titles, artists, urls, ids)]
-    playlist = [{"title": title, "artist": artist, "url": url, "id": id, "cover_img_url": cover_img_url} for title, artist, url, id, cover_img_url in zip(titles, artists, urls, ids, cover_img_urls)]
     
     logger.info(str(playlist))
 
@@ -262,16 +272,17 @@ def search_music():
         
     tracks = []
     for result in results:
-        track = {
-                "id": result["song_id"],
-                "title": result["title"],
-                "url": result["song_url"],
-                "image_url": result["cover_img_url"],
-                "artist": result["artist"],
-                "album": result["album"],
-                "duration_seconds": result["duration_seconds"],
-            }
-        tracks.append(track)
+        # track = {
+        #         "id": result["song_id"],
+        #         "title": result["title"],
+        #         "url": result["song_url"],
+        #         "image_url": result["cover_img_url"],
+        #         "artist": result["artist"],
+        #         "album": result["album"],
+        #         "duration_seconds": result["duration_seconds"],
+        #     }
+        # tracks.append(track)
+        tracks.append(result)
 
     logger.info(f"{tracks}")
     return jsonify({"tracks": tracks})

@@ -101,14 +101,14 @@ function SearchMusic() {
       <main className="playlist-container">
         <ul className="search-results">
           {searchResults.map((track) => (
-            <li key={track.id} className="track-item">
-              <img src={track.image_url} alt={`${track.title} cover`} className="track-image" />
+            <li key={track.song_id} className="track-item">
+              <img src={track.cover_img_url} alt={`${track.title} cover`} className="track-image" />
               <div className="track-info">
                 <h3>{track.title}</h3>
                 <p>{track.artist}</p>
               </div>
               <a 
-                href={track.url} 
+                href={track.song_url} 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="spotify-link"
