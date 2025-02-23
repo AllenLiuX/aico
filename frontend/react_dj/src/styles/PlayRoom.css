@@ -1,0 +1,682 @@
+/* PlayRoom.css */
+.play-room {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 20px;
+}
+
+/* Header Section */
+.room-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 40px;
+}
+
+.room-info {
+  flex: 1;
+}
+
+.room-info h1 {
+  font-size: 32px;
+  margin: 0 0 8px 0;
+}
+
+.room-info p {
+  color: #666;
+  margin: 0;
+}
+
+.room-controls {
+  display: flex;
+  gap: 16px;
+}
+
+/* Player Grid Layout */
+.player-grid {
+  display: grid;
+  grid-template-columns: 1fr 420px;
+  gap: 32px;
+  margin-bottom: 48px;
+}
+
+@media (max-width: 1024px) {
+  .player-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Player Container */
+.player-container {
+  background-color: #1e1e1e;
+  border-radius: 12px;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.album-art {
+  width: 300px;
+  height: 300px;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.album-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.song-info {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.song-info h2 {
+  font-size: 24px;
+  margin: 0 0 8px 0;
+}
+
+.song-info p {
+  color: #666;
+  margin: 0;
+}
+
+/* Progress Bar */
+.progress-container {
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 4px;
+  background-color: #2c2c2c;
+  border-radius: 2px;
+  cursor: pointer;
+  position: relative;
+}
+
+.progress-bar::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  background-color: #bb86fc;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.time-display {
+  display: flex;
+  justify-content: space-between;
+  color: #666;
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+/* Player Controls */
+.player-controls {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.control-button {
+  background: none;
+  border: none;
+  color: #e0e0e0;
+  cursor: pointer;
+  padding: 8px;
+  transition: all 0.2s;
+}
+
+.control-button:hover {
+  color: #bb86fc;
+  transform: scale(1.1);
+}
+
+.play-button {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: #bb86fc;
+  color: #121212;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.play-button:hover {
+  background-color: #a66ffe;
+  transform: scale(1.05);
+}
+
+/* Playlist Section */
+.playlist-section {
+  background-color: #1e1e1e;
+  border-radius: 12px;
+  padding: 24px;
+  height: min-content;
+}
+
+.playlist-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.playlist-header h3 {
+  margin: 0;
+}
+
+
+
+/* Share Button and QR Code */
+.share-section {
+  margin-top: 24px;
+  text-align: center;
+}
+
+.share-button {
+  background-color: #bb86fc;
+  color: #121212;
+  padding: 12px 24px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.share-button:hover {
+  background-color: #a66ffe;
+}
+
+.qr-code-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.qr-code-modal {
+  background-color: #1e1e1e;
+  padding: 32px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.qr-code-modal img {
+  width: 200px;
+  height: 200px;
+  margin-bottom: 24px;
+}
+
+.qr-code-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+/* Update only the track thumbnail styles in the playlist */
+.track-thumbnail {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  object-fit: cover;
+  margin-right: 10px;
+}
+
+/* Add playlist info section styles */
+.playlist-info-section {
+  background-color: #1e1e1e;
+  padding: 20px;
+  margin-top: 30px;
+  border-radius: 8px;
+}
+
+.playlist-info-section h2 {
+  color: #bb86fc;
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+}
+
+.playlist-description {
+  color: #e0e0e0;
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.playlist-settings {
+  background-color: #2c2c2c;
+  padding: 15px;
+  border-radius: 6px;
+}
+
+.setting-item {
+  margin-bottom: 10px;
+}
+
+.setting-item:last-child {
+  margin-bottom: 0;
+}
+
+.setting-label {
+  color: #bb86fc;
+  font-weight: 500;
+  margin-right: 8px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .playlist-info-section {
+    margin-top: 20px;
+    padding: 15px;
+  }
+}
+
+
+/* PlayRoom.css */
+/* ... keep all your existing styles until the media queries ... */
+
+/* Update/add these media query sections at the bottom of your CSS file */
+
+/* Tablet and smaller screens */
+@media (max-width: 1024px) {
+  .play-room {
+    padding: 20px 16px;
+  }
+
+  .player-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+  }
+
+  .player-container {
+    padding: 24px;
+  }
+
+  .album-art {
+    width: 250px;
+    height: 250px;
+  }
+}
+
+/* Mobile phones */
+@media (max-width: 768px) {
+  .play-room {
+    padding: 16px 12px;
+    min-height: 100vh;
+  }
+
+  /* Header adjustments */
+  .room-header {
+    margin-bottom: 24px;
+  }
+
+  .room-info h1 {
+    font-size: 24px;
+  }
+
+  .room-controls {
+    gap: 12px;
+  }
+
+  .share-button {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+
+  /* Player container adjustments */
+  .player-container {
+    padding: 16px;
+  }
+
+  .album-art {
+    width: 200px;
+    height: 200px;
+    margin-bottom: 16px;
+  }
+
+  .song-info h2 {
+    font-size: 20px;
+  }
+
+  /* Controls adjustments */
+  .player-controls {
+    gap: 16px;
+  }
+
+  .play-button {
+    width: 48px;
+    height: 48px;
+  }
+
+  /* Playlist section adjustments */
+  .playlist-section {
+    padding: 16px;
+  }
+
+  .track-item {
+    padding: 8px;
+  }
+
+  .track-thumbnail {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Info section adjustments */
+  .playlist-info-section {
+    padding: 16px;
+    margin-top: 24px;
+  }
+
+  .playlist-info-section h2 {
+    font-size: 20px;
+  }
+
+  .playlist-settings {
+    padding: 12px;
+  }
+}
+
+/* Small phones (iPhone SE, etc) */
+@media (max-width: 380px) {
+  .play-room {
+    padding: 12px 8px;
+  }
+
+  .room-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .room-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .album-art {
+    width: 180px;
+    height: 180px;
+  }
+
+  .song-info h2 {
+    font-size: 18px;
+  }
+
+  .track-title {
+    font-size: 13px;
+  }
+
+  .track-artist {
+    font-size: 11px;
+  }
+
+  .track-thumbnail {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+/* Handle iPhone notch */
+@supports (padding: max(0px)) {
+  .play-room {
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+}
+
+/* Fix for iOS viewport height issue */
+@supports (-webkit-touch-callout: none) {
+  .play-room {
+    min-height: -webkit-fill-available;
+  }
+}
+
+/* Landscape mode adjustments */
+@media (max-height: 480px) and (orientation: landscape) {
+  .play-room {
+    padding: 12px;
+  }
+
+  .player-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .album-art {
+    width: 140px;
+    height: 140px;
+  }
+
+  .player-controls {
+    margin-bottom: 0;
+  }
+
+  .playlist-section {
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+}
+
+
+/* Update these styles in your PlayRoom.css */
+
+.track-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.track-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background-color: #2c2c2c;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  width: 100%;
+  max-width: 100%;
+}
+
+.track-number {
+  color: #666;
+  font-size: 14px;
+  min-width: 24px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.track-thumbnail {
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.track-details {
+  flex: 1;
+  min-width: 0; /* Important for text truncation */
+  overflow: hidden;
+  margin-right: 8px;
+}
+
+.track-title {
+  font-size: 14px;
+  margin: 0 0 4px 0;
+  color: #e0e0e0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.track-artist {
+  color: #666;
+  font-size: 12px;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+}
+
+.now-playing {
+  flex-shrink: 0;
+  color: #bb86fc;
+  margin-left: auto;
+  width: 20px;
+  text-align: center;
+}
+
+/* Handle hover state */
+.track-item:hover {
+  background-color: #363636;
+}
+
+.track-item.active {
+  background-color: #363636;
+  border-left: 4px solid #bb86fc;
+}
+
+
+
+/* iPhone-specific adjustments for PlayRoom.css */
+
+@media (max-width: 768px) {
+  .play-room {
+    padding: 12px;
+  }
+
+  /* Header adjustments */
+  .room-header {
+    margin-bottom: 16px;
+  }
+
+  .room-info h1 {
+    font-size: 24px;
+  }
+
+  /* Player container adjustments */
+  .player-container {
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .album-art {
+    width: 160px;  /* Reduced from original size */
+    height: 160px;
+    margin-bottom: 16px;
+  }
+
+  .song-info {
+    margin-bottom: 16px;
+  }
+
+  .song-info h2 {
+    font-size: 18px;
+  }
+
+  .progress-container {
+    margin-bottom: 16px;
+  }
+
+  /* Controls adjustments */
+  .player-controls {
+    gap: 16px;
+    margin-bottom: 0;
+  }
+
+  .control-button {
+    padding: 6px;
+  }
+
+  .play-button {
+    width: 44px;
+    height: 44px;
+  }
+
+  /* Playlist section adjustments */
+  .playlist-section {
+    padding: 12px;
+    max-height: 300px; /* Limit height on mobile */
+    overflow-y: auto;
+  }
+
+  .playlist-header {
+    margin-bottom: 12px;
+  }
+
+  .playlist-header h3 {
+    font-size: 16px;
+  }
+
+  .track-item {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .track-thumbnail {
+    width: 32px;
+    height: 32px;
+  }
+
+  .track-title {
+    font-size: 13px;
+  }
+
+  .track-artist {
+    font-size: 11px;
+  }
+
+  /* Add smooth scrolling for playlist */
+  .track-list {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* iPhone SE and other small devices */
+@media (max-width: 380px) {
+  .play-room {
+    padding: 8px;
+  }
+
+  .album-art {
+    width: 140px;  /* Even smaller for very small screens */
+    height: 140px;
+  }
+
+  .song-info h2 {
+    font-size: 16px;
+  }
+
+  .playlist-section {
+    max-height: 250px;
+  }
+}
+
+/* Ensure proper spacing for iPhone notch */
+@supports (padding: max(0px)) {
+  .play-room {
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+}

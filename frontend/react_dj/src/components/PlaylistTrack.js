@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Trash2 } from 'lucide-react';
-import './PlaylistTrack.css';
-
+import '../styles/PlaylistTrack.css';
 const PlaylistTrack = ({ 
   track = {},
   index = 0,
@@ -10,38 +9,32 @@ const PlaylistTrack = ({
   roomName = '',
   onTrackClick = () => {},
   onTrackDelete = () => {},
-  stopProgressTracking = () => {}  // Add this prop
+  stopProgressTracking = () => {}
 }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState(null);
 
-  const {
-    id = '',
-    cover_img_url = '',
-    title = 'Untitled',
-    artist = 'Unknown Artist'
-  } = track;
-
   const handleDelete = async (e) => {
     e.stopPropagation();
     
-    if (!isHost || isDeleting || !id) return;
+    if (!isHost || isDeleting || !track.song_id) return;
     
     try {
       setIsDeleting(true);
       setError(null);
       
-      // Stop progress tracking before making any changes to playlist
       stopProgressTracking();
 
-      const response = await fetch('http://127.0.0.1:5000/api/remove-from-playlist', {
+      // const response = await fetch('http://127.0.0.1:5000/api/remove-from-playlist', {
+      const response = await fetch('http://13.56.253.58:5000/api/remove-from-playlist', {
+
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           room_name: roomName,
-          track_id: id
+          track_id: track.song_id
         })
       });
 
@@ -51,9 +44,9 @@ const PlaylistTrack = ({
 
       const data = await response.json();
       onTrackDelete(data.playlist);
+      
     } catch (err) {
-      setError('Failed to delete track. Please try again.');
-      console.error('Error deleting track:', err);
+      setError('Failed to delete track');
     } finally {
       setIsDeleting(false);
     }
@@ -61,12 +54,12 @@ const PlaylistTrack = ({
 
   return (
     <li 
-      className={`${isCurrentTrack ? 'active' : ''}`}
+      className={`${isCurrentTrack ? 'track-item active' : 'track-item'}`}
       onClick={() => onTrackClick(index)}
     >
-      {cover_img_url && (
+      {track.cover_img_url && (
         <img 
-          src={cover_img_url} 
+          src={track.cover_img_url} 
           alt=""
           className="track-thumbnail"
           onError={(e) => {
@@ -77,11 +70,11 @@ const PlaylistTrack = ({
       )}
       <span className="track-number">{index + 1}</span>
       <div className="track-details">
-        <span className="track-title">{title}</span>
-        <span className="track-artist">{artist}</span>
+        <span className="track-title">{track.title}</span>
+        <span className="track-artist">{track.artist}</span>
         {error && <span className="text-red-500 text-xs">{error}</span>}
       </div>
-      {isCurrentTrack && !isHost &&(
+      {isCurrentTrack && !isHost && (
         <span className="now-playing">▶</span>
       )}
       

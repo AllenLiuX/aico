@@ -30,7 +30,7 @@ function Playlist({ tracks }) {
           <li key={index}>
             <span className="track-info">{track.title} - {track.artist}</span>
             <a 
-              href={track.url} 
+              href={track.song_url} 
               target="_blank" 
               rel="noopener noreferrer"
               className="spotify-button"

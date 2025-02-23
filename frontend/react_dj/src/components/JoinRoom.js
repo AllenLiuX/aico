@@ -1,6 +1,8 @@
-// components/JoinRoom.js
+// JoinRoom.js
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Users } from 'lucide-react';
+import '../styles/RoomForms.css';
 
 function JoinRoom() {
   const [roomNumber, setRoomNumber] = useState('');
@@ -9,28 +11,32 @@ function JoinRoom() {
   const handleSubmit = (e) => {
     e.preventDefault();
     navigate(`/playroom?room_name=${roomNumber}&is_host=False`);
-    // Here you would typically validate the room number with your backend
-    console.log({ roomNumber });
-    // For now, we'll just navigate to the main app page
-    // navigate('/app');
-    // navigate('/playlist', { state: { roomNumber } });
   };
 
   return (
-    <div className="join-room">
-      <h1>Join Room</h1>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="roomNumber">Room Number:</label>
+    <div className="room-form-container">
+      <form onSubmit={handleSubmit} className="room-form">
+        <h1>Join Room</h1>
+        
+        <div className="form-group">
+          <label htmlFor="roomNumber" className="form-label">
+            <Users size={18} className="icon" />
+            Room Number
+          </label>
           <input
             type="text"
             id="roomNumber"
+            className="form-input"
             value={roomNumber}
             onChange={(e) => setRoomNumber(e.target.value)}
             required
+            placeholder="Enter room number"
           />
         </div>
-        <button type="submit" className="big-button">Join</button>
+
+        <button type="submit" className="submit-button">
+          Join Room
+        </button>
       </form>
     </div>
   );

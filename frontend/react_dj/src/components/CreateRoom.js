@@ -1,6 +1,8 @@
-// components/CreateRoom.js
+// CreateRoom.js
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Lock, Music, Settings } from 'lucide-react';
+import '../styles/RoomForms.css';
 
 function CreateRoom() {
   const [roomName, setRoomName] = useState('');
@@ -11,49 +13,65 @@ function CreateRoom() {
   const handleSubmit = (e) => {
     e.preventDefault();
     navigate(`/playlist?room_name=${encodeURIComponent(roomName)}&moderation=${moderation}`);
-    // Here you would typically send this data to your backend
-    const roomSettings = { roomName, password, moderation };
     console.log({ roomName, password, moderation });
-    // For now, we'll just navigate to the main app page
-    // navigate('/app');
-    // navigate('/playlist', { state: roomSettings });
   };
 
   return (
-    <div className="create-room">
-      <h1>Create Room</h1>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="roomName">Room Name:</label>
+    <div className="room-form-container">
+      <form onSubmit={handleSubmit} className="room-form">
+        <h1>Create Room</h1>
+        
+        <div className="form-group">
+          <label htmlFor="roomName" className="form-label">
+            <Music size={18} className="icon" />
+            Room Name
+          </label>
           <input
             type="text"
             id="roomName"
+            className="form-input"
             value={roomName}
             onChange={(e) => setRoomName(e.target.value)}
             required
           />
         </div>
-        <div>
-          <label htmlFor="password">Password:</label>
+
+        <div className="form-group">
+          <label htmlFor="password" className="form-label">
+            <Lock size={18} className="icon" />
+            Password (Optional)
+          </label>
           <input
             type="password"
             id="password"
+            className="form-input"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
         </div>
-        <div>
-          <label htmlFor="moderation">Moderation:</label>
-          <select
-            id="moderation"
-            value={moderation}
-            onChange={(e) => setModeration(e.target.value)}
-          >
-            <option value="yes">Yes</option>
-            <option value="no">No</option>
-          </select>
+
+        <div className="form-group">
+          <label className="form-label">
+            <Settings size={18} className="icon" />
+            Moderation
+          </label>
+          <div className="toggle-label">
+            <span>Enable moderation</span>
+            <label className="toggle-switch">
+              <input
+                type="checkbox"
+                className="toggle-input"
+                checked={moderation === 'yes'}
+                onChange={(e) => setModeration(e.target.checked ? 'yes' : 'no')}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
         </div>
-        <button type="submit" className="big-button">Create</button>
+
+        <button type="submit" className="submit-button">
+          Create Room
+        </button>
       </form>
     </div>
   );

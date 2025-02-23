@@ -1,8 +1,13 @@
+// PlayRoom.js
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import './PlayRoom.css';
 import PlaylistTrack from './PlaylistTrack'; 
 
+import { 
+  Play, Pause, SkipBack, SkipForward, Share2, 
+  QrCode, Plus, Music 
+} from 'lucide-react';
+import '../styles/PlayRoom.css';
 
 function PlayRoom() {
   // State variables
@@ -18,22 +23,17 @@ function PlayRoom() {
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
+
   const progressIntervalRef = useRef(null);
+  const playerRef = useRef(null);
+  const playerContainerRef = useRef(null);
   
-  // Router hooks
   const location = useLocation();
   const navigate = useNavigate();
-  
-  // Get roomName from URL query parameters
   const queryParams = new URLSearchParams(location.search);
   const roomName = queryParams.get('room_name');
   const isHost = queryParams.get('is_host') === 'True';
 
-  // Reference for YouTube iframe API
-  const playerRef = useRef(null);
-  const playerContainerRef = useRef(null);
-
-  // Fetch playlist when component mounts or room name changes
   useEffect(() => {
     if (!roomName) {
       navigate('/homepage');
@@ -43,15 +43,14 @@ function PlayRoom() {
     const fetchRoomData = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`http://127.0.0.1:5000/api/room-playlist?room_name=${roomName}`);
-        // const response = await fetch(`http://13.56.253.58:5000/api/room-playlist?room_name=${roomName}`);
+        // const response = await fetch(`http://127.0.0.1:5000/api/room-playlist?room_name=${roomName}`);
+        const response = await fetch(`http://13.56.253.58:5000/api/room-playlist?room_name=${roomName}`);
+
         if (!response.ok) {
           throw new Error(`Failed to fetch playlist (${response.status})`);
         }
         
         const data = await response.json();
-        console.log('Fetched playlist data:', data);
-        
         setPlaylist(data.playlist || []);
         setIntroduction(data.introduction || '');
         setSettings(data.settings || {});
@@ -66,30 +65,40 @@ function PlayRoom() {
     fetchRoomData();
   }, [roomName, navigate]);
 
-  // Load YouTube iframe API
   useEffect(() => {
     if (playlist.length === 0 || loading || error) return;
-
-    // Don't create multiple script tags
+  
+    // Initialize player if not already initialized
     if (document.getElementById('youtube-iframe-api')) {
       initPlayer();
       return;
     }
-
+  
     const tag = document.createElement('script');
     tag.id = 'youtube-iframe-api';
     tag.src = 'https://www.youtube.com/iframe_api';
     const firstScriptTag = document.getElementsByTagName('script')[0];
     firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-
+  
     window.onYouTubeIframeAPIReady = initPlayer;
-
+  
     return () => {
       window.onYouTubeIframeAPIReady = null;
     };
-  }, [playlist, loading, error]);
+  }, [playlist, loading, error, currentTrack]); // Add currentTrack to dependencies
 
-  // Initialize YouTube Player
+  const onPlayerError = (event) => {
+    console.error("YouTube player error:", event.data);
+    const errorMessages = {
+      2: "Invalid video ID",
+      5: "HTML5 player error",
+      100: "Video not found or removed",
+      101: "Video cannot be played in embedded players",
+      150: "Video cannot be played in embedded players"
+    };
+    setError(`Player error: ${errorMessages[event.data] || `Unknown error (code: ${event.data})`}`);
+  };
+
   const initPlayer = () => {
     if (!playlist.length || !window.YT || !playerContainerRef.current) return;
 
@@ -98,9 +107,7 @@ function PlayRoom() {
         playerRef.current.destroy();
       }
 
-      const videoId = extractVideoId(playlist[currentTrack].url);
-      console.log(`Initializing player with video ID: ${videoId} (Track index: ${currentTrack})`);
-      
+      const videoId = extractVideoId(playlist[currentTrack].song_url);
       playerRef.current = new window.YT.Player(playerContainerRef.current, {
         height: '0',
         width: '0',
@@ -127,14 +134,12 @@ function PlayRoom() {
     }
   };
 
-  // Extract video ID from YouTube URL
   const extractVideoId = (url) => {
     if (!url) return '';
     const match = url.match(/[?&]v=([^&]+)/) || url.match(/youtu\.be\/([^?]+)/);
     return match ? match[1] : '';
   };
 
-  // Player event handlers
   const onPlayerReady = (event) => {
     if (isPlaying) {
       event.target.playVideo();
@@ -142,46 +147,34 @@ function PlayRoom() {
   };
 
   const onPlayerStateChange = (event) => {
-    // YT.PlayerState values:
-    // -1 (unstarted), 0 (ended), 1 (playing), 2 (paused), 3 (buffering), 5 (video cued)
     const playerState = event.data;
-    console.log(`Player state changed to ${playerState}`);
     
-    // Handle track ending
     if (playerState === 0) {
-      // Use functional update to ensure we're using the latest state
       setCurrentTrack(prevTrack => {
         const nextIndex = (prevTrack + 1) % playlist.length;
-        console.log(`Song ended. Moving from track index ${prevTrack} to ${nextIndex}`);
-        
-        // Load the next video with the correct index
         setTimeout(() => {
           if (playerRef.current) {
-            const videoId = extractVideoId(playlist[nextIndex].url);
+            const videoId = extractVideoId(playlist[nextIndex].song_url);
             if (videoId) {
               playerRef.current.loadVideoById(videoId);
             }
           }
         }, 50);
-        
         return nextIndex;
       });
     }
    
     
-    // Update playing state based on player state
-    const isNowPlaying = playerState === 1; // YT.PlayerState.PLAYING = 1
+    const isNowPlaying = playerState === 1;
     setIsPlaying(isNowPlaying);
     
-    // Start or stop progress tracking based on play state
     if (isNowPlaying) {
       startProgressTracking();
     } else {
       stopProgressTracking();
     }
   };
-  
-  // Start tracking progress
+
   const startProgressTracking = () => {
     if (progressIntervalRef.current) {
       clearInterval(progressIntervalRef.current);
@@ -199,8 +192,7 @@ function PlayRoom() {
       }
     }, 1000);
   };
-  
-  // Stop tracking progress
+
   const stopProgressTracking = () => {
     if (progressIntervalRef.current) {
       clearInterval(progressIntervalRef.current);
@@ -208,24 +200,6 @@ function PlayRoom() {
     }
   };
 
-  const onPlayerError = (event) => {
-    console.error("YouTube player error:", event.data);
-    setError(`Player error: ${getPlayerErrorMessage(event.data)}`);
-  };
-
-  // Get error message based on YouTube error code
-  const getPlayerErrorMessage = (errorCode) => {
-    switch(errorCode) {
-      case 2: return "Invalid video ID";
-      case 5: return "HTML5 player error";
-      case 100: return "Video not found or removed";
-      case 101: 
-      case 150: return "Video cannot be played in embedded players";
-      default: return `Unknown error (code: ${errorCode})`;
-    }
-  };
-
-  // Player controls
   const togglePlay = () => {
     if (!playerRef.current) return;
     
@@ -253,17 +227,64 @@ function PlayRoom() {
   const loadVideo = (index) => {
     if (!playerRef.current || !playlist[index]) return;
     
-    console.log(`Loading video at index ${index}:`, playlist[index].title);
-    setCurrentTrack(index); // Ensure state is updated to match the loaded video
+    // Update currentTrack first
+    setCurrentTrack(index);
     
-    const videoId = extractVideoId(playlist[index].url);
+    const videoId = extractVideoId(playlist[index].song_url);
     if (!videoId) {
       setError("Invalid video URL");
       return;
     }
     
+    // Load and play the video
     playerRef.current.loadVideoById(videoId);
     setIsPlaying(true);
+  };
+
+  // const loadVideo = (index) => {
+  //   if (!playerRef.current || !playlist[index]) return;
+    
+  //   const videoId = extractVideoId(playlist[index].song_url);
+  //   if (!videoId) {
+  //     setError("Invalid video URL");
+  //     return;
+  //   }
+    
+  //   playerRef.current.loadVideoById(videoId);
+  //   setIsPlaying(true);
+  // };
+
+  const formatTime = (timeInSeconds) => {
+    if (!timeInSeconds || isNaN(timeInSeconds)) return "0:00";
+    const minutes = Math.floor(timeInSeconds / 60);
+    const seconds = Math.floor(timeInSeconds % 60);
+    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+  };
+
+  const handleProgressChange = (e) => {
+    if (!playerRef.current) return;
+    
+    const newProgress = parseFloat(e.target.value);
+    setProgress(newProgress);
+    
+    const seekTime = (newProgress / 100) * duration;
+    playerRef.current.seekTo(seekTime, true);
+  };
+
+  const copyShareLink = () => {
+    const shareLink = `http://aico-music.com/playroom?room_name=${roomName}`;
+    navigator.clipboard.writeText(shareLink).then(() => {
+      setShowTooltip(true);
+      setTimeout(() => setShowTooltip(false), 2000);
+    });
+  };
+
+  const handleQRCodeClick = () => {
+    setShowQRCode(true);
+  };
+
+  const handleSearchMusic = () => {
+    navigate(`/search_music?room=${roomName}`);
   };
 
   const playSpecificTrack = (index) => {
@@ -272,71 +293,7 @@ function PlayRoom() {
     loadVideo(index);
   };
 
-  const copyShareLink = () => {
-    const shareLink = `http://aico-music.com/playroom?room_name=${roomName}`;
 
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(shareLink).then(() => {
-        setShowTooltip(true);
-        setTimeout(() => setShowTooltip(false), 2000);
-      }).catch(err => {
-        console.error('Failed to copy: ', err);
-      });
-    } else {
-      // Fallback for older browsers
-      const tempInput = document.createElement('input');
-      tempInput.value = shareLink;
-      document.body.appendChild(tempInput);
-      tempInput.select();
-      document.execCommand('copy');
-      document.body.removeChild(tempInput);
-      setShowTooltip(true);
-      setTimeout(() => setShowTooltip(false), 2000);
-    }
-  };
-
-  const handleQRCodeClick = () => {
-    setShowQRCode(true);
-  };
-
-  const handleCloseQRCode = () => {
-    setShowQRCode(false);
-  };
-
-  const handleSaveQRCode = () => {
-    const link = document.createElement('a');
-    link.href = `${process.env.PUBLIC_URL}/images/qr_code_${roomName}.png`;
-    link.download = `qr_code_${roomName}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const handleSearchMusic = () => {
-    navigate(`/search_music?room=${roomName}`);
-  };
-  
-  // Format time (seconds to MM:SS)
-  const formatTime = (timeInSeconds) => {
-    if (!timeInSeconds || isNaN(timeInSeconds)) return "0:00";
-    const minutes = Math.floor(timeInSeconds / 60);
-    const seconds = Math.floor(timeInSeconds % 60);
-    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-  };
-  
-  // Handle progress bar change
-  const handleProgressChange = (e) => {
-    if (!playerRef.current) return;
-    
-    const newProgress = parseFloat(e.target.value);
-    setProgress(newProgress);
-    
-    // Calculate time based on percentage
-    const seekTime = (newProgress / 100) * duration;
-    playerRef.current.seekTo(seekTime, true);
-  };
-
-  // Render loading state
   if (loading) {
     return (
       <div className="play-room loading">
@@ -346,18 +303,18 @@ function PlayRoom() {
     );
   }
 
-  // Render error state
   if (error) {
     return (
       <div className="play-room error">
         <h2>Something went wrong</h2>
         <p>{error}</p>
-        <button onClick={() => navigate('/homepage')} className="back-button">Go Back</button>
+        <button onClick={() => navigate('/homepage')} className="back-button">
+          Go Back
+        </button>
       </div>
     );
   }
 
-  // Get current track info
   const currentSong = playlist[currentTrack] || {};
   const handleTrackDelete = (newPlaylist) => {
     // Cleanup player state
@@ -373,7 +330,7 @@ function PlayRoom() {
         setCurrentTrack(newPlaylist.length - 1);
       }
       // Load the new track
-      const nextVideoId = extractVideoId(newPlaylist[currentTrack].url);
+      const nextVideoId = extractVideoId(newPlaylist[currentTrack].song_url);
       if (playerRef.current && nextVideoId) {
         playerRef.current.loadVideoById(nextVideoId);
       }
@@ -392,19 +349,24 @@ function PlayRoom() {
 
 
 
+  // PlayRoom.js
+// ... keep all your existing imports and state variables ...
+
+  // Only update the return JSX to match the CSS classes:
   return (
     <div className="play-room">
-      <header>
+      <header className="room-header">
         <div className="room-info">
-          <h1>Room: {roomName}</h1>
+          <h1>{roomName}</h1>
           <p>You are {isHost ? 'the host' : 'a guest'}</p>
-          <button onClick={handleQRCodeClick} className="qr-code-button">
-            QR Code
-          </button>
         </div>
-        <div className="share-button-container">
+        <div className="room-controls">
+          <button onClick={handleQRCodeClick} className="control-button">
+            <QrCode size={20} />
+          </button>
           <button onClick={copyShareLink} className="share-button">
-            Share Room and Invite Friends ⚡️
+            <Share2 size={20} />
+            Share Room
           </button>
           {showTooltip && <div className="tooltip">Link copied!</div>}
         </div>
@@ -419,25 +381,22 @@ function PlayRoom() {
                 alt={`${currentSong.title} cover`} 
                 onError={(e) => {
                   e.target.onerror = null;
-                  e.target.src = 'https://i.scdn.co/image/ab67616d0000b2730b66bb2555bb1d5a0d0c42d7';
+                  e.target.src = '/api/placeholder/300/300';
                 }}
               />
             ) : (
               <div className="placeholder-art">
-                <span>♪</span>
+                <Music size={48} />
               </div>
             )}
           </div>
           
           <div className="song-info">
-            <h2>{currentSong.title}</h2>
-            <p>{currentSong.artist}</p>
+            <h2>{currentSong.title || 'No track selected'}</h2>
+            <p>{currentSong.artist || 'Unknown artist'}</p>
           </div>
           
           <div className="progress-container">
-            <span className="time-elapsed">
-              {formatTime(currentTime)}
-            </span>
             <input
               type="range"
               min="0"
@@ -446,33 +405,34 @@ function PlayRoom() {
               onChange={handleProgressChange}
               className="progress-bar"
             />
-            <span className="time-total">
-              {formatTime(duration)}
-            </span>
+            <div className="time-display">
+              <span>{formatTime(currentTime)}</span>
+              <span>{formatTime(duration)}</span>
+            </div>
           </div>
           
-          <div className="controls">
-            <button onClick={playPrevious} className="control-button previous">
-              ⏮
+          <div className="player-controls">
+            <button onClick={playPrevious} className="control-button">
+              <SkipBack size={24} />
             </button>
-            <button onClick={togglePlay} className="control-button play-pause">
-              {isPlaying ? "⏸" : "▶"}
+            <button onClick={togglePlay} className="control-button play-button">
+              {isPlaying ? <Pause size={24} /> : <Play size={24} />}
             </button>
-            <button onClick={playNext} className="control-button next">
-              ⏭
+            <button onClick={playNext} className="control-button">
+              <SkipForward size={24} />
             </button>
           </div>
 
-          {/* Hidden container for YouTube API player */}
-          <div ref={playerContainerRef} id="youtube-player" style={{ display: 'none' }}></div>
+          <div ref={playerContainerRef} id="youtube-player"></div>
         </div>
 
         <div className="playlist-section">
   <div className="playlist-header">
     <h3>Playlist ({playlist.length} songs)</h3>
-    <button onClick={handleSearchMusic} className="search-music-button">
-      Add Music
-    </button>
+    <button onClick={handleSearchMusic} className="control-button add-music-button">
+              <Plus size={20} />
+              Add Music
+            </button>
   </div>
   <ul className="track-list">
   {playlist.map((track, index) => (
@@ -492,25 +452,43 @@ function PlayRoom() {
 </div>
       </div>
 
-      <section className="playlist-info">
-        <h2>Playlist Information</h2>
-        <p>{introduction}</p>
-        {settings && (
+      <div className="playlist-info-section">
+        <h2>About this Playlist</h2>
+        <p className="playlist-description">{introduction || 'No description available'}</p>
+        {settings && Object.keys(settings).length > 0 && (
           <div className="playlist-settings">
-            <h3>Playlist Settings</h3>
-            <p><strong>Prompt:</strong> {settings.prompt}</p>
-            <p><strong>Genre:</strong> {settings.genre}</p>
-            <p><strong>Occasion:</strong> {settings.occasion}</p>
+            {settings.prompt && (
+              <div className="setting-item">
+                <span className="setting-label">Prompt:</span>
+                <span>{settings.prompt}</span>
+              </div>
+            )}
+            {settings.genre && (
+              <div className="setting-item">
+                <span className="setting-label">Genre:</span>
+                <span>{settings.genre}</span>
+              </div>
+            )}
+            {settings.occasion && (
+              <div className="setting-item">
+                <span className="setting-label">Occasion:</span>
+                <span>{settings.occasion}</span>
+              </div>
+            )}
           </div>
         )}
-      </section>
+      </div>
 
       {showQRCode && (
         <div className="qr-code-overlay">
           <div className="qr-code-modal">
-            <img src={`${process.env.PUBLIC_URL}/images/qr_code_${roomName}.png`} alt="Room QR Code" />
-            <button onClick={handleSaveQRCode}>Save QR Code</button>
-            <button onClick={handleCloseQRCode}>Close</button>
+            <img 
+              src={`/images/qr_code_${roomName}.png`} 
+              alt="Room QR Code" 
+            />
+            <div className="qr-code-buttons">
+              <button onClick={() => setShowQRCode(false)}>Close</button>
+            </div>
           </div>
         </div>
       )}
@@ -518,20 +496,171 @@ function PlayRoom() {
   );
 }
 
+//   return (
+//     <div className="play-room">
+//       <header className="room-header">
+//         <div className="room-info">
+//           <h1>{roomName}</h1>
+//           <p>You are {isHost ? 'the host' : 'a guest'}</p>
+//         </div>
+//         <div className="room-controls">
+//           <button onClick={handleQRCodeClick} className="control-button">
+//             <QrCode size={20} />
+//           </button>
+//           <button onClick={copyShareLink} className="share-button">
+//             <Share2 size={20} />
+//             Share Room
+//           </button>
+//           {showTooltip && <div className="tooltip">Link copied!</div>}
+//         </div>
+//       </header>
+      
+//       <div className="player-grid">
+//         <div className="player-container">
+//           <div className="album-art">
+//             {currentSong.cover_img_url ? (
+//               <img 
+//                 src={currentSong.cover_img_url} 
+//                 alt={`${currentSong.title} cover`} 
+//                 onError={(e) => {
+//                   e.target.onerror = null;
+//                   e.target.src = '/api/placeholder/300/300';
+//                 }}
+//               />
+//             ) : (
+//               <div className="placeholder-art">
+//                 <Music size={48} />
+//               </div>
+//             )}
+//           </div>
+          
+//           <div className="song-info">
+//             <h2>{currentSong.title || 'No track selected'}</h2>
+//             <p>{currentSong.artist || 'Unknown artist'}</p>
+//           </div>
+          
+//           <div className="progress-container">
+//             <span className="time-elapsed">{formatTime(currentTime)}</span>
+//             <input
+//               type="range"
+//               min="0"
+//               max="100"
+//               value={progress}
+//               onChange={handleProgressChange}
+//               className="progress-bar"
+//             />
+//             <span className="time-total">{formatTime(duration)}</span>
+//           </div>
+          
+//           <div className="player-controls">
+//             <button onClick={playPrevious} className="control-button">
+//               <SkipBack size={24} />
+//             </button>
+//             <button onClick={togglePlay} className="control-button play-button">
+//               {isPlaying ? <Pause size={24} /> : <Play size={24} />}
+//             </button>
+//             <button onClick={playNext} className="control-button">
+//               <SkipForward size={24} />
+//             </button>
+//           </div>
+
+//           <div ref={playerContainerRef} id="youtube-player"></div>
+//         </div>
+
+//         <div className="playlist-section">
+//           <div className="playlist-header">
+//             <h3>Playlist ({playlist.length} songs)</h3>
+//             <button onClick={handleSearchMusic} className="add-music-button">
+//               <Plus size={20} />
+//               Add Music
+//             </button>
+//           </div>
+//           <ul className="track-list">
+//             {playlist.map((track, index) => (
+//               <li 
+//                 key={index}
+//                 className={`track-item ${index === currentTrack ? 'active' : ''}`}
+//                 onClick={() => loadVideo(index)}
+//               >
+//                 {track.cover_img_url && (
+//                   <img 
+//                     src={track.cover_img_url} 
+//                     alt=""
+//                     className="track-image"
+//                     onError={(e) => {
+//                       e.target.onerror = null;
+//                       e.target.style.display = 'none';
+//                     }}
+//                   />
+//                 )}
+//                 <span className="track-number">{index + 1}</span>
+//                 <div className="track-details">
+//                   <span className="track-title">{track.title}</span>
+//                   <span className="track-artist">{track.artist}</span>
+//                 </div>
+//                 {index === currentTrack && (
+//                   <span className="now-playing">{isPlaying ? '▶' : '⏸'}</span>
+//                 )}
+//               </li>
+//             ))}
+//           </ul>
+//         </div>
+//         {/* Add this section right after the player-grid div */}
+//         <div className="playlist-info-section">
+//           <div className="playlist-info-header">
+//             <h2>About this Playlist</h2>
+//           </div>
+//           <p className="playlist-description">
+//             {introduction || 'No description available'}
+//           </p>
+//           {settings && Object.keys(settings).length > 0 && (
+//             <div className="playlist-settings">
+//               {settings.prompt && (
+//                 <div className="setting-item">
+//                   <span className="setting-label">Prompt:</span>
+//                   <span className="setting-value">{settings.prompt}</span>
+//                 </div>
+//               )}
+//               {settings.genre && (
+//                 <div className="setting-item">
+//                   <span className="setting-label">Genre:</span>
+//                   <span className="setting-value">{settings.genre}</span>
+//                 </div>
+//               )}
+//               {settings.occasion && (
+//                 <div className="setting-item">
+//                   <span className="setting-label">Occasion:</span>
+//                   <span className="setting-value">{settings.occasion}</span>
+//                 </div>
+//               )}
+//             </div>
+//           )}
+//         </div>
+//       </div>
+
+//       {showQRCode && (
+//         <div className="qr-code-overlay">
+//           <div className="qr-code-modal">
+//             <img 
+//               src={`/images/qr_code_${roomName}.png`} 
+//               alt="Room QR Code" 
+//             />
+//             <div className="qr-code-buttons">
+//               <button onClick={() => setShowQRCode(false)}>Close</button>
+//             </div>
+//           </div>
+//         </div>
+//       )}
+//     </div>
+//   );
+// }
+
 export default PlayRoom;
 
-// // Update when currentTrack changes
-//   useEffect(() => {
-//     if (playerRef.current && playlist.length > 0) {
-//       console.log(`Current track changed to index ${currentTrack}`);
-//       const videoId = extractVideoId(playlist[currentTrack].url);
-//       if (videoId) {
-//         playerRef.current.loadVideoById(videoId);
-//       }
-//     }
-//   }, [currentTrack]);import React, { useState, useEffect, useRef } from 'react';
+// import React, { useState, useEffect, useRef } from 'react';
 // import { useLocation, useNavigate } from 'react-router-dom';
-// import './PlayRoom.css';
+
+// import '../styles/PlayRoom.css';
 
 // function PlayRoom() {
 //   // State variables
@@ -572,8 +701,8 @@ export default PlayRoom;
 //     const fetchRoomData = async () => {
 //       try {
 //         setLoading(true);
+//         // const response = await fetch(`http://127.0.0.1:5000/api/room-playlist?room_name=${roomName}`);
 //         const response = await fetch(`http://13.56.253.58:5000/api/room-playlist?room_name=${roomName}`);
-        
 //         if (!response.ok) {
 //           throw new Error(`Failed to fetch playlist (${response.status})`);
 //         }
@@ -627,7 +756,8 @@ export default PlayRoom;
 //         playerRef.current.destroy();
 //       }
 
-//       const videoId = extractVideoId(playlist[currentTrack].url);
+//       const videoId = extractVideoId(playlist[currentTrack].song_url);
+//       console.log(`Initializing player with video ID: ${videoId} (Track index: ${currentTrack})`);
       
 //       playerRef.current = new window.YT.Player(playerContainerRef.current, {
 //         height: '0',
@@ -670,20 +800,34 @@ export default PlayRoom;
 //   };
 
 //   const onPlayerStateChange = (event) => {
-//     // Log the current state and track information
-//     console.log(`Player state changed to ${event.data}. Current track index: ${currentTrack}`);
+//     // YT.PlayerState values:
+//     // -1 (unstarted), 0 (ended), 1 (playing), 2 (paused), 3 (buffering), 5 (video cued)
+//     const playerState = event.data;
+//     console.log(`Player state changed to ${playerState}`);
     
-//     // YT.PlayerState.ENDED = 0
-//     if (event.data === 0) {
-//       // Play the next song in sequence
-//       const nextIndex = (currentTrack + 1) % playlist.length;
-//       console.log(`Song ended. Moving to next track at index ${nextIndex}`);
-//       setCurrentTrack(nextIndex);
-//       loadVideo(nextIndex);
+//     // Handle track ending
+//     if (playerState === 0) {
+//       // Use functional update to ensure we're using the latest state
+//       setCurrentTrack(prevTrack => {
+//         const nextIndex = (prevTrack + 1) % playlist.length;
+//         console.log(`Song ended. Moving from track index ${prevTrack} to ${nextIndex}`);
+        
+//         // Load the next video with the correct index
+//         setTimeout(() => {
+//           if (playerRef.current) {
+//             const videoId = extractVideoId(playlist[nextIndex].song_url);
+//             if (videoId) {
+//               playerRef.current.loadVideoById(videoId);
+//             }
+//           }
+//         }, 50);
+        
+//         return nextIndex;
+//       });
 //     }
     
 //     // Update playing state based on player state
-//     const isNowPlaying = event.data === 1; // YT.PlayerState.PLAYING = 1
+//     const isNowPlaying = playerState === 1; // YT.PlayerState.PLAYING = 1
 //     setIsPlaying(isNowPlaying);
     
 //     // Start or stop progress tracking based on play state
@@ -769,7 +913,7 @@ export default PlayRoom;
 //     console.log(`Loading video at index ${index}:`, playlist[index].title);
 //     setCurrentTrack(index); // Ensure state is updated to match the loaded video
     
-//     const videoId = extractVideoId(playlist[index].url);
+//     const videoId = extractVideoId(playlist[index].song_url);
 //     if (!videoId) {
 //       setError("Invalid video URL");
 //       return;
@@ -1012,547 +1156,5 @@ export default PlayRoom;
 //     </div>
 //   );
 // }
-
-// export default PlayRoom;
-
-// import React, { useState, useEffect, useCallback } from 'react';
-// import { useLocation, useNavigate } from 'react-router-dom';
-// import MusicPlayer from './MusicPlayer'; // Import the MusicPlayer component
-// import './PlayRoom.css';
-
-// function PlayRoom() {
-//   const [playlist, setPlaylist] = useState([]);
-//   const [introduction, setIntroduction] = useState('');
-//   const [settings, setSettings] = useState({});
-//   const [showTooltip, setShowTooltip] = useState(false);
-//   const [showQRCode, setShowQRCode] = useState(false);
-//   const [currentSongIndex, setCurrentSongIndex] = useState(0);
-//   const location = useLocation();
-//   const navigate = useNavigate();
-//   const queryParams = new URLSearchParams(location.search);
-//   const roomName = queryParams.get('room_name');
-//   const isHost = queryParams.get('is_host') === 'True';
-
-//   useEffect(() => {
-//     if (!roomName) {
-//       navigate('/homepage');
-//       return;
-//     }
-
-//     const fetchRoomData = async () => {
-//       try {
-//         const response = await fetch(`http://13.56.253.58:5000/api/room-playlist?room_name=${roomName}`);
-//         const data = await response.json();
-//         console.log('Fetched playlist data:', data);
-//         setPlaylist(data.playlist);
-//         setIntroduction(data.introduction);
-//         setSettings(data.settings);
-//       } catch (error) {
-//         console.error('Error fetching room data:', error);
-//       }
-//     };
-
-//     fetchRoomData();
-//   }, [roomName, navigate]);
-
-//   const copyShareLink = () => {
-//     const shareLink = `http://aico-music.com/playroom?room_name=${roomName}`;
-
-//     if (navigator.clipboard) {
-//       navigator.clipboard.writeText(shareLink).then(() => {
-//         setShowTooltip(true);
-//         setTimeout(() => setShowTooltip(false), 2000);
-//       }).catch(err => {
-//         console.error('Failed to copy: ', err);
-//       });
-//     } else {
-//       // Fallback for older browsers
-//       const tempInput = document.createElement('input');
-//       tempInput.value = shareLink;
-//       document.body.appendChild(tempInput);
-//       tempInput.select();
-//       document.execCommand('copy');
-//       document.body.removeChild(tempInput);
-//       setShowTooltip(true);
-//       setTimeout(() => setShowTooltip(false), 2000);
-//     }
-//   };
-
-//   const handleQRCodeClick = () => {
-//     setShowQRCode(true);
-//   };
-
-//   const handleCloseQRCode = () => {
-//     setShowQRCode(false);
-//   };
-
-//   const handleSaveQRCode = () => {
-//     const link = document.createElement('a');
-//     link.href = `${process.env.PUBLIC_URL}/images/qr_code_${roomName}.png`;
-//     link.download = `qr_code_${roomName}.png`;
-//     document.body.appendChild(link);
-//     link.click();
-//     document.body.removeChild(link);
-//   };
-
-//   const handleSearchMusic = () => {
-//     navigate(`/search_music?room=${roomName}`);
-//   };
-
-//   // Prepare the songs array for MusicPlayer in the format it expects
-//   const preparePlayerSongs = useCallback(() => {
-//     if (!playlist || playlist.length === 0) {
-//       return [];
-//     }
-    
-//     return playlist.map(track => ({
-//       url: track.url,
-//       title: track.title,
-//       artist: track.artist,
-//       img: track.image_url || "https://i.scdn.co/image/ab67616d0000b2730b66bb2555bb1d5a0d0c42d7" // Default image if none provided
-//     }));
-//   }, [playlist]);
-
-//   const playerSongs = preparePlayerSongs();
-
-//   return (
-//     <div className="play-room">
-//       <header>
-//         <div className="room-info">
-//           <h1>Room: {roomName}</h1>
-//           <p>You are {isHost ? 'the host' : 'a guest'}</p>
-//           <button onClick={handleQRCodeClick} className="qr-code-button">
-//             QR Code
-//           </button>
-//         </div>
-//         <div className="share-button-container">
-//           <button onClick={copyShareLink} className="share-button">
-//             Share Room and Invite Friends ⚡️
-//           </button>
-//           {showTooltip && <div className="tooltip">Link copied!</div>}
-//         </div>
-//       </header>
-      
-//       {/* MusicPlayer component */}
-//       <div className="music-player-container">
-//         {playerSongs.length > 0 ? (
-//           <MusicPlayer songs={playerSongs} initialSong={currentSongIndex} />
-//         ) : (
-//           <div className="player-placeholder">
-//             <p>No songs available in this playlist. Try adding some!</p>
-//           </div>
-//         )}
-//       </div>
-
-//       <section className="playlist-info">
-//         <h2>Playlist Information</h2>
-//         <p>{introduction}</p>
-//         <div className="playlist-settings">
-//           <h3>Playlist Settings</h3>
-//           <p><strong>Prompt:</strong> {settings.prompt}</p>
-//           <p><strong>Genre:</strong> {settings.genre}</p>
-//           <p><strong>Occasion:</strong> {settings.occasion}</p>
-//         </div>
-//       </section>
-
-//       <main className="playlist-container">
-//         <h2>The Playlist</h2>
-//         <button onClick={handleSearchMusic} className="search-music-button">Search and Add Music</button>  
-//         <ul className="playlist">
-//           {playlist.map((track, index) => (
-//             <li 
-//               key={index} 
-//               className={`playlist-item ${currentSongIndex === index ? 'active' : ''}`}
-//               onClick={() => setCurrentSongIndex(index)}
-//             >
-//               <span className="track-info">{track.title} - {track.artist}</span>
-//               <a 
-//                 href={track.url} 
-//                 target="_blank" 
-//                 rel="noopener noreferrer"
-//                 className="external-link"
-//                 onClick={(e) => e.stopPropagation()}
-//               >
-//                 Listen on YouTube
-//               </a>
-//             </li>
-//           ))}
-//         </ul>
-//       </main>
-
-//       {showQRCode && (
-//         <div className="qr-code-overlay">
-//           <div className="qr-code-modal">
-//             <img src={`${process.env.PUBLIC_URL}/images/qr_code_${roomName}.png`} alt="Room QR Code" />
-//             <button onClick={handleSaveQRCode}>Save QR Code</button>
-//             <button onClick={handleCloseQRCode}>Close</button>
-//           </div>
-//         </div>
-//       )}
-//     </div>
-//   );
-// }
-
-// export default PlayRoom;
-
-// import React, { useState, useEffect, useCallback } from 'react';
-// import { useLocation, useNavigate } from 'react-router-dom';
-
-// function PlayRoom() {
-//   const [playlist, setPlaylist] = useState([]);
-//   const [introduction, setIntroduction] = useState('');
-//   const [settings, setSettings] = useState({});
-//   const [showTooltip, setShowTooltip] = useState(false);
-//   const [showQRCode, setShowQRCode] = useState(false);
-//   const [firstTrackId, setFirstTrackId] = useState(null);
-//   const [spotifyPlayerError, setSpotifyPlayerError] = useState(null);
-//   const location = useLocation();
-//   const navigate = useNavigate();
-//   const queryParams = new URLSearchParams(location.search);
-//   const roomName = queryParams.get('room_name');
-//   const isHost = queryParams.get('is_host') === 'True';
-
-//   const setupSpotifyPlayer = useCallback(() => {
-//     if (!firstTrackId) return;
-
-//     console.log("Setting up Spotify player with track ID:", firstTrackId);
-
-//     const script = document.createElement('script');
-//     script.src = "https://open.spotify.com/embed/iframe-api/v1";
-//     script.async = true;
-//     script.onload = () => {
-//       window.onSpotifyIframeApiReady = (IFrameAPI) => {
-//         const element = document.getElementById('embed-iframe');
-//         const options = {
-//           width: '100%',
-//           height: '160',
-//           uri: `spotify:track:${firstTrackId}`,
-//           allow: "encrypted-media; clipboard-write; autoplay",
-//         };
-//         const callback = (EmbedController) => {
-//           EmbedController.addListener('playback_error', (e) => {
-//             console.error('Spotify playback error:', e);
-//             setSpotifyPlayerError(`Playback error: ${e.message}`);
-//           });
-
-//           document.querySelectorAll('.episode').forEach(episode => {
-//             episode.addEventListener('click', () => {
-//               EmbedController.loadUri(episode.dataset.spotifyId);
-//             });
-//           });
-//         };
-//         IFrameAPI.createController(element, options, callback);
-//       };
-//     };
-//     document.body.appendChild(script);
-
-//     return () => {
-//       document.body.removeChild(script);
-//     };
-//   }, [firstTrackId]);
-
-//   useEffect(() => {
-//     if (!roomName) {
-//       navigate('/homepage');
-//       return;
-//     }
-
-//     const fetchRoomData = async () => {
-//       try {
-
-//         // const response = await fetch(`http://127.0.0.1:5000/api/room-playlist?room_name=${roomName}`);
-
-//         const response = await fetch(`http://13.56.253.58:5000/api/room-playlist?room_name=${roomName}`);
-//         const data = await response.json();
-//         console.log(data)
-//         setPlaylist(data.playlist);
-//         setIntroduction(data.introduction);
-//         setSettings(data.settings);
-//         if (data.playlist.length > 0) {
-//           console.log("Setting firstTrackId:", data.playlist[0].id);
-//           setFirstTrackId(data.playlist[0].id);
-//         }
-//       } catch (error) {
-//         console.error('Error fetching room data:', error);
-//       }
-//     };
-
-//     fetchRoomData();
-//   }, [roomName, navigate]);
-
-//   useEffect(() => {
-//     if (firstTrackId) {
-//       setupSpotifyPlayer();
-//     }
-//   }, [firstTrackId, setupSpotifyPlayer]);
-
-//   const copyShareLink = () => {
-//     const shareLink = `http://aico-music.com/playroom?room_name=${roomName}`;
-
-//     if (navigator.clipboard) {
-//       navigator.clipboard.writeText(shareLink).then(() => {
-//         setShowTooltip(true);
-//         setTimeout(() => setShowTooltip(false), 2000);
-//       }).catch(err => {
-//         console.error('Failed to copy: ', err);
-//       });
-//     } else {
-//       // Fallback for older browsers
-//       const tempInput = document.createElement('input');
-//       tempInput.value = shareLink;
-//       document.body.appendChild(tempInput);
-//       tempInput.select();
-//       document.execCommand('copy');
-//       document.body.removeChild(tempInput);
-//       setShowTooltip(true);
-//       setTimeout(() => setShowTooltip(false), 2000);
-//     }
-//   };
-
-//   const handleQRCodeClick = () => {
-//     setShowQRCode(true);
-//   };
-
-//   const handleCloseQRCode = () => {
-//     setShowQRCode(false);
-//   };
-
-//   const handleSaveQRCode = () => {
-//     const link = document.createElement('a');
-//     link.href = `${process.env.PUBLIC_URL}/images/qr_code_${roomName}.png`;
-//     link.download = `qr_code_${roomName}.png`;
-//     document.body.appendChild(link);
-//     link.click();
-//     document.body.removeChild(link);
-//   };
-
-//   const handleSearchMusic = () => {
-//     navigate(`/search_music?room=${roomName}`);
-//   };
-
-
-
-//   // //  Function to manually test different track IDs
-//   //  const testTrackId = (id) => {
-//   //   setFirstTrackId(id);
-//   // };  
-
-//   return (
-//     <div className="play-room">
-//       <header>
-//         <div className="room-info">
-//           <h1>Room: {roomName}</h1>
-//           <p>You are {isHost ? 'the host' : 'a guest'}</p>
-//           <button onClick={handleQRCodeClick} className="qr-code-button">
-//             QR Code
-//           </button>
-//         </div>
-//         <div className="share-button-container">
-//           <button onClick={copyShareLink} className="share-button">
-//             Share Room and Invite Friends ⚡️
-//           </button>
-//           {showTooltip && <div className="tooltip">Link copied!</div>}
-//         </div>
-//       </header>
-      
-//       {/* <div className="debug-section">
-//         <h3>Debug: Spotify Track ID</h3>
-//         <p>Current Track ID: {firstTrackId}</p>
-//         <input 
-//           type="text" 
-//           placeholder="Enter Spotify Track ID" 
-//           onChange={(e) => testTrackId(e.target.value)}
-//         />
-//       </div> */}
-//       <div id="embed-iframe"></div>
-//       {spotifyPlayerError && <p className="error-message">{spotifyPlayerError}</p>}
-
-//       {/* Debug section */}
-//       {/* <div className="debug-section">
-//         <h3>Debug: Spotify Track ID</h3>
-//         <p>Current Track ID: {firstTrackId}</p>
-//       </div> */}
-
-//       {/* <main className="playlist-container">
-//         <h2>The Playlist</h2>
-//         <ul className="playlist">
-//           {playlist.map((track, index) => (
-//             <li key={index} className="playlist-item">
-//               <span className="track-info">{track.title} - {track.artist}</span>
-//               <span className="track-id">ID: {track.id}</span>
-//               <a 
-//                 href={track.url} 
-//                 target="_blank" 
-//                 rel="noopener noreferrer"
-//                 className="spotify-link"
-//               >
-//                 Listen on Spotify
-//               </a>
-//             </li>
-//           ))}
-//         </ul>
-//       </main> */}
-
-//       {/* <div id="embed-iframe"></div> */}
-
-//       <section className="playlist-info">
-//         <h2>Playlist Information</h2>
-//         <p>{introduction}</p>
-//         <div className="playlist-settings">
-//           <h3>Playlist Settings</h3>
-//           <p><strong>Prompt:</strong> {settings.prompt}</p>
-//           <p><strong>Genre:</strong> {settings.genre}</p>
-//           <p><strong>Occasion:</strong> {settings.occasion}</p>
-//         </div>
-//       </section>
-
-//       <main className="playlist-container">
-//         <h2>The Playlist</h2>
-//         <button onClick={handleSearchMusic} className="qr-code-button">Search and Add Music</button>  
-//         <ul className="playlist">
-//           {playlist.map((track, index) => (
-//             <li key={index} className="playlist-item">
-//               <span className="track-info">{track.title} - {track.artist}</span>
-//               <a 
-//                 href={track.url} 
-//                 target="_blank" 
-//                 rel="noopener noreferrer"
-//                 className="spotify-link"
-//               >
-//                 Listen on Spotify
-//               </a>
-//             </li>
-//           ))}
-//         </ul>
-//       </main>
-
-//       {showQRCode && (
-//         <div className="qr-code-overlay">
-//           <div className="qr-code-modal">
-//             <img src={`${process.env.PUBLIC_URL}/images/qr_code_${roomName}.png`} alt="Room QR Code" />
-//             <button onClick={handleSaveQRCode}>Save QR Code</button>
-//             <button onClick={handleCloseQRCode}>Close</button>
-//           </div>
-//         </div>
-//       )}
-//     </div>
-//   );
-// }
-
-// export default PlayRoom;
-
-
-
-
-
-// // Updated PlayRoom.js with Spotify Web Playback SDK Integration
-
-// import React, { useEffect, useState } from 'react';
-
-// const SPOTIFY_CLIENT_ID = '1bf7160dc56446378b569f7a74064a12'; // Replace with your Spotify Client ID
-// const REDIRECT_URI = 'http://localhost:3000/callback'; // Update this if your redirect URI differs
-
-// const PlayRoom = ({ playlist, roomName }) => {
-//   const [spotifyPlayer, setSpotifyPlayer] = useState(null);
-//   const [isAuthorized, setIsAuthorized] = useState(false);
-
-//   const getSpotifyToken = () => {
-//     const hash = window.location.hash;
-//     const token = hash
-//       .substring(1)
-//       .split('&')
-//       .find(elem => elem.startsWith('access_token'))
-//       ?.split('=')[1];
-//     return token;
-//   };
-
-//   const loginToSpotify = () => {
-//     const scope = 'streaming user-read-email user-read-private';
-//     const authURL = `https://accounts.spotify.com/authorize?response_type=token&client_id=${SPOTIFY_CLIENT_ID}&scope=${encodeURIComponent(scope)}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
-//     window.location.href = authURL;
-//   };
-
-//   useEffect(() => {
-//     const token = getSpotifyToken();
-//     if (!token) {
-//       loginToSpotify();
-//       return;
-//     }
-
-//     setIsAuthorized(true);
-
-//     const script = document.createElement('script');
-//     script.src = 'https://sdk.scdn.co/spotify-player.js';
-//     script.async = true;
-//     document.body.appendChild(script);
-
-//     window.onSpotifyWebPlaybackSDKReady = () => {
-//       const player = new window.Spotify.Player({
-//         name: 'PlayRoom Player',
-//         getOAuthToken: cb => { cb(token); },
-//         volume: 0.8,
-//       });
-
-//       player.connect();
-
-//       player.addListener('ready', ({ device_id }) => {
-//         console.log('Device ID:', device_id);
-//       });
-
-//       player.addListener('player_state_changed', state => {
-//         console.log('Player state changed:', state);
-//       });
-
-//       setSpotifyPlayer(player);
-//     };
-//   }, []);
-
-//   const playTrack = async (spotifyUri) => {
-//     if (!spotifyPlayer) {
-//       alert('Player is not ready yet. Please wait.');
-//       return;
-//     }
-
-//     const token = getSpotifyToken();
-//     const deviceId = spotifyPlayer._options.id;
-
-//     await fetch(`https://api.spotify.com/v1/me/player/play?device_id=${deviceId}`, {
-//       method: 'PUT',
-//       headers: {
-//         Authorization: `Bearer ${token}`,
-//         'Content-Type': 'application/json',
-//       },
-//       body: JSON.stringify({ uris: [spotifyUri] }),
-//     });
-//   };
-
-//   return (
-//     <div className="playroom">
-//       <header>
-//         <h1>Welcome to {roomName} PlayRoom</h1>
-//       </header>
-
-//       {!isAuthorized && <p>Redirecting to Spotify for authentication...</p>}
-
-//       {isAuthorized && (
-//         <div className="playlist-container">
-//           <h2>Playlist</h2>
-//           {playlist.map((track, index) => (
-//             <div key={index} className="track-item">
-//               <p>
-//                 <strong>{track.title}</strong> by {track.artist}
-//               </p>
-//               <button onClick={() => playTrack(track.id)}>Play</button>
-//             </div>
-//           ))}
-//         </div>
-//       )}
-
-//       <footer>
-//         <button onClick={() => alert('Back to Room Selection!')}>Back</button>
-//       </footer>
-//     </div>
-//   );
-// };
 
 // export default PlayRoom;
