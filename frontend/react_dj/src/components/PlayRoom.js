@@ -1,6 +1,8 @@
 // PlayRoom.js
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import PlaylistTrack from './PlaylistTrack'; 
+
 import { 
   Play, Pause, SkipBack, SkipForward, Share2, 
   QrCode, Plus, Music 
@@ -41,7 +43,9 @@ function PlayRoom() {
     const fetchRoomData = async () => {
       try {
         setLoading(true);
+        // const response = await fetch(`http://127.0.0.1:5000/api/room-playlist?room_name=${roomName}`);
         const response = await fetch(`http://13.56.253.58:5000/api/room-playlist?room_name=${roomName}`);
+
         if (!response.ok) {
           throw new Error(`Failed to fetch playlist (${response.status})`);
         }
@@ -159,6 +163,7 @@ function PlayRoom() {
         return nextIndex;
       });
     }
+   
     
     const isNowPlaying = playerState === 1;
     setIsPlaying(isNowPlaying);
@@ -282,6 +287,13 @@ function PlayRoom() {
     navigate(`/search_music?room=${roomName}`);
   };
 
+  const playSpecificTrack = (index) => {
+    console.log(`Playing specific track at index ${index}:`, playlist[index].title);
+    setCurrentTrack(index);
+    loadVideo(index);
+  };
+
+
   if (loading) {
     return (
       <div className="play-room loading">
@@ -304,6 +316,38 @@ function PlayRoom() {
   }
 
   const currentSong = playlist[currentTrack] || {};
+  const handleTrackDelete = (newPlaylist) => {
+    // Cleanup player state
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+  
+    // If there are songs remaining in the playlist
+    if (newPlaylist.length > 0) {
+      // If deleting current track, move to next song or previous if at end
+      if (currentTrack >= newPlaylist.length) {
+        setCurrentTrack(newPlaylist.length - 1);
+      }
+      // Load the new track
+      const nextVideoId = extractVideoId(newPlaylist[currentTrack].song_url);
+      if (playerRef.current && nextVideoId) {
+        playerRef.current.loadVideoById(nextVideoId);
+      }
+    } else {
+      // If no songs left, reset player
+      setCurrentTrack(0);
+      setIsPlaying(false);
+      if (playerRef.current) {
+        playerRef.current.stopVideo();
+      }
+    }
+  
+    // Update playlist
+    setPlaylist(newPlaylist);
+  };
+
+
 
   // PlayRoom.js
 // ... keep all your existing imports and state variables ...
@@ -383,51 +427,29 @@ function PlayRoom() {
         </div>
 
         <div className="playlist-section">
-          <div className="playlist-header">
-            <h3>Playlist ({playlist.length} songs)</h3>
-            <button onClick={handleSearchMusic} className="control-button add-music-button">
+  <div className="playlist-header">
+    <h3>Playlist ({playlist.length} songs)</h3>
+    <button onClick={handleSearchMusic} className="control-button add-music-button">
               <Plus size={20} />
               Add Music
             </button>
-          </div>
-          <ul className="track-list">
-            {playlist.map((track, index) => (
-              <li 
-                key={index}
-                className={`track-item ${index === currentTrack ? 'active' : ''}`}
-                onClick={() => {
-                  setCurrentTrack(index); // Immediately update current track
-                  loadVideo(index);
-                }}
-              >
-              {/* <li 
-                key={index}
-                className={`track-item ${index === currentTrack ? 'active' : ''}`}
-                onClick={() => loadVideo(index)}
-              > */}
-                {track.cover_img_url && (
-                  <img 
-                    src={track.cover_img_url} 
-                    alt=""
-                    className="track-thumbnail"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.style.display = 'none';
-                    }}
-                  />
-                )}
-                <span className="track-number">{index + 1}</span>
-                <div className="track-details">
-                  <span className="track-title">{track.title}</span>
-                  <span className="track-artist">{track.artist}</span>
-                </div>
-                {index === currentTrack && (
-                  <span className="now-playing">{isPlaying ? '▶' : '⏸'}</span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
+  </div>
+  <ul className="track-list">
+  {playlist.map((track, index) => (
+    <PlaylistTrack
+      key={index}
+      track={track}
+      index={index}
+      isHost={isHost}
+      isCurrentTrack={index === currentTrack}
+      roomName={roomName}
+      onTrackClick={playSpecificTrack}
+      onTrackDelete={handleTrackDelete}
+      stopProgressTracking={stopProgressTracking}  // Pass the existing stopProgressTracking function
+    />
+  ))}
+</ul>
+</div>
       </div>
 
       <div className="playlist-info-section">
