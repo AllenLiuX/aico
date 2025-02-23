@@ -1,54 +1,90 @@
 // Profile.js
 import React, { useState, useEffect } from 'react';
-import { Heart, Music, Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Heart, Music, Plus, Users } from 'lucide-react';
 import '../styles/Profile.css';
 
-const Profile = () => {
-  const [user, setUser] = useState(null);
-  const [activeTab, setActiveTab] = useState('created');
+const RoomCard = ({ room }) => {
   const navigate = useNavigate();
-  
-  // Mock data for testing
-  const mockRooms = {
-    created: [
-      {
-        id: 1,
-        name: "Summer Vibes",
-        coverImage: "/api/placeholder/300/200",
-        description: "Perfect playlist for summer days",
-        songCount: 15
-      },
-      {
-        id: 2,
-        name: "Workout Mix",
-        coverImage: "/api/placeholder/300/200",
-        description: "High energy songs to keep you motivated",
-        songCount: 20
-      }
-    ],
-    favorited: [
-      {
-        id: 3,
-        name: "Chill Evening",
-        coverImage: "/api/placeholder/300/200",
-        description: "Relaxing tunes for the evening",
-        songCount: 12
-      },
-      {
-        id: 4,
-        name: "Party Mix",
-        coverImage: "/api/placeholder/300/200",
-        description: "Ultimate party playlist",
-        songCount: 25
-      }
-    ]
+
+  const handleRoomClick = () => {
+    navigate(`/playroom?room_name=${room.name}&is_host=True`);
   };
 
+  return (
+    <div className="room-card" onClick={handleRoomClick}>
+      <div className="room-card-image">
+        <img
+          src={room.cover_image || '/api/placeholder/300/200'}
+          alt={room.name}
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src = '/api/placeholder/300/200';
+          }}
+        />
+        <div className="room-card-overlay">
+          <div className="room-song-count">
+            <Music size={14} />
+            <span>{room.song_count} songs</span>
+          </div>
+        </div>
+      </div>
+      <div className="room-card-content">
+        <h3>{room.name}</h3>
+        <p>{room.introduction || 'No description'}</p>
+        <div className="room-card-tags">
+          {room.genre && (
+            <span className="tag genre-tag">{room.genre}</span>
+          )}
+          {room.occasion && (
+            <span className="tag occasion-tag">{room.occasion}</span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+function Profile() {
+  const [user, setUser] = useState(null);
+  const [rooms, setRooms] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
+
   useEffect(() => {
+    const fetchUserRooms = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setLoading(false);
+          return;
+        }
+
+        const response = await fetch('http://13.56.253.58:5000/api/user/rooms', {
+          headers: {
+            'Authorization': token
+          }
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch rooms');
+        
+        const data = await response.json();
+        setRooms(data.rooms);
+      } catch (err) {
+        setError('Failed to load rooms');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     const userData = localStorage.getItem('user');
     if (userData) {
       setUser(JSON.parse(userData));
+      fetchUserRooms();
+    } else {
+      setLoading(false);
     }
   }, []);
 
@@ -56,10 +92,18 @@ const Profile = () => {
     navigate('/create_room');
   };
 
+  if (loading) {
+    return (
+      <div className="profile-container">
+        <div className="loading">Loading your profile...</div>
+      </div>
+    );
+  }
+
   if (!user) {
     return (
       <div className="profile-container">
-        <div className="text-center">Please login to view your profile.</div>
+        <div className="auth-message">Please login to view your profile.</div>
       </div>
     );
   }
@@ -67,68 +111,46 @@ const Profile = () => {
   return (
     <div className="profile-container">
       <div className="profile-header">
-        <img
-          src={user.avatar}
-          alt="Profile"
-          className="profile-avatar"
-        />
-        <div className="profile-info">
-          <h1>{user.name}</h1>
-          <p>{user.email}</p>
+        <div className="user-info">
+          <img
+            src={user.avatar}
+            alt="Profile"
+            className="user-avatar"
+            onError={(e) => {
+              e.target.onerror = null;
+              e.target.src = '/api/placeholder/64/64';
+            }}
+          />
+          <div className="user-details">
+            <h1>{user.username}</h1>
+            <p>{user.email}</p>
+          </div>
         </div>
       </div>
 
-      <div className="profile-tabs">
-        <button
-          className={`tab-button ${activeTab === 'created' ? 'active' : ''}`}
-          onClick={() => setActiveTab('created')}
-        >
-          <Music size={20} className="mr-2" />
-          Created Rooms
-        </button>
-        <button
-          className={`tab-button ${activeTab === 'favorited' ? 'active' : ''}`}
-          onClick={() => setActiveTab('favorited')}
-        >
-          <Heart size={20} className="mr-2" />
-          Favorited Rooms
-        </button>
-      </div>
+      <div className="rooms-container">
+        <div className="rooms-header">
+          <h2>
+            <Users size={20} />
+            Your Rooms
+            <span className="room-count">({rooms.length})</span>
+          </h2>
+          <button className="create-room-button" onClick={handleCreateRoom}>
+            <Plus size={20} />
+            Create New Room
+          </button>
+        </div>
 
-      <div className="room-grid">
-        {activeTab === 'created' && (
-          <div className="create-room-card" onClick={handleCreateRoom}>
-            <Plus size={40} className="text-purple-500 mb-2" />
-            <p>Create New Room</p>
-          </div>
-        )}
-        
-        {mockRooms[activeTab].map((room) => (
-          <div key={room.id} className="room-card">
-            <img
-              src={room.coverImage}
-              alt={room.name}
-              className="room-image"
-            />
-            <div className="room-content">
-              <h3 className="room-title">{room.name}</h3>
-              <p className="room-description">{room.description}</p>
-              <div className="room-footer">
-                <span className="song-count">
-                  {room.songCount} songs
-                </span>
-                {activeTab === 'favorited' && (
-                  <button className="favorite-button">
-                    <Heart size={20} />
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
+        {error && <div className="error-message">{error}</div>}
+
+        <div className="rooms-grid">
+          {rooms.map((room) => (
+            <RoomCard key={room.name} room={room} />
+          ))}
+        </div>
       </div>
     </div>
   );
-};
+}
 
 export default Profile;

@@ -557,6 +557,36 @@
 }
 
 
+.host-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.host-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.host-info span {
+  color: #666;
+  font-size: 14px;
+}
+
+.auth-warning {
+  background-color: rgba(187, 134, 252, 0.1);
+  border: 1px solid #bb86fc;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 24px;
+  text-align: center;
+  color: #bb86fc;
+  font-size: 14px;
+}
+
 
 /* iPhone-specific adjustments for PlayRoom.css */
 

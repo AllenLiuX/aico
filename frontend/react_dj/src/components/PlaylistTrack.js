@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Trash2 } from 'lucide-react';
-import '../styles/PlaylistTrack.css';
+
 const PlaylistTrack = ({ 
   track = {},
   index = 0,
@@ -15,7 +15,7 @@ const PlaylistTrack = ({
   const [error, setError] = useState(null);
 
   const handleDelete = async (e) => {
-    e.stopPropagation();
+    e.stopPropagation(); // Prevent triggering track click when deleting
     
     if (!isHost || isDeleting || !track.song_id) return;
     
@@ -23,11 +23,11 @@ const PlaylistTrack = ({
       setIsDeleting(true);
       setError(null);
       
+      // Stop tracking progress before deleting the current track
       stopProgressTracking();
 
       // const response = await fetch('http://127.0.0.1:5000/api/remove-from-playlist', {
       const response = await fetch('http://13.56.253.58:5000/api/remove-from-playlist', {
-
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -47,6 +47,7 @@ const PlaylistTrack = ({
       
     } catch (err) {
       setError('Failed to delete track');
+      console.error('Delete error:', err);
     } finally {
       setIsDeleting(false);
     }

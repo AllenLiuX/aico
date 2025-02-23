@@ -1,8 +1,9 @@
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
-import gpt
+import util.gpt as gpt 
+import util.llm_modules as llm
 from pathlib import Path
-import spotify
+# import spotify
 import time
 import logging
 import util.youtube_music as youtube_music
@@ -37,167 +38,77 @@ app = Flask(__name__)
 # CORS(app)
 CORS(app, resources={r"/api/*": {"origins": "*"}})  # Enable CORS for all API routes
 
-def parse_answer_playlist(answer):
-    results = answer.split("\n")
-    titles = ''
-    artists = ''
-    introduction = ''
-    
-    start = -1
-    for index, item in enumerate(results):
-        if 'titles' in item.lower():
-            titles =  ':'.join(item.split(":")[1:]).strip(' <>;')
-            start = index
-            break
-        
-    
-    for index, item in enumerate(results):
-        if index < start + 1:
-            continue
-        if 'artists' in item.lower():
-            artists =  ':'.join(item.split(":")[1:]).strip(' <>;')
-            start = index
-            break
-
-    for index, item in enumerate(results):
-        if index < start + 1:
-            continue
-        if 'introduction' in item.lower():
-            introduction =  ':'.join(item.split(":")[1:]).strip(' <>;')
-            start = index
-            break
-        
-    return titles, artists, introduction
-
 
 @app.route('/api/generate-playlist', methods=['POST'])
 def generate_playlist():
-    start_time = time.time()
     data = request.json
     prompt = data.get('prompt')
     genre = data.get('genre')
     occasion = data.get('occasion')
     room_name = data.get('room_name')
-    # room_name = 'test'
-
-
-    logger.info(str(prompt))
-    logger.info(str(genre))
-    logger.info(str(occasion))
-    logger.info(str(room_name))
-
-    settings = {
-        "prompt": prompt,
-        "genre": genre,
-        "occasion": occasion
-    }
-
-    song_num = 20
-    final_prompt = f"""
-    I'll give you a music requirement possibly with genre and an occasion, and you'll generate a playlist of at least {song_num} songs for me. Make sure the playlist is suitable for the given genre and occasion.
-    The output format of the playlist should be two list seperated by ;. The two list titles and artists are stored in two lines in the below format. such that the title is and only is the full name of the song, and artist is and only is the full name of the corresponding musician. 
-    Do not provide any extra information. Each one separated by a semicolon ;, and the sequence and item number should be matched.
-    Provide a paragraph of introduction about why you choose these songs and artists, what are their styles and backgrounds.
-    Make sure you strictly follow the music requirement, instead of recommend very general songs.
-
-    Output Format:
-    titles: <titles separated by ;>
-    artists: <artists separated by ;>
-    introduction: <a paragraph of introduction>
+    auth_token = request.headers.get('Authorization')
     
-    Output Example:
-    titles: music1;music2;music3;...;
-    artists: artist1;artist2;artist3;...;
-    introduction: This playlist is about ....
+    # Get user information if logged in
+    username = None
+    avatar = None
+    if auth_token:
+        username = get_hash(f"sessions{redis_version}", auth_token)
+        if username:
+            profile_json = get_hash(f"user_profiles{redis_version}", username)
+            if profile_json:
+                profile = json.loads(profile_json)
+                avatar = profile.get('avatar')
 
-    Do not use new line when listing the titles and artists, but make them into one line.
+    try:
+        logger.info(str(prompt))
+        logger.info(str(genre))
+        logger.info(str(occasion))
+        logger.info(str(room_name))
 
-    The given input is as followed:
-    music requirement: {prompt}
-    Genre: {genre}
-    Occasion: {occasion}
-    """
-    logger.info('--- sending gpt request')
-    # Generate the playlist using the GPT model
-    # reply = gpt.gpt_single_reply(final_prompt)
-    # reply = gpt.query_perplexity(final_prompt)
-    reply = gpt.personal_gpt(final_prompt)
-    
-    logger.info(reply)
-    # reply = gpt.query_perplexity(prompt)
+        settings = {
+            "prompt": prompt,
+            "genre": genre,
+            "occasion": occasion
+        }
 
-    titles, artists, introduction = parse_answer_playlist(reply)
-    
-    logger.info(str(titles))
-    logger.info(str(artists))
-    logger.info(str(introduction))
-    
-    titles = titles.split(';')
-    artists = artists.split(';')
-    
-    urls = []
-    ids = []
-    cover_img_urls = []
-    playlist = []
-    # for title, artist in zip(titles, artists):
-    #     try:
-    #         logger.info(f'getting links for {title}...')
-    #         # url, id = spotify.get_song_url(artist, title)
-    #         song_info = youtube_music.get_song_info(song_name=title, artist_name=artist)
-    #         url, id, cover_img_url = song_info['song_url'], song_info['song_id'], song_info['cover_img_url']
+        song_num = 20
+        titles, artists, introduction, reply = llm.llm_generate_playlist(prompt, genre, occasion, song_num)
+        
+        playlist = []
+        
+        for title, artist in zip(titles, artists):
+            try:
+                logger.info(f'getting links for {title}...')
+                song_info = youtube_music.get_song_info(song_name=title, artist_name=artist)
+                playlist.append(song_info)
 
-    #     except Exception as e:
-    #         logger.info(f'----failed for {title}, {artist}', e)
-    #         url = ''
-    #         id = ''
-    #         cover_img_url = ''
-    #     urls.append(url)
-    #     ids.append(id)
-    #     cover_img_urls.append(cover_img_url)
+            except Exception as e:
+                logger.info(f'----failed for {title}, {artist}', e)
+        
+        logger.info(str(playlist))
 
-    # # playlist = [{"title": title, "artist": artist, "url": url, "id": id} for title, artist, url, id in zip(titles, artists, urls, ids)]
-    # playlist = [{"title": title, "artist": artist, "url": url, "id": id, "cover_img_url": cover_img_url} for title, artist, url, id, cover_img_url in zip(titles, artists, urls, ids, cover_img_urls)]
+        redis_api.write_hash(f"playlist{redis_version}", room_name, json.dumps(playlist))
+        redis_api.write_hash(f"settings{redis_version}", room_name, json.dumps(settings))
+        redis_api.write_hash(f"intro{redis_version}", room_name, introduction)
 
-    for title, artist in zip(titles, artists):
-        try:
-            logger.info(f'getting links for {title}...')
-            song_info = youtube_music.get_song_info(song_name=title, artist_name=artist)
-            playlist.append(song_info)
+        # logger.info(f'Time taken: {time.time() -  start_time}')
 
-        except Exception as e:
-            logger.info(f'----failed for {title}, {artist}', e)
-    
-    logger.info(str(playlist))
+        # Store host information if user is logged in
+        if username and avatar:
+            set_room_host(room_name, username, avatar)
+            add_room_to_user_profile(username, room_name)
 
-    # # Store the playlist in Redis
-    # redis_client.set(f"playlist:{room_name}", json.dumps(playlist))
-    # redis_client.set(f"settings:{room_name}", json.dumps(settings))
-    # redis_client.set(f"intro:{room_name}", introduction)
-
-    redis_api.write_hash(f"playlist{redis_version}", room_name, json.dumps(playlist))
-    redis_api.write_hash(f"settings{redis_version}", room_name, json.dumps(settings))
-    redis_api.write_hash(f"intro{redis_version}", room_name, introduction)
-
-    logger.info(f'Time taken: {time.time() -  start_time}')
-    # logger.info(urls)
-    
-    # Here you would implement your playlist generation logic
-    # For now, we'll return a dummy playlist
-    # playlist = [
-    #     {"title": "Song 1", "artist": "Artist 1", "url": "xxx"},
-    #     {"title": "Song 2", "artist": "Artist 2", "url": "xxx"},
-    # ]
-    
-    return jsonify({"playlist": playlist})
+        return jsonify({"playlist": playlist})
+    except Exception as e:
+        logger.error(f"Error generating playlist: {str(e)}")
+        return jsonify({"error": "Failed to generate playlist"}), 500
 
 
 @app.route('/api/room-playlist', methods=['GET'])
 def get_room_playlist():
     room_name = request.args.get('room_name')
-    # Fetch the playlist for the given room_name from your database
-    # For now, we'll return a dummy playlist
 
-# Only generate QR code if it doesn't exist
+    # Only generate QR code if it doesn't exist
     qr_code_path = Path(__file__).parent.parent / 'frontend' / 'react_dj' / 'public' / 'images' / f"qr_code_{room_name}.png"
     if not qr_code_path.exists():
         generate_qr_code_with_logo(f'http://aico-music.com/playroom?room_name={room_name}', qr_code_path)
@@ -205,46 +116,24 @@ def get_room_playlist():
         build_path = Path(__file__).parent.parent / 'frontend' / 'react_dj' / 'build' / 'images' / f"qr_code_{room_name}.png"
         generate_qr_code_with_logo(f'http://aico-music.com/playroom?room_name={room_name}', build_path)
 
+    try:
+        # Get existing playlist data
+        playlist = json.loads(get_hash(f"playlist{redis_version}", room_name))
+        settings = json.loads(get_hash(f"settings{redis_version}", room_name))
+        introduction = get_hash(f"intro{redis_version}", room_name)
 
-    
-    # playlist_json = redis_client.get(f"playlist:{room_name}")
-    # settings_json = redis_client.get(f"settings:{room_name}")
-    # introduction = redis_client.get(f"intro:{room_name}")
-
-    # # Decode settings_json and playlist_json from bytes to str before using json.loads()
-    # if settings_json:
-    #     settings = json.loads(settings_json.decode('utf-8'))
-    # else:
-    #     settings = {}
-
-    # if playlist_json:
-    #     playlist = json.loads(playlist_json.decode('utf-8'))
-    # else:
-    #     # Return an empty playlist if not found
-    #     playlist = []
-
-    # # Decode introduction from bytes to str if it exists
-    # if introduction:
-    #     introduction = introduction.decode('utf-8')
-    # else:
-    #     introduction = ""
-
-    playlist = json.loads(redis_api.get_hash(f"playlist{redis_version}", room_name))
-    settings = json.loads(redis_api.get_hash(f"settings{redis_version}", room_name))
-    introduction = redis_api.get_hash(f"intro{redis_version}", room_name)
-
-
-    logger.info(str({
-        "playlist": playlist,
-        "introduction": introduction,
-        "settings": settings
-    }))
-    # Now return the decoded and JSON-parsed data
-    return jsonify({
-        "playlist": playlist,
-        "introduction": introduction,
-        "settings": settings
-    })
+        # Get host information
+        host_data = get_room_host(room_name)
+        
+        return jsonify({
+            "playlist": playlist,
+            "introduction": introduction,
+            "settings": settings,
+            "host": host_data  # Add host information to response
+        })
+    except Exception as e:
+        logger.error(f"Error fetching room data: {str(e)}")
+        return jsonify({"error": "Failed to fetch room data"}), 500
 
     # playlist = [
     #     {"id": "spotify:track:1234", "title": "Song 1", "artist": "Artist 1"},
@@ -501,6 +390,94 @@ def get_avatar(username):
     # Set cache control headers manually
     response.headers['Cache-Control'] = 'public, max-age=86400'  # Cache for 24 hours
     return response
+
+
+# Add these new Redis functions
+def get_room_host(room_name):
+    """Get room host information."""
+    host_data = get_hash(f"room_hosts{redis_version}", room_name)
+    if not host_data:
+        return None
+    return json.loads(host_data)
+
+def set_room_host(room_name, username, avatar):
+    """Set room host information."""
+    host_data = json.dumps({
+        "username": username,
+        "avatar": avatar,
+        "created_at": datetime.now().isoformat()
+    })
+    write_hash(f"room_hosts{redis_version}", room_name, host_data)
+
+def add_room_to_user_profile(username, room_name):
+    """Add room to user's created rooms list."""
+    profile_json = get_hash(f"user_profiles{redis_version}", username)
+    if profile_json:
+        profile = json.loads(profile_json)
+        # Initialize created_rooms if it doesn't exist
+        if 'created_rooms' not in profile:
+            profile['created_rooms'] = []
+        # Add room if not already in list
+        if room_name not in profile['created_rooms']:
+            profile['created_rooms'].append(room_name)
+        write_hash(f"user_profiles{redis_version}", username, json.dumps(profile))
+
+
+@app.route('/api/user/rooms', methods=['GET'])
+def get_user_rooms():
+    auth_token = request.headers.get('Authorization')
+    if not auth_token:
+        return jsonify({"error": "Authentication required"}), 401
+
+    username = get_hash(f"sessions{redis_version}", auth_token)
+    if not username:
+        return jsonify({"error": "Invalid session"}), 401
+
+    try:
+        # Get user profile to find created rooms
+        profile_json = get_hash(f"user_profiles{redis_version}", username)
+        if not profile_json:
+            return jsonify({"rooms": []})
+        
+        profile = json.loads(profile_json)
+        created_rooms = profile.get('created_rooms', [])
+        
+        rooms_data = []
+        for room_name in created_rooms:
+            # Get room data
+            playlist_json = get_hash(f"playlist{redis_version}", room_name)
+            settings_json = get_hash(f"settings{redis_version}", room_name)
+            intro = get_hash(f"intro{redis_version}", room_name)
+            
+            if not playlist_json:
+                continue  # Skip if room no longer exists
+                
+            playlist = json.loads(playlist_json)
+            settings = json.loads(settings_json) if settings_json else {}
+            
+            # Get first song's cover image as room cover
+            cover_image = (playlist[0].get('cover_img_url', '') 
+                         if playlist and len(playlist) > 0 
+                         else '')
+            
+            rooms_data.append({
+                "name": room_name,
+                "cover_image": cover_image,
+                "introduction": intro[:100] + '...' if intro and len(intro) > 100 else intro,  # Cap description
+                "song_count": len(playlist),
+                "genre": settings.get('genre', ''),
+                "occasion": settings.get('occasion', ''),
+                "created_at": profile.get('created_at', '')
+            })
+            
+        # Sort rooms by creation date, newest first
+        rooms_data.sort(key=lambda x: x['created_at'], reverse=True)
+        
+        return jsonify({"rooms": rooms_data})
+        
+    except Exception as e:
+        logger.error(f"Error fetching user rooms: {str(e)}")
+        return jsonify({"error": "Failed to fetch rooms"}), 500
 
 if __name__ == '__main__':
     # app.run(port=3000, host='10.72.252.213', debug=True)
