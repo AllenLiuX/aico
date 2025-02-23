@@ -35,7 +35,7 @@
 /* Player Grid Layout */
 .player-grid {
   display: grid;
-  grid-template-columns: 1fr 360px;
+  grid-template-columns: 1fr 420px;
   gap: 32px;
   margin-bottom: 48px;
 }
@@ -175,67 +175,7 @@
   margin: 0;
 }
 
-.track-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
 
-.track-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  background-color: #2c2c2c;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.track-item:hover {
-  background-color: #363636;
-}
-
-.track-item.active {
-  background-color: #363636;
-  border-left: 4px solid #bb86fc;
-}
-
-.track-number {
-  color: #666;
-  font-size: 14px;
-  width: 24px;
-  text-align: center;
-}
-
-.track-image {
-  width: 48px;
-  height: 48px;
-  border-radius: 4px;
-  object-fit: cover;
-}
-
-.track-details {
-  flex: 1;
-  min-width: 0;
-}
-
-.track-title {
-  font-size: 14px;
-  margin: 0 0 4px 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.track-artist {
-  color: #666;
-  font-size: 12px;
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 
 /* Share Button and QR Code */
 .share-section {
