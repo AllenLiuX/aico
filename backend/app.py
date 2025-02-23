@@ -92,11 +92,13 @@ def generate_playlist():
         "occasion": occasion
     }
 
+    song_num = 20
     final_prompt = f"""
-    I'll give you a music requirement possibly with genre and an occasion, and you'll generate a playlist of at least 10 songs for me. Make sure the playlist is suitable for the given genre and occasion.
+    I'll give you a music requirement possibly with genre and an occasion, and you'll generate a playlist of at least {song_num} songs for me. Make sure the playlist is suitable for the given genre and occasion.
     The output format of the playlist should be two list seperated by ;. The two list titles and artists are stored in two lines in the below format. such that the title is and only is the full name of the song, and artist is and only is the full name of the corresponding musician. 
     Do not provide any extra information. Each one separated by a semicolon ;, and the sequence and item number should be matched.
     Provide a paragraph of introduction about why you choose these songs and artists, what are their styles and backgrounds.
+    Make sure you strictly follow the music requirement, instead of recommend very general songs.
 
     Output Format:
     titles: <titles separated by ;>
