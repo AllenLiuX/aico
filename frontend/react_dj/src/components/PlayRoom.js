@@ -63,24 +63,25 @@ function PlayRoom() {
 
   useEffect(() => {
     if (playlist.length === 0 || loading || error) return;
-
+  
+    // Initialize player if not already initialized
     if (document.getElementById('youtube-iframe-api')) {
       initPlayer();
       return;
     }
-
+  
     const tag = document.createElement('script');
     tag.id = 'youtube-iframe-api';
     tag.src = 'https://www.youtube.com/iframe_api';
     const firstScriptTag = document.getElementsByTagName('script')[0];
     firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-
+  
     window.onYouTubeIframeAPIReady = initPlayer;
-
+  
     return () => {
       window.onYouTubeIframeAPIReady = null;
     };
-  }, [playlist, loading, error]);
+  }, [playlist, loading, error, currentTrack]); // Add currentTrack to dependencies
 
   const onPlayerError = (event) => {
     console.error("YouTube player error:", event.data);
@@ -221,15 +222,32 @@ function PlayRoom() {
   const loadVideo = (index) => {
     if (!playerRef.current || !playlist[index]) return;
     
+    // Update currentTrack first
+    setCurrentTrack(index);
+    
     const videoId = extractVideoId(playlist[index].song_url);
     if (!videoId) {
       setError("Invalid video URL");
       return;
     }
     
+    // Load and play the video
     playerRef.current.loadVideoById(videoId);
     setIsPlaying(true);
   };
+
+  // const loadVideo = (index) => {
+  //   if (!playerRef.current || !playlist[index]) return;
+    
+  //   const videoId = extractVideoId(playlist[index].song_url);
+  //   if (!videoId) {
+  //     setError("Invalid video URL");
+  //     return;
+  //   }
+    
+  //   playerRef.current.loadVideoById(videoId);
+  //   setIsPlaying(true);
+  // };
 
   const formatTime = (timeInSeconds) => {
     if (!timeInSeconds || isNaN(timeInSeconds)) return "0:00";
@@ -287,6 +305,10 @@ function PlayRoom() {
 
   const currentSong = playlist[currentTrack] || {};
 
+  // PlayRoom.js
+// ... keep all your existing imports and state variables ...
+
+  // Only update the return JSX to match the CSS classes:
   return (
     <div className="play-room">
       <header className="room-header">
@@ -331,7 +353,6 @@ function PlayRoom() {
           </div>
           
           <div className="progress-container">
-            <span className="time-elapsed">{formatTime(currentTime)}</span>
             <input
               type="range"
               min="0"
@@ -340,7 +361,10 @@ function PlayRoom() {
               onChange={handleProgressChange}
               className="progress-bar"
             />
-            <span className="time-total">{formatTime(duration)}</span>
+            <div className="time-display">
+              <span>{formatTime(currentTime)}</span>
+              <span>{formatTime(duration)}</span>
+            </div>
           </div>
           
           <div className="player-controls">
@@ -361,7 +385,7 @@ function PlayRoom() {
         <div className="playlist-section">
           <div className="playlist-header">
             <h3>Playlist ({playlist.length} songs)</h3>
-            <button onClick={handleSearchMusic} className="add-music-button">
+            <button onClick={handleSearchMusic} className="control-button add-music-button">
               <Plus size={20} />
               Add Music
             </button>
@@ -371,13 +395,21 @@ function PlayRoom() {
               <li 
                 key={index}
                 className={`track-item ${index === currentTrack ? 'active' : ''}`}
-                onClick={() => loadVideo(index)}
+                onClick={() => {
+                  setCurrentTrack(index); // Immediately update current track
+                  loadVideo(index);
+                }}
               >
+              {/* <li 
+                key={index}
+                className={`track-item ${index === currentTrack ? 'active' : ''}`}
+                onClick={() => loadVideo(index)}
+              > */}
                 {track.cover_img_url && (
                   <img 
                     src={track.cover_img_url} 
                     alt=""
-                    className="track-image"
+                    className="track-thumbnail"
                     onError={(e) => {
                       e.target.onerror = null;
                       e.target.style.display = 'none';
@@ -398,6 +430,33 @@ function PlayRoom() {
         </div>
       </div>
 
+      <div className="playlist-info-section">
+        <h2>About this Playlist</h2>
+        <p className="playlist-description">{introduction || 'No description available'}</p>
+        {settings && Object.keys(settings).length > 0 && (
+          <div className="playlist-settings">
+            {settings.prompt && (
+              <div className="setting-item">
+                <span className="setting-label">Prompt:</span>
+                <span>{settings.prompt}</span>
+              </div>
+            )}
+            {settings.genre && (
+              <div className="setting-item">
+                <span className="setting-label">Genre:</span>
+                <span>{settings.genre}</span>
+              </div>
+            )}
+            {settings.occasion && (
+              <div className="setting-item">
+                <span className="setting-label">Occasion:</span>
+                <span>{settings.occasion}</span>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       {showQRCode && (
         <div className="qr-code-overlay">
           <div className="qr-code-modal">
@@ -414,6 +473,165 @@ function PlayRoom() {
     </div>
   );
 }
+
+//   return (
+//     <div className="play-room">
+//       <header className="room-header">
+//         <div className="room-info">
+//           <h1>{roomName}</h1>
+//           <p>You are {isHost ? 'the host' : 'a guest'}</p>
+//         </div>
+//         <div className="room-controls">
+//           <button onClick={handleQRCodeClick} className="control-button">
+//             <QrCode size={20} />
+//           </button>
+//           <button onClick={copyShareLink} className="share-button">
+//             <Share2 size={20} />
+//             Share Room
+//           </button>
+//           {showTooltip && <div className="tooltip">Link copied!</div>}
+//         </div>
+//       </header>
+      
+//       <div className="player-grid">
+//         <div className="player-container">
+//           <div className="album-art">
+//             {currentSong.cover_img_url ? (
+//               <img 
+//                 src={currentSong.cover_img_url} 
+//                 alt={`${currentSong.title} cover`} 
+//                 onError={(e) => {
+//                   e.target.onerror = null;
+//                   e.target.src = '/api/placeholder/300/300';
+//                 }}
+//               />
+//             ) : (
+//               <div className="placeholder-art">
+//                 <Music size={48} />
+//               </div>
+//             )}
+//           </div>
+          
+//           <div className="song-info">
+//             <h2>{currentSong.title || 'No track selected'}</h2>
+//             <p>{currentSong.artist || 'Unknown artist'}</p>
+//           </div>
+          
+//           <div className="progress-container">
+//             <span className="time-elapsed">{formatTime(currentTime)}</span>
+//             <input
+//               type="range"
+//               min="0"
+//               max="100"
+//               value={progress}
+//               onChange={handleProgressChange}
+//               className="progress-bar"
+//             />
+//             <span className="time-total">{formatTime(duration)}</span>
+//           </div>
+          
+//           <div className="player-controls">
+//             <button onClick={playPrevious} className="control-button">
+//               <SkipBack size={24} />
+//             </button>
+//             <button onClick={togglePlay} className="control-button play-button">
+//               {isPlaying ? <Pause size={24} /> : <Play size={24} />}
+//             </button>
+//             <button onClick={playNext} className="control-button">
+//               <SkipForward size={24} />
+//             </button>
+//           </div>
+
+//           <div ref={playerContainerRef} id="youtube-player"></div>
+//         </div>
+
+//         <div className="playlist-section">
+//           <div className="playlist-header">
+//             <h3>Playlist ({playlist.length} songs)</h3>
+//             <button onClick={handleSearchMusic} className="add-music-button">
+//               <Plus size={20} />
+//               Add Music
+//             </button>
+//           </div>
+//           <ul className="track-list">
+//             {playlist.map((track, index) => (
+//               <li 
+//                 key={index}
+//                 className={`track-item ${index === currentTrack ? 'active' : ''}`}
+//                 onClick={() => loadVideo(index)}
+//               >
+//                 {track.cover_img_url && (
+//                   <img 
+//                     src={track.cover_img_url} 
+//                     alt=""
+//                     className="track-image"
+//                     onError={(e) => {
+//                       e.target.onerror = null;
+//                       e.target.style.display = 'none';
+//                     }}
+//                   />
+//                 )}
+//                 <span className="track-number">{index + 1}</span>
+//                 <div className="track-details">
+//                   <span className="track-title">{track.title}</span>
+//                   <span className="track-artist">{track.artist}</span>
+//                 </div>
+//                 {index === currentTrack && (
+//                   <span className="now-playing">{isPlaying ? '▶' : '⏸'}</span>
+//                 )}
+//               </li>
+//             ))}
+//           </ul>
+//         </div>
+//         {/* Add this section right after the player-grid div */}
+//         <div className="playlist-info-section">
+//           <div className="playlist-info-header">
+//             <h2>About this Playlist</h2>
+//           </div>
+//           <p className="playlist-description">
+//             {introduction || 'No description available'}
+//           </p>
+//           {settings && Object.keys(settings).length > 0 && (
+//             <div className="playlist-settings">
+//               {settings.prompt && (
+//                 <div className="setting-item">
+//                   <span className="setting-label">Prompt:</span>
+//                   <span className="setting-value">{settings.prompt}</span>
+//                 </div>
+//               )}
+//               {settings.genre && (
+//                 <div className="setting-item">
+//                   <span className="setting-label">Genre:</span>
+//                   <span className="setting-value">{settings.genre}</span>
+//                 </div>
+//               )}
+//               {settings.occasion && (
+//                 <div className="setting-item">
+//                   <span className="setting-label">Occasion:</span>
+//                   <span className="setting-value">{settings.occasion}</span>
+//                 </div>
+//               )}
+//             </div>
+//           )}
+//         </div>
+//       </div>
+
+//       {showQRCode && (
+//         <div className="qr-code-overlay">
+//           <div className="qr-code-modal">
+//             <img 
+//               src={`/images/qr_code_${roomName}.png`} 
+//               alt="Room QR Code" 
+//             />
+//             <div className="qr-code-buttons">
+//               <button onClick={() => setShowQRCode(false)}>Close</button>
+//             </div>
+//           </div>
+//         </div>
+//       )}
+//     </div>
+//   );
+// }
 
 export default PlayRoom;
 
