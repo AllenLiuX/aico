@@ -1,12 +1,15 @@
 /* AuthModal.css */
+/* AuthModal.css */
 .auth-modal-overlay {
   position: fixed;
   inset: 0;
   background-color: rgba(0, 0, 0, 0.75);
   display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1100;
+  align-items: center; /* Centers vertically */
+  justify-content: center; /* Centers horizontally */
+  z-index: 9999;
+  padding: 20px; /* Add padding to ensure modal doesn't touch screen edges */
+  height: 100vh; /* Ensure full viewport height */
 }
 
 .auth-modal {
@@ -17,6 +20,10 @@
   max-width: 400px;
   position: relative;
   animation: modalFade 0.3s ease;
+  margin: 0; /* Remove auto margins */
+  max-height: calc(100vh - 40px); /* Account for padding */
+  overflow-y: auto;
+  transform: translateY(0); /* Reset any transforms that might affect positioning */
 }
 
 @keyframes modalFade {
@@ -171,3 +178,4 @@
   border-radius: 8px;
   margin-bottom: 16px;
 }
+

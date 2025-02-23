@@ -1,15 +1,14 @@
-/* ProfileDropdown.css */
-.profile-dropdown {
+  .profile-dropdown {
     position: absolute;
-    top: calc(100% + 8px);
-    right: 0;
+    top: 100%;            /* Position right below the parent */
+    right: 0;            /* Align with the right side of parent */
     width: 200px;
-    background-color: var(--surface);
+    background-color: #1e1e1e;
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
     overflow: hidden;
-    z-index: 50;
-    animation: dropdownFade 0.2s ease;
+    margin-top: 8px;     /* Small gap between avatar and dropdown */
+    z-index: 1100;       /* Ensure it's above other content */
   }
   
   .dropdown-item {
@@ -17,7 +16,7 @@
     align-items: center;
     gap: 12px;
     padding: 12px 16px;
-    color: var(--on-surface);
+    color: #e0e0e0;
     text-decoration: none;
     transition: background-color 0.2s;
     border: none;
@@ -28,11 +27,11 @@
   }
   
   .dropdown-item:hover {
-    background-color: var(--surface-2);
+    background-color: #2c2c2c;
   }
   
   .dropdown-item svg {
-    color: var(--primary);
+    color: #bb86fc;
   }
   
   @keyframes dropdownFade {

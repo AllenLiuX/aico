@@ -1,56 +1,70 @@
 // AuthModal.js
 import React, { useState } from 'react';
-import { Mail, Lock, Github } from 'lucide-react';
+import { Mail, Lock, Github, AlertCircle } from 'lucide-react';
 import '../styles/AuthModal.css';
 
 const AuthModal = ({ isOpen, onClose }) => {
   const [isLogin, setIsLogin] = useState(true);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    password: ''
+  });
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   if (!isOpen) return null;
 
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (email && password) {
-      const user = {
-        id: '1',
-        email,
-        name: email.split('@')[0],
-        avatar: '/api/placeholder/40/40'
-      };
-      localStorage.setItem('user', JSON.stringify(user));
+    setError('');
+    setIsLoading(true);
+
+    try {
+      const endpoint = isLogin ? 'http://13.56.253.58:5000/api/auth/login' : 'http://13.56.253.58:5000/api/auth/register';
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: formData.username,
+          password: formData.password,
+          ...(isLogin ? {} : { email: formData.email })
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Authentication failed');
+      }
+
+      // Store token and user data
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+
+      // Close modal and refresh page
+      onClose();
       window.location.reload();
-    } else {
-      setError('Please fill in all fields');
+
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleGoogleLogin = () => {
-    const user = {
-      id: '1',
-      email: 'user@gmail.com',
-      name: 'Test User',
-      avatar: '/api/placeholder/40/40'
-    };
-    localStorage.setItem('user', JSON.stringify(user));
-    window.location.reload();
-  };
-
-  const handleGithubLogin = () => {
-    const user = {
-      id: '2',
-      email: 'user@github.com',
-      name: 'Github User',
-      avatar: '/api/placeholder/40/40'
-    };
-    localStorage.setItem('user', JSON.stringify(user));
-    window.location.reload();
-  };
-
   return (
-    <div className="auth-modal-overlay">
+    <div className="auth-modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="auth-modal">
         <div className="auth-header">
           <h2>{isLogin ? 'Login' : 'Register'}</h2>
@@ -58,7 +72,8 @@ const AuthModal = ({ isOpen, onClose }) => {
         
         {error && (
           <div className="error-message">
-            {error}
+            <AlertCircle size={18} />
+            <span>{error}</span>
           </div>
         )}
 
@@ -66,27 +81,50 @@ const AuthModal = ({ isOpen, onClose }) => {
           <div className="input-group">
             <Mail className="input-icon" size={20} />
             <input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type="text"
+              name="username"
+              placeholder="Username"
+              value={formData.username}
+              onChange={handleInputChange}
               className="auth-input"
+              required
             />
           </div>
+
+          {!isLogin && (
+            <div className="input-group">
+              <Mail className="input-icon" size={20} />
+              <input
+                type="email"
+                name="email"
+                placeholder="Email"
+                value={formData.email}
+                onChange={handleInputChange}
+                className="auth-input"
+                required
+              />
+            </div>
+          )}
 
           <div className="input-group">
             <Lock className="input-icon" size={20} />
             <input
               type="password"
+              name="password"
               placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              value={formData.password}
+              onChange={handleInputChange}
               className="auth-input"
+              required
             />
           </div>
 
-          <button type="submit" className="submit-button">
-            {isLogin ? 'Login' : 'Register'}
+          <button 
+            type="submit" 
+            className="submit-button"
+            disabled={isLoading}
+          >
+            {isLoading ? 'Processing...' : (isLogin ? 'Login' : 'Register')}
           </button>
         </form>
 
@@ -95,17 +133,11 @@ const AuthModal = ({ isOpen, onClose }) => {
         </div>
 
         <div className="social-buttons">
-          <button
-            onClick={handleGoogleLogin}
-            className="social-button"
-          >
+          <button className="social-button">
             <Mail size={20} />
             <span>Google</span>
           </button>
-          <button
-            onClick={handleGithubLogin}
-            className="social-button"
-          >
+          <button className="social-button">
             <Github size={20} />
             <span>Github</span>
           </button>
@@ -120,6 +152,7 @@ const AuthModal = ({ isOpen, onClose }) => {
         <button
           onClick={onClose}
           className="close-button"
+          aria-label="Close"
         >
           ✕
         </button>

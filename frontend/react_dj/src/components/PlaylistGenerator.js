@@ -17,6 +17,8 @@ function PlaylistGenerator() {
   const [roomName, setRoomName] = useState('');
   const [moderation, setModeration] = useState('no');
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState(null);
   const [formData, setFormData] = useState({
     prompt: '',
     genre: '',
@@ -34,38 +36,46 @@ function PlaylistGenerator() {
     setModeration(params.get('moderation') || 'no');
   }, [location]);
 
-  const generatePlaylist = async (preferences) => {
-    try {
-      const response = await fetch('http://13.56.253.58:5000/api/generate-playlist', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ ...preferences, room_name: roomName }),
-      });
-      const data = await response.json();
-      setPlaylist(data.playlist);
-    } catch (error) {
-      console.error('Error generating playlist:', error);
-    }
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const preferences = {
-      prompt: formData.prompt,
-      genre: formData.genre === 'Other' ? formData.customGenre : formData.genre,
-      occasion: formData.occasion === 'Other' ? formData.customOccasion : formData.occasion
-    };
-    generatePlaylist(preferences);
-  };
-
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError(null);
+    setIsGenerating(true);
+    setPlaylist(null);
+
+    try {
+      const response = await fetch('http://13.56.253.58:5000/api/generate-playlist', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          prompt: formData.prompt,
+          genre: formData.genre === 'Other' ? formData.customGenre : formData.genre,
+          occasion: formData.occasion === 'Other' ? formData.customOccasion : formData.occasion,
+          room_name: roomName
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate playlist');
+      }
+
+      const data = await response.json();
+      setPlaylist(data.playlist);
+    } catch (error) {
+      setError('Error generating playlist. Please try again.');
+      console.error('Error:', error);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const createRoom = () => {
@@ -164,12 +174,25 @@ function PlaylistGenerator() {
           </div>
         )}
 
-        <button type="submit" className="generate-button">
-          Generate Playlist
+        <button type="submit" className="generate-button" disabled={isGenerating}>
+          {isGenerating ? 'Generating...' : 'Generate Playlist'}
         </button>
       </form>
 
-      {playlist && (
+      {isGenerating && (
+        <div className="loading-container">
+          <div className="loading-spinner" />
+          <p className="loading-text">Generating your playlist...</p>
+        </div>
+      )}
+
+      {error && (
+        <div className="error-message">
+          {error}
+        </div>
+      )}
+
+      {playlist && !isGenerating && (
         <div className="playlist-container">
           <div className="playlist-header">
             <h2 className="playlist-title">Your Generated Playlist</h2>
@@ -178,9 +201,18 @@ function PlaylistGenerator() {
             </p>
           </div>
 
-          <ul className="track-list">
+          <div className="playlist-tracks">
             {playlist.map((track, index) => (
-              <li key={index} className="track-item">
+              <div key={index} className="playlist-track">
+                <img
+                  src={track.cover_img_url || '/api/placeholder/48/48'}
+                  alt={track.title}
+                  className="track-thumbnail"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = '/api/placeholder/48/48';
+                  }}
+                />
                 <div className="track-info">
                   <h3 className="track-name">{track.title}</h3>
                   <p className="track-artist">{track.artist}</p>
@@ -189,13 +221,13 @@ function PlaylistGenerator() {
                   href={track.song_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="play-link"
+                  className="play-button"
                 >
                   Listen
                 </a>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
 
           <button onClick={createRoom} className="create-room-button">
             Create Room with This Playlist
@@ -207,62 +239,3 @@ function PlaylistGenerator() {
 }
 
 export default PlaylistGenerator;
-
-
-// // components/PlaylistGenerator.js
-// import React, { useState, useEffect } from 'react';
-// import { useLocation, useNavigate } from 'react-router-dom';
-// import PreferenceForm from './PreferenceForm';
-// import Playlist from './Playlist';
-// import ShareButton from './ShareButton';
-
-// import '../styles/PlaylistGenerator.css';
-
-// function PlaylistGenerator() {
-//   const [playlist, setPlaylist] = useState(null);
-//   const [roomName, setRoomName] = useState('');
-//   const [moderation, setModeration] = useState('no');
-//   const location = useLocation();
-//   const navigate = useNavigate();
-
-//   useEffect(() => {
-//     const params = new URLSearchParams(location.search);
-//     setRoomName(params.get('room_name') || '');
-//     setModeration(params.get('moderation') || 'no');
-//   }, [location]);
-
-//   const generatePlaylist = async (preferences) => {
-//     try {
-//       // const response = await fetch('http://127.0.0.1:5000/api/generate-playlist', {  # local
-//       const response = await fetch('http://13.56.253.58:5000/api/generate-playlist', {
-//         method: 'POST',
-//         headers: {
-//           'Content-Type': 'application/json',
-//         },
-//         body: JSON.stringify({ ...preferences, room_name: roomName }),
-//       });
-//       const data = await response.json();
-//       setPlaylist(data.playlist);
-//     } catch (error) {
-//       console.error('Error generating playlist:', error);
-//     }
-//   };
-
-//   const createRoom = () => {
-//     navigate(`/playroom?room_name=${encodeURIComponent(roomName)}&moderation=${moderation}&is_host=True`);
-//   };
-
-//   return (
-//     <div className="playlist-generator">
-//       <header>
-//         <h1>ALCO Room: {roomName || 'Unnamed Room'}</h1>
-//         {/* <ShareButton /> */}
-//       </header>
-//       <PreferenceForm onSubmit={generatePlaylist} />
-//       {playlist && <Playlist tracks={playlist} />}
-//       {playlist && <button onClick={createRoom} className="big-button">Create Room</button>}
-//     </div>
-//   );
-// }
-
-// export default PlaylistGenerator;

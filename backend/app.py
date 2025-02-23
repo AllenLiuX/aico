@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import gpt
 from pathlib import Path
@@ -7,7 +7,15 @@ import time
 import logging
 import util.youtube_music as youtube_music
 import util.redis_api as redis_api
+from datetime import datetime
 
+from io import BytesIO
+import random
+
+
+import hashlib
+import secrets
+from util.redis_api import *
 
 import redis
 import json
@@ -26,7 +34,8 @@ redis_version = '_v1'
 
 app = Flask(__name__)
 
-CORS(app)
+# CORS(app)
+CORS(app, resources={r"/api/*": {"origins": "*"}})  # Enable CORS for all API routes
 
 def parse_answer_playlist(answer):
     results = answer.split("\n")
@@ -317,6 +326,159 @@ def add_to_playlist():
 
     return jsonify({"message": "Track added successfully"})
 
+
+# Redis hash structure:
+# users:{version} -> Hash containing username -> password_hash mappings
+# user_profiles:{version} -> Hash containing username -> profile_json mappings
+# sessions:{version} -> Hash containing session_token -> username mappings
+
+redis_version = '_v1'
+
+def hash_password(password):
+    """Hash a password for storing."""
+    return hashlib.sha256(password.encode()).hexdigest()
+
+@app.route('/api/auth/register', methods=['POST'])
+def register():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    email = data.get('email')
+    
+    if not all([username, password]):
+        return jsonify({"error": "Missing required fields"}), 400
+    
+    # Check if username exists
+    if get_hash(f"users{redis_version}", username):
+        return jsonify({"error": "Username already exists"}), 409
+    
+    # Hash password and store user data
+    password_hash = hash_password(password)
+    write_hash(f"users{redis_version}", username, password_hash)
+    
+    # Create avatar URL
+    avatar_url = f"http://13.56.253.58:5000/api/avatar/{username}"
+    
+    # Store user profile
+    profile = {
+        "username": username,
+        "email": email,
+        "created_at": datetime.now().isoformat(),
+        "avatar": avatar_url
+    }
+    write_hash(f"user_profiles{redis_version}", username, json.dumps(profile))
+    
+    # Generate session token
+    session_token = secrets.token_urlsafe(32)
+    write_hash(f"sessions{redis_version}", session_token, username)
+    
+    return jsonify({
+        "token": session_token,
+        "user": profile
+    }), 201
+
+
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    
+    if not all([username, password]):
+        return jsonify({"error": "Missing credentials"}), 400
+    
+    # Get stored password hash
+    stored_hash = get_hash(f"users{redis_version}", username)
+    if not stored_hash:
+        return jsonify({"error": "Invalid username or password"}), 401
+    
+    # Verify password
+    if hash_password(password) != stored_hash:
+        return jsonify({"error": "Invalid username or password"}), 401
+    
+    # Generate session token
+    session_token = secrets.token_urlsafe(32)
+    write_hash(f"sessions{redis_version}", session_token, username)
+    
+    # Get user profile or create default one
+    profile_json = get_hash(f"user_profiles{redis_version}", username)
+    if profile_json:
+        profile = json.loads(profile_json)
+    else:
+        # Create default profile with avatar
+        avatar_url = f"http://13.56.253.58:5000/api/avatar/{username}"
+        profile = {
+            "username": username,
+            "avatar": avatar_url
+        }
+        write_hash(f"user_profiles{redis_version}", username, json.dumps(profile))
+    
+    return jsonify({
+        "token": session_token,
+        "user": profile
+    }), 200
+
+
+@app.route('/api/auth/logout', methods=['POST'])
+def logout():
+    auth_token = request.headers.get('Authorization')
+    if auth_token:
+        # Remove session
+        delete_hash(f"sessions{redis_version}", auth_token)
+    return jsonify({"message": "Logged out successfully"}), 200
+
+@app.route('/api/auth/verify', methods=['GET'])
+def verify_session():
+    auth_token = request.headers.get('Authorization')
+    if not auth_token:
+        return jsonify({"error": "No token provided"}), 401
+    
+    username = get_hash(f"sessions{redis_version}", auth_token)
+    if not username:
+        return jsonify({"error": "Invalid or expired token"}), 401
+    
+    profile_json = get_hash(f"user_profiles{redis_version}", username)
+    profile = json.loads(profile_json) if profile_json else {}
+    
+    return jsonify({
+        "token": auth_token,
+        "user": profile
+    }), 200
+
+
+def generate_avatar_svg(username):
+    """Generate an SVG avatar with user's initials."""
+    # Get first character of username (uppercase)
+    initial = username[0].upper()
+    
+    # Generate a consistent color based on username
+    random.seed(username)
+    hue = random.randint(0, 360)
+    
+    # SVG template with the initial in the center
+    svg = f'''
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">
+        <rect width="40" height="40" fill="hsl({hue}, 70%, 60%)" />
+        <text x="20" y="24" fill="white" text-anchor="middle" 
+              font-family="Arial, sans-serif" font-size="20" font-weight="bold">
+            {initial}
+        </text>
+    </svg>
+    '''
+    return svg.strip()
+
+@app.route('/api/avatar/<username>')
+def get_avatar(username):
+    svg = generate_avatar_svg(username)
+    
+    response = send_file(
+        BytesIO(svg.encode()),
+        mimetype='image/svg+xml'
+    )
+    
+    # Set cache control headers manually
+    response.headers['Cache-Control'] = 'public, max-age=86400'  # Cache for 24 hours
+    return response
 
 if __name__ == '__main__':
     # app.run(port=3000, host='10.72.252.213', debug=True)

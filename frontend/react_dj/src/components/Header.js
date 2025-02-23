@@ -11,6 +11,7 @@ function Header() {
   const [showDropdown, setShowDropdown] = useState(false);
   const [user, setUser] = useState(null);
   const dropdownRef = useRef(null);
+  const buttonRef = useRef(null);
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -19,7 +20,10 @@ function Header() {
     }
 
     const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      if (dropdownRef.current && 
+          buttonRef.current && 
+          !dropdownRef.current.contains(event.target) && 
+          !buttonRef.current.contains(event.target)) {
         setShowDropdown(false);
       }
     };
@@ -30,6 +34,7 @@ function Header() {
 
   const handleLogout = () => {
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
     setUser(null);
     setShowDropdown(false);
   };
@@ -44,10 +49,11 @@ function Header() {
           </ul>
         </nav>
 
-        <div className="user-section" ref={dropdownRef}>
+        <div className="user-section">
           {user ? (
-            <div className="flex items-center">
+            <>
               <button
+                ref={buttonRef}
                 onClick={() => setShowDropdown(!showDropdown)}
                 className="profile-button"
               >
@@ -56,12 +62,14 @@ function Header() {
                   alt="Profile"
                   className="profile-avatar"
                 />
-                <span className="profile-name">{user.name}</span>
+                <span className="profile-name">{user.username}</span>
               </button>
               {showDropdown && (
-                <ProfileDropdown onLogout={handleLogout} />
+                <div ref={dropdownRef}>
+                  <ProfileDropdown onLogout={handleLogout} />
+                </div>
               )}
-            </div>
+            </>
           ) : (
             <button
               onClick={() => setShowAuthModal(true)}

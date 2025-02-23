@@ -18,8 +18,11 @@ function SearchMusic() {
 
   const handleSearch = async (e) => {
     e.preventDefault();
+    if (!searchQuery.trim()) return;
+    
     setIsLoading(true);
     setError(null);
+    setSearchResults([]);
 
     try {
       const response = await fetch(`http://13.56.253.58:5000/api/search-music?query=${encodeURIComponent(searchQuery)}&search_type=${searchType}`);
@@ -27,7 +30,7 @@ function SearchMusic() {
         throw new Error('Failed to fetch search results');
       }
       const data = await response.json();
-      setSearchResults(data.tracks);
+      setSearchResults(data.tracks || []);
     } catch (err) {
       setError('An error occurred while searching for music. Please try again.');
       console.error('Search error:', err);
@@ -62,6 +65,14 @@ function SearchMusic() {
 
   return (
     <div className="search-music">
+      <button
+        onClick={() => navigate(`/playroom?room_name=${roomName}`)}
+        className="back-button"
+      >
+        <ArrowLeft size={18} />
+        Back to Room
+      </button>
+
       <div className="search-header">
         <h1>Search Music</h1>
       </div>
@@ -78,7 +89,11 @@ function SearchMusic() {
               className="search-input"
             />
           </div>
-          <button type="submit" className="search-button" disabled={isLoading}>
+          <button 
+            type="submit" 
+            className="search-button" 
+            disabled={isLoading || !searchQuery.trim()}
+          >
             {isLoading ? 'Searching...' : 'Search'}
           </button>
         </form>
@@ -105,7 +120,7 @@ function SearchMusic() {
 
       {isLoading ? (
         <div className="loading-state">Searching for music...</div>
-      ) : (
+      ) : searchResults.length > 0 ? (
         <div className="search-results">
           {searchResults.map((track) => (
             <div key={track.song_id} className="track-card">
@@ -113,6 +128,10 @@ function SearchMusic() {
                 src={track.cover_img_url} 
                 alt={track.title}
                 className="track-image"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = '/api/placeholder/300/300';
+                }}
               />
               <div className="track-content">
                 <h3 className="track-title">{track.title}</h3>
@@ -138,15 +157,9 @@ function SearchMusic() {
             </div>
           ))}
         </div>
-      )}
-
-      <button
-        onClick={() => navigate(`/playroom?room_name=${roomName}`)}
-        className="back-button"
-        title="Back to Room"
-      >
-        <ArrowLeft size={24} />
-      </button>
+      ) : searchQuery && !isLoading ? (
+        <div className="loading-state">No results found</div>
+      ) : null}
     </div>
   );
 }
