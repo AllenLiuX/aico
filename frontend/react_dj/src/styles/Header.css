@@ -1,0 +1,111 @@
+/* Header.css */
+.main-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background-color: rgba(17, 24, 39, 0.95);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .header-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    height: 64px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .nav-list {
+    display: flex;
+    gap: 24px;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .nav-link {
+    color: #bb86fc;
+    text-decoration: none;
+    font-size: 16px;
+    transition: color 0.2s ease;
+    padding: 8px 0;
+  }
+  
+  .nav-link:hover {
+    color: #a66ffe;
+  }
+  
+  .user-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .login-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: transparent;
+    border: 1px solid #bb86fc;
+    color: #bb86fc;
+    border-radius: 20px;
+    transition: all 0.2s ease;
+  }
+  
+  .login-button:hover {
+    background-color: rgba(187, 134, 252, 0.1);
+  }
+  
+  .profile-button {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px;
+    background: transparent;
+    border: none;
+    color: #e0e0e0;
+    cursor: pointer;
+  }
+  
+  .profile-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  
+  .profile-name {
+    color: #bb86fc;
+    font-size: 14px;
+  }
+  
+  /* Profile Dropdown Styles */
+  .profile-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: 200px;
+    background-color: #1e1e1e;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    margin-top: 8px;
+  }
+  
+  .dropdown-item {
+    display: block;
+    padding: 12px 16px;
+    color: #e0e0e0;
+    text-decoration: none;
+    transition: background-color 0.2s;
+  }
+  
+  .dropdown-item:hover {
+    background-color: #2c2c2c;
+  }

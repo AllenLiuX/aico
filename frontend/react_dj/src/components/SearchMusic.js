@@ -1,13 +1,15 @@
+// SearchMusic.js
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import './SearchMusic.css'; // Importing the dedicated CSS file
+import { Search, ArrowLeft, Plus, Music, User } from 'lucide-react';
+import '../styles/SearchMusic.css';
 
 function SearchMusic() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [searchType, setSearchType] = useState('artist'); // Default search type is 'artist'
+  const [searchType, setSearchType] = useState('artist');
   
   const location = useLocation();
   const navigate = useNavigate();
@@ -58,76 +60,92 @@ function SearchMusic() {
     }
   };
 
-  const toggleSearchType = () => {
-    setSearchType(prevType => prevType === 'artist' ? 'song' : 'artist');
-  };
-
   return (
     <div className="search-music">
-      <header>
+      <div className="search-header">
         <h1>Search Music</h1>
-      </header>
+      </div>
 
-      <section className="playlist-info">
+      <div className="search-form-container">
         <form onSubmit={handleSearch} className="search-form">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={`Enter ${searchType === 'artist' ? 'artist' : 'song'} name`}
-            className="search-input"
-          />
-          <button type="submit" disabled={isLoading} className="search-button">
+          <div className="search-input-wrapper">
+            <Search className="search-icon" size={20} />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={`Search by ${searchType}`}
+              className="search-input"
+            />
+          </div>
+          <button type="submit" className="search-button" disabled={isLoading}>
             {isLoading ? 'Searching...' : 'Search'}
           </button>
         </form>
-        
+
         <div className="search-toggle">
-          <span className={searchType === 'artist' ? 'active' : ''}>Artist</span>
-          <label className="switch">
-            <input 
-              type="checkbox" 
-              checked={searchType === 'song'}
-              onChange={toggleSearchType}
-            />
-            <span className="slider round"></span>
-          </label>
-          <span className={searchType === 'song' ? 'active' : ''}>Song</span>
+          <button
+            className={`toggle-option ${searchType === 'artist' ? 'active' : ''}`}
+            onClick={() => setSearchType('artist')}
+          >
+            <User size={18} />
+            Artist
+          </button>
+          <button
+            className={`toggle-option ${searchType === 'song' ? 'active' : ''}`}
+            onClick={() => setSearchType('song')}
+          >
+            <Music size={18} />
+            Song
+          </button>
         </div>
-      </section>
+      </div>
 
-      {error && <p className="error">{error}</p>}
+      {error && <div className="error-message">{error}</div>}
 
-      <main className="playlist-container">
-        <ul className="search-results">
+      {isLoading ? (
+        <div className="loading-state">Searching for music...</div>
+      ) : (
+        <div className="search-results">
           {searchResults.map((track) => (
-            <li key={track.song_id} className="track-item">
-              <img src={track.cover_img_url} alt={`${track.title} cover`} className="track-image" />
-              <div className="track-info">
-                <h3>{track.title}</h3>
-                <p>{track.artist}</p>
+            <div key={track.song_id} className="track-card">
+              <img 
+                src={track.cover_img_url} 
+                alt={track.title}
+                className="track-image"
+              />
+              <div className="track-content">
+                <h3 className="track-title">{track.title}</h3>
+                <p className="track-artist">{track.artist}</p>
+                <div className="track-actions">
+                  <a
+                    href={track.song_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="action-button listen-button"
+                  >
+                    Listen
+                  </a>
+                  <button
+                    onClick={() => handleAddToPlaylist(track)}
+                    className="action-button add-button"
+                  >
+                    <Plus size={16} />
+                    Add
+                  </button>
+                </div>
               </div>
-              <a 
-                href={track.song_url} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="spotify-link"
-              >
-                Listen
-              </a>
-              <button onClick={() => handleAddToPlaylist(track)} className="add-button">
-                Add
-              </button>
-            </li>
+            </div>
           ))}
-        </ul>
-      </main>
+        </div>
+      )}
 
       <button
         onClick={() => navigate(`/playroom?room_name=${roomName}`)}
         className="back-button"
+        title="Back to Room"
       >
-        🔙
+        <ArrowLeft size={24} />
       </button>
     </div>
   );

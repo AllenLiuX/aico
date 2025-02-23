@@ -1,0 +1,287 @@
+/* PlayRoom.css */
+.play-room {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 20px;
+}
+
+/* Header Section */
+.room-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 40px;
+}
+
+.room-info {
+  flex: 1;
+}
+
+.room-info h1 {
+  font-size: 32px;
+  margin: 0 0 8px 0;
+}
+
+.room-info p {
+  color: #666;
+  margin: 0;
+}
+
+.room-controls {
+  display: flex;
+  gap: 16px;
+}
+
+/* Player Grid Layout */
+.player-grid {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 32px;
+  margin-bottom: 48px;
+}
+
+@media (max-width: 1024px) {
+  .player-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Player Container */
+.player-container {
+  background-color: #1e1e1e;
+  border-radius: 12px;
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.album-art {
+  width: 300px;
+  height: 300px;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.album-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.song-info {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.song-info h2 {
+  font-size: 24px;
+  margin: 0 0 8px 0;
+}
+
+.song-info p {
+  color: #666;
+  margin: 0;
+}
+
+/* Progress Bar */
+.progress-container {
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 4px;
+  background-color: #2c2c2c;
+  border-radius: 2px;
+  cursor: pointer;
+  position: relative;
+}
+
+.progress-bar::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  background-color: #bb86fc;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.time-display {
+  display: flex;
+  justify-content: space-between;
+  color: #666;
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+/* Player Controls */
+.player-controls {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.control-button {
+  background: none;
+  border: none;
+  color: #e0e0e0;
+  cursor: pointer;
+  padding: 8px;
+  transition: all 0.2s;
+}
+
+.control-button:hover {
+  color: #bb86fc;
+  transform: scale(1.1);
+}
+
+.play-button {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: #bb86fc;
+  color: #121212;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.play-button:hover {
+  background-color: #a66ffe;
+  transform: scale(1.05);
+}
+
+/* Playlist Section */
+.playlist-section {
+  background-color: #1e1e1e;
+  border-radius: 12px;
+  padding: 24px;
+  height: min-content;
+}
+
+.playlist-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.playlist-header h3 {
+  margin: 0;
+}
+
+.track-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.track-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background-color: #2c2c2c;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.track-item:hover {
+  background-color: #363636;
+}
+
+.track-item.active {
+  background-color: #363636;
+  border-left: 4px solid #bb86fc;
+}
+
+.track-number {
+  color: #666;
+  font-size: 14px;
+  width: 24px;
+  text-align: center;
+}
+
+.track-image {
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.track-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.track-title {
+  font-size: 14px;
+  margin: 0 0 4px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.track-artist {
+  color: #666;
+  font-size: 12px;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Share Button and QR Code */
+.share-section {
+  margin-top: 24px;
+  text-align: center;
+}
+
+.share-button {
+  background-color: #bb86fc;
+  color: #121212;
+  padding: 12px 24px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.share-button:hover {
+  background-color: #a66ffe;
+}
+
+.qr-code-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.qr-code-modal {
+  background-color: #1e1e1e;
+  padding: 32px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.qr-code-modal img {
+  width: 200px;
+  height: 200px;
+  margin-bottom: 24px;
+}
+
+.qr-code-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
