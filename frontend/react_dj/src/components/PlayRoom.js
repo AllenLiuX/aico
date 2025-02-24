@@ -44,8 +44,8 @@ function PlayRoom() {
     const fetchRoomData = async () => {
       try {
         setLoading(true);
-        // const response = await fetch(`http://127.0.0.1:5000/api/room-playlist?room_name=${roomName}`);
-        const response = await fetch(`http://13.56.253.58:5000/api/room-playlist?room_name=${roomName}`);
+        const response = await fetch(`http://127.0.0.1:5000/api/room-playlist?room_name=${roomName}`);
+        // const response = await fetch(`http://13.56.253.58:5000/api/room-playlist?room_name=${roomName}`);
 
         if (!response.ok) {
           throw new Error(`Failed to fetch playlist (${response.status})`);
@@ -72,7 +72,10 @@ function PlayRoom() {
   
     // Initialize player if not already initialized
     if (document.getElementById('youtube-iframe-api')) {
-      initPlayer();
+      // Only initialize if player doesn't exist yet
+      if (!playerRef.current) {
+        initPlayer();
+      }
       return;
     }
   
@@ -87,7 +90,8 @@ function PlayRoom() {
     return () => {
       window.onYouTubeIframeAPIReady = null;
     };
-  }, [playlist, loading, error, currentTrack]);
+    
+  }, [loading, error]);
 
   const onPlayerError = (event) => {
     console.error("YouTube player error:", event.data);
@@ -103,33 +107,32 @@ function PlayRoom() {
 
   const initPlayer = () => {
     if (!playlist.length || !window.YT || !playerContainerRef.current) return;
-
+  
     try {
-      if (playerRef.current) {
-        playerRef.current.destroy();
+      // Only destroy and recreate player if it doesn't exist
+      if (!playerRef.current) {
+        const videoId = extractVideoId(playlist[currentTrack].song_url);
+        playerRef.current = new window.YT.Player(playerContainerRef.current, {
+          height: '0',
+          width: '0',
+          videoId: videoId,
+          playerVars: {
+            autoplay: 1,
+            controls: 0,
+            disablekb: 1,
+            fs: 0,
+            modestbranding: 1,
+            rel: 0,
+            origin: window.location.origin,
+            playsinline: 1
+          },
+          events: {
+            onReady: onPlayerReady,
+            onStateChange: onPlayerStateChange,
+            onError: onPlayerError
+          }
+        });
       }
-
-      const videoId = extractVideoId(playlist[currentTrack].song_url);
-      playerRef.current = new window.YT.Player(playerContainerRef.current, {
-        height: '0',
-        width: '0',
-        videoId: videoId,
-        playerVars: {
-          autoplay: 1,
-          controls: 0,
-          disablekb: 1,
-          fs: 0,
-          modestbranding: 1,
-          rel: 0,
-          origin: window.location.origin,
-          playsinline: 1
-        },
-        events: {
-          onReady: onPlayerReady,
-          onStateChange: onPlayerStateChange,
-          onError: onPlayerError
-        }
-      });
     } catch (err) {
       console.error("Error initializing YouTube player:", err);
       setError(`Failed to initialize player: ${err.message}`);
@@ -299,34 +302,70 @@ function PlayRoom() {
   };
 
   const handleTrackDelete = (newPlaylist) => {
-    // Cleanup player state
-    if (progressIntervalRef.current) {
-      clearInterval(progressIntervalRef.current);
-      progressIntervalRef.current = null;
+    // Find the deleted track ID by comparing old and new playlists
+    const deletedTrackId = playlist.find(
+      oldTrack => !newPlaylist.some(newTrack => newTrack.song_id === oldTrack.song_id)
+    )?.song_id;
+    
+    if (!deletedTrackId) {
+      // If no track was deleted, just update the playlist
+      setPlaylist(newPlaylist);
+      return;
     }
-  
-    // If there are songs remaining in the playlist
-    if (newPlaylist.length > 0) {
-      // If deleting current track, move to next song or previous if at end
-      if (currentTrack >= newPlaylist.length) {
-        setCurrentTrack(newPlaylist.length - 1);
-      }
-      // Load the new track
-      const nextVideoId = extractVideoId(newPlaylist[currentTrack].song_url);
-      if (playerRef.current && nextVideoId) {
-        playerRef.current.loadVideoById(nextVideoId);
+    
+    // Find the index of the deleted track in the original playlist
+    const deletedIndex = playlist.findIndex(track => track.song_id === deletedTrackId);
+    
+    // Check if the current track was deleted
+    const currentTrackDeleted = deletedIndex === currentTrack;
+    
+    if (currentTrackDeleted) {
+      // If we deleted the current track
+      if (newPlaylist.length > 0) {
+        // Determine the new index (keep same index or go to last track if needed)
+        const newIndex = Math.min(currentTrack, newPlaylist.length - 1);
+        
+        // First update the playlist state
+        setPlaylist(newPlaylist);
+        
+        // Then update the current track index
+        setCurrentTrack(newIndex);
+        
+        // Finally, load the new video
+        const videoId = extractVideoId(newPlaylist[newIndex].song_url);
+        if (playerRef.current && videoId) {
+          // Use a small timeout to ensure state updates have processed
+          setTimeout(() => {
+            playerRef.current.loadVideoById(videoId);
+            setIsPlaying(true);
+          }, 10);
+        }
+      } else {
+        // No songs left
+        setPlaylist(newPlaylist);
+        setCurrentTrack(0);
+        setIsPlaying(false);
+        if (playerRef.current) {
+          playerRef.current.stopVideo();
+        }
       }
     } else {
-      // If no songs left, reset player
-      setCurrentTrack(0);
-      setIsPlaying(false);
-      if (playerRef.current) {
-        playerRef.current.stopVideo();
+      // A different track was deleted
+      
+      // Update playlist first
+      setPlaylist(newPlaylist);
+      
+      // If the deleted track was before the current track, adjust the index
+      if (deletedIndex < currentTrack) {
+        setCurrentTrack(currentTrack - 1);
+      }
+      
+      // Restart progress tracking if it was stopped
+      // This ensures the progress bar continues to update
+      if (isPlaying && playerRef.current) {
+        startProgressTracking();
       }
     }
-  
-    // Update playlist
-    setPlaylist(newPlaylist);
   };
 
   if (loading) {
