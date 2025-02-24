@@ -479,6 +479,221 @@ def get_user_rooms():
         logger.error(f"Error fetching user rooms: {str(e)}")
         return jsonify({"error": "Failed to fetch rooms"}), 500
 
+
+@app.route('/api/user/follow', methods=['POST'])
+def follow_user():
+    """Follow or unfollow a user"""
+    auth_token = request.headers.get('Authorization')
+    if not auth_token:
+        return jsonify({"error": "Authentication required"}), 401
+
+    username = get_hash(f"sessions{redis_version}", auth_token)
+    if not username:
+        return jsonify({"error": "Invalid session"}), 401
+
+    try:
+        data = request.json
+        target_username = data.get('username')
+        action = data.get('action')  # 'follow' or 'unfollow'
+
+        if not target_username or action not in ['follow', 'unfollow']:
+            return jsonify({"error": "Invalid request"}), 400
+
+        # Get current following list
+        following_json = get_hash(f"user_following{redis_version}", username)
+        following = json.loads(following_json) if following_json else []
+
+        # Get target's followers list
+        followers_json = get_hash(f"user_followers{redis_version}", target_username)
+        followers = json.loads(followers_json) if followers_json else []
+
+        if action == 'follow':
+            if target_username not in following:
+                following.append(target_username)
+            if username not in followers:
+                followers.append(username)
+        else:  # unfollow
+            if target_username in following:
+                following.remove(target_username)
+            if username in followers:
+                followers.remove(username)
+
+        # Update Redis
+        write_hash(f"user_following{redis_version}", username, json.dumps(following))
+        write_hash(f"user_followers{redis_version}", target_username, json.dumps(followers))
+
+        return jsonify({"message": f"Successfully {action}ed user"})
+
+    except Exception as e:
+        logger.error(f"Error in follow/unfollow: {str(e)}")
+        return jsonify({"error": "Operation failed"}), 500
+
+@app.route('/api/user/favorite', methods=['POST'])
+def favorite_room():
+    """Add or remove a room from user's favorites"""
+    auth_token = request.headers.get('Authorization')
+    if not auth_token:
+        return jsonify({"error": "Authentication required"}), 401
+
+    username = get_hash(f"sessions{redis_version}", auth_token)
+    if not username:
+        return jsonify({"error": "Invalid session"}), 401
+
+    try:
+        data = request.json
+        room_name = data.get('room_name')
+        action = data.get('action')  # 'add' or 'remove'
+
+        if not room_name or action not in ['add', 'remove']:
+            return jsonify({"error": "Invalid request"}), 400
+
+        # Get current favorites list
+        favorites_json = get_hash(f"user_favorites{redis_version}", username)
+        favorites = json.loads(favorites_json) if favorites_json else []
+
+        if action == 'add':
+            if room_name not in favorites:
+                favorites.append(room_name)
+        else:  # remove
+            if room_name in favorites:
+                favorites.remove(room_name)
+
+        # Update Redis
+        write_hash(f"user_favorites{redis_version}", username, json.dumps(favorites))
+
+        return jsonify({"message": f"Successfully {action}ed room to favorites"})
+
+    except Exception as e:
+        logger.error(f"Error in favorite operation: {str(e)}")
+        return jsonify({"error": "Operation failed"}), 500
+
+
+# Add to your app.py
+
+def format_user_profile(username, profile_data=None):
+    """Helper function to format user profile data with defaults"""
+    if not profile_data:
+        profile_data = {}
+    
+    return {
+        "username": username,
+        "age": profile_data.get('age'),
+        "country": profile_data.get('country', ''),
+        "sex": profile_data.get('sex', ''),
+        "bio": profile_data.get('bio', ''),
+        "email": profile_data.get('email', ''),
+        "avatar": profile_data.get('avatar', f"http://13.56.253.58:5000/api/avatar/{username}"),
+        "tags": profile_data.get('tags', []),
+        "created_at": profile_data.get('created_at', datetime.now().isoformat()),
+        "stats": {
+            "favoritesCount": 0,
+            "followingCount": 0,
+            "followersCount": 0
+        }
+    }
+
+@app.route('/api/user/profile', methods=['GET'])
+def get_user_profile():
+    """Get user profile data including stats and tags"""
+    auth_token = request.headers.get('Authorization')
+    if not auth_token:
+        return jsonify({"error": "Authentication required"}), 401
+
+    username = get_hash(f"sessions{redis_version}", auth_token)
+    if not username:
+        return jsonify({"error": "Invalid session"}), 401
+
+    try:
+        # Get basic profile data
+        profile_json = get_hash(f"user_profiles{redis_version}", username)
+        profile = json.loads(profile_json) if profile_json else format_user_profile(username)
+        
+        # Get follower counts
+        followers = get_hash(f"user_followers{redis_version}", username)
+        following = get_hash(f"user_following{redis_version}", username)
+        favorites = get_hash(f"user_favorites{redis_version}", username)
+        
+        followers_count = len(json.loads(followers)) if followers else 0
+        following_count = len(json.loads(following)) if following else 0
+        favorites_count = len(json.loads(favorites)) if favorites else 0
+
+        # Get user tags
+        user_tags_json = get_hash(f"user_tags{redis_version}", username)
+        if user_tags_json:
+            profile['tags'] = json.loads(user_tags_json)
+
+        # Update stats
+        profile["stats"] = {
+            "favoritesCount": favorites_count,
+            "followingCount": following_count,
+            "followersCount": followers_count
+        }
+
+        return jsonify(profile)
+
+    except Exception as e:
+        logger.error(f"Error fetching user profile: {str(e)}")
+        return jsonify({"error": "Failed to fetch profile"}), 500
+
+@app.route('/api/user/profile', methods=['POST'])
+def update_user_profile():
+    """Update user profile data including tags"""
+    auth_token = request.headers.get('Authorization')
+    if not auth_token:
+        return jsonify({"error": "Authentication required"}), 401
+
+    username = get_hash(f"sessions{redis_version}", auth_token)
+    if not username:
+        return jsonify({"error": "Invalid session"}), 401
+
+    try:
+        # Get update data
+        update_data = request.json
+        
+        # Get existing profile
+        profile_json = get_hash(f"user_profiles{redis_version}", username)
+        profile = json.loads(profile_json) if profile_json else format_user_profile(username)
+        
+        # Update allowed fields
+        allowed_fields = ['age', 'country', 'sex', 'bio', 'email']
+        for field in allowed_fields:
+            if field in update_data:
+                profile[field] = update_data[field]
+        
+        # Update tags separately
+        if 'tags' in update_data:
+            write_hash(f"user_tags{redis_version}", username, json.dumps(update_data['tags']))
+            profile['tags'] = update_data['tags']
+        
+        # Save updated profile
+        write_hash(f"user_profiles{redis_version}", username, json.dumps(profile))
+        
+        return jsonify({"message": "Profile updated successfully", "profile": profile})
+
+    except Exception as e:
+        logger.error(f"Error updating user profile: {str(e)}")
+        return jsonify({"error": "Failed to update profile"}), 500
+
+# Add Tag-related endpoints if needed
+
+@app.route('/api/tags/suggestions', methods=['GET'])
+def get_tag_suggestions():
+    """Get tag suggestions based on category"""
+    category = request.args.get('category', 'all')
+    
+    suggestions = {
+        'genres': ['Pop', 'Rock', 'Hip Hop', 'Jazz', 'Classical', 'Electronic', 'R&B', 'Country', 'Folk', 'Metal', 'Blues', 'Reggae', 'Soul', 'Funk', 'Indie'],
+        'languages': ['English', 'Chinese', 'Spanish', 'Japanese', 'Korean', 'French', 'German', 'Italian', 'Portuguese', 'Russian'],
+        'styles': ['Dance', 'Acoustic', 'Instrumental', 'Vocal', 'Live', 'Studio', 'Remix', 'Cover', 'Original', 'Experimental'],
+        'artists': ['Taylor Swift', 'Ed Sheeran', 'Drake', 'BTS', 'The Weeknd', 'Beyoncé', 'Adele', 'Jay Chou', 'Eason Chan', 'BLACKPINK']
+    }
+    
+    if category == 'all':
+        return jsonify(suggestions)
+    
+    return jsonify({category: suggestions.get(category, [])})
+
+
 if __name__ == '__main__':
     # app.run(port=3000, host='10.72.252.213', debug=True)
     app.run(port=5000, host='0.0.0.0', debug=True)
