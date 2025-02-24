@@ -1,5 +1,5 @@
 .track-list li {
-  position: relative;  /* For delete button positioning */
+  position: relative;  /* For action buttons positioning */
 }
 
 .track-list {
@@ -64,34 +64,81 @@
   text-overflow: ellipsis;
 }
 
-.delete-button {
+.track-error {
+  color: #cf6679;
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+/* Track actions container */
+.track-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Common styling for action buttons */
+.delete-button,
+.pin-button {
   color: #bb86fc;
   padding: 10px;
   background-color: transparent;
   cursor: pointer;
-  transition: opacity 0.2s ease, color 0.2s ease;
+  transition: opacity 0.2s ease, color 0.2s ease, background-color 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 12px;
+  border: none;
+  border-radius: 4px;
 }
 
-.delete-button:hover {
+.delete-button:hover,
+.pin-button:hover {
   color: black;
   background-color: #bb86fc;
 }
 
-.delete-button:disabled {
+.delete-button:disabled,
+.pin-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
-/* Adjust spacing when delete button is present */
-.track-list li:hover .track-details {
-  padding-right: 20px;  /* Make room for delete button */
+/* Pin button specific styles */
+.pin-button {
+  color: #03dac6; /* Use a slightly different color to distinguish from delete */
 }
 
-/* Ensure now-playing indicator doesn't conflict with delete button */
+.pin-button:hover {
+  background-color: #03dac6;
+}
+
+/* Adjust spacing when buttons are present */
+.track-list li:hover .track-details {
+  padding-right: 6px;  /* Make room for action buttons */
+}
+
+/* Ensure now-playing indicator doesn't conflict with action buttons */
 .track-list li .now-playing {
-  margin-right: 20px;  /* Move play indicator away from delete button */
+  margin-right: 6px;  /* Move play indicator away from action buttons */
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .delete-button,
+  .pin-button {
+    padding: 8px;
+  }
+  
+  .track-actions {
+    gap: 4px;
+  }
+}
+
+@media (max-width: 480px) {
+  .delete-button,
+  .pin-button {
+    padding: 6px;
+  }
 }
