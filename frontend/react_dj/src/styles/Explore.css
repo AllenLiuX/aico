@@ -192,3 +192,26 @@
       margin-bottom: 24px;
     }
   }
+
+  /* Add to Explore.css */
+.end-message {
+    text-align: center;
+    padding: 24px;
+    color: #666;
+    font-size: 16px;
+    background: #1e1e1e;
+    border-radius: 12px;
+    margin-top: 24px;
+  }
+
+/* In Explore.css */
+.loader-element {
+    min-height: 20px;
+    margin: 20px 0;
+    width: 100%;
+  }
+  
+  .explore-container {
+    min-height: 100vh; /* Ensure container is tall enough */
+    padding-bottom: 40px; /* Add padding at bottom */
+  }

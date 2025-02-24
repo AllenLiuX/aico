@@ -704,7 +704,9 @@ def get_explore_rooms():
 
         # Get all rooms and their playlists
         all_rooms = get_all_hash(f"playlist{redis_version}")
+        
         all_room_names = list(all_rooms.keys())
+        logger.info(f"all_room_names:{all_room_names}")
         total_rooms = len(all_room_names)
 
         # Get paginated room names
@@ -742,6 +744,12 @@ def get_explore_rooms():
                 logger.error(f"Error processing room {room_name}: {str(e)}")
                 continue
 
+        res = {
+            "rooms": rooms,
+            "total": total_rooms,
+            "hasMore": offset + limit < total_rooms
+        }
+        logger.info(str(res))
         return jsonify({
             "rooms": rooms,
             "total": total_rooms,
