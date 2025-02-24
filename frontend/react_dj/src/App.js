@@ -10,7 +10,7 @@ import PlayRoom from './components/PlayRoom';
 import AboutUs from './components/AboutUs';
 import SearchMusic from './components/SearchMusic';
 import Profile from './components/Profile';
-// import SimplePlayerPage from './components/SimplePlayerPage';
+import Explore from './components/Explore';
 
 import './styles/App.css';
 
@@ -31,6 +31,7 @@ function App() {
             <Route path="/search_music" element={<SearchMusic />} />
             {/* <Route path="/player" element={<SimplePlayerPage />} /> */}
             <Route path="/profile" element={<Profile />} />
+            <Route path="/explore" element={<Explore />} />
           </Routes>
         </main>
       </div>

@@ -694,6 +694,64 @@ def get_tag_suggestions():
     return jsonify({category: suggestions.get(category, [])})
 
 
+@app.route('/api/explore/rooms', methods=['GET'])
+def get_explore_rooms():
+    """Get paginated list of all rooms"""
+    try:
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 12))
+        offset = (page - 1) * limit
+
+        # Get all rooms and their playlists
+        all_rooms = get_all_hash(f"playlist{redis_version}")
+        all_room_names = list(all_rooms.keys())
+        total_rooms = len(all_room_names)
+
+        # Get paginated room names
+        paginated_room_names = all_room_names[offset:offset + limit]
+        rooms = []
+
+        for room_name in paginated_room_names:
+            try:
+                # Get playlist data
+                playlist = json.loads(all_rooms[room_name])
+                
+                # Get additional room data
+                settings_json = get_hash(f"settings{redis_version}", room_name)
+                intro = get_hash(f"intro{redis_version}", room_name)
+                host_data = get_room_host(room_name)
+
+                settings = json.loads(settings_json) if settings_json else {}
+                
+                # Get first song's cover image as room cover
+                cover_image = (playlist[0].get('cover_img_url', '')
+                             if playlist and len(playlist) > 0
+                             else '')
+
+                room_data = {
+                    "name": room_name,
+                    "cover_image": cover_image,
+                    "introduction": intro,
+                    "song_count": len(playlist),
+                    "genre": settings.get('genre', ''),
+                    "occasion": settings.get('occasion', ''),
+                    "host": host_data
+                }
+                rooms.append(room_data)
+            except Exception as e:
+                logger.error(f"Error processing room {room_name}: {str(e)}")
+                continue
+
+        return jsonify({
+            "rooms": rooms,
+            "total": total_rooms,
+            "hasMore": offset + limit < total_rooms
+        })
+
+    except Exception as e:
+        logger.error(f"Error fetching explore rooms: {str(e)}")
+        return jsonify({"error": "Failed to fetch rooms"}), 500
+
 if __name__ == '__main__':
     # app.run(port=3000, host='10.72.252.213', debug=True)
     app.run(port=5000, host='0.0.0.0', debug=True)
