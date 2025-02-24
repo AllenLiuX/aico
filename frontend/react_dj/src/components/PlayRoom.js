@@ -1,4 +1,4 @@
-// PlayRoom.js
+// Modified PlayRoom.js with Pin to Top functionality
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import PlaylistTrack from './PlaylistTrack';
@@ -44,8 +44,8 @@ function PlayRoom() {
     const fetchRoomData = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`http://127.0.0.1:5000/api/room-playlist?room_name=${roomName}`);
-        // const response = await fetch(`http://13.56.253.58:5000/api/room-playlist?room_name=${roomName}`);
+        // const response = await fetch(`http://127.0.0.1:5000/api/room-playlist?room_name=${roomName}`);
+        const response = await fetch(`http://13.56.253.58:5000/api/room-playlist?room_name=${roomName}`);
 
         if (!response.ok) {
           throw new Error(`Failed to fetch playlist (${response.status})`);
@@ -168,10 +168,6 @@ function PlayRoom() {
         return nextIndex;
       });
     }
-   
-   
-    
-    
     
     const isNowPlaying = playerState === 1;
     setIsPlaying(isNowPlaying);
@@ -249,19 +245,6 @@ function PlayRoom() {
     setIsPlaying(true);
   };
 
-  // const loadVideo = (index) => {
-  //   if (!playerRef.current || !playlist[index]) return;
-    
-  //   const videoId = extractVideoId(playlist[index].song_url);
-  //   if (!videoId) {
-  //     setError("Invalid video URL");
-  //     return;
-  //   }
-    
-  //   playerRef.current.loadVideoById(videoId);
-  //   setIsPlaying(true);
-  // };
-
   const formatTime = (timeInSeconds) => {
     if (!timeInSeconds || isNaN(timeInSeconds)) return "0:00";
     const minutes = Math.floor(timeInSeconds / 60);
@@ -299,6 +282,49 @@ function PlayRoom() {
     console.log(`Playing specific track at index ${index}:`, playlist[index].title);
     setCurrentTrack(index);
     loadVideo(index);
+  };
+
+  const handlePinToTop = (selectedIndex, currentPlayingIndex) => {
+    if (selectedIndex === currentPlayingIndex) return; // Don't move if it's already at the correct position
+    
+    // Create a copy of the playlist
+    const updatedPlaylist = [...playlist];
+    
+    // Get the track to be pinned
+    const trackToPin = updatedPlaylist[selectedIndex];
+    
+    // Remove the track from its current position
+    updatedPlaylist.splice(selectedIndex, 1);
+    
+    // Determine the target position
+    let targetPosition;
+    
+    if (isPlaying || playerRef.current) {
+      // If a song is playing, insert after the current track
+      targetPosition = currentTrack + 1;
+    } else {
+      // If no song is playing, insert at the current selectedTrack position and start playing it
+      targetPosition = currentTrack;
+      // We'll start playing this track below
+    }
+    
+    // Insert the track at the target position
+    updatedPlaylist.splice(targetPosition, 0, trackToPin);
+    
+    // Update the playlist
+    setPlaylist(updatedPlaylist);
+    
+    // If nothing is playing, start playing the pinned track
+    if (!isPlaying && !playerRef.current) {
+      setTimeout(() => {
+        setCurrentTrack(targetPosition);
+        loadVideo(targetPosition);
+      }, 50);
+    }
+    
+    // Save the updated playlist order to the backend if needed
+    // This would require a new API endpoint for updating playlist order
+    console.log("Pinned track from position", selectedIndex, "to position", targetPosition);
   };
 
   const handleTrackDelete = (newPlaylist) => {
@@ -488,14 +514,16 @@ function PlayRoom() {
           <ul className="track-list">
             {playlist.map((track, index) => (
               <PlaylistTrack
-                key={index}
+                key={`${track.song_id}-${index}`}
                 track={track}
                 index={index}
                 isHost={isHost}
                 isCurrentTrack={index === currentTrack}
+                currentPlayingIndex={currentTrack}
                 roomName={roomName}
                 onTrackClick={playSpecificTrack}
                 onTrackDelete={handleTrackDelete}
+                onPinToTop={handlePinToTop}
                 stopProgressTracking={stopProgressTracking}
               />
             ))}
