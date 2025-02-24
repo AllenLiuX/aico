@@ -39,6 +39,12 @@ function Header() {
     setShowDropdown(false);
   };
 
+  const getFullAvatarUrl = (avatarPath) => {
+    if (!avatarPath) return null;
+    if (avatarPath.startsWith('http')) return avatarPath;
+    return `http://13.56.253.58:5000${avatarPath}`;
+  };
+  
   return (
     <header className="main-header">
       <div className="header-container">
@@ -58,8 +64,13 @@ function Header() {
                 onClick={() => setShowDropdown(!showDropdown)}
                 className="profile-button"
               >
-                <img
+                {/* <img
                   src={user.avatar}
+                  alt="Profile"
+                  className="profile-avatar"
+                /> */}
+                <img
+                  src={getFullAvatarUrl(user.avatar) || `/api/avatar/${user.username}`}
                   alt="Profile"
                   className="profile-avatar"
                 />

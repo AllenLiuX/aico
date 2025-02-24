@@ -24,6 +24,11 @@ import json
 from util.generation import *
 from util.all_utils import *
 
+import os
+from werkzeug.utils import secure_filename
+from PIL import Image
+import io
+
 log_path = Path(__file__).parent.parent / "logs" / "backend.online.log"
 logger_setup(log_path=log_path, debug=False)
 logger = logging.getLogger(__name__)
@@ -38,6 +43,21 @@ app = Flask(__name__)
 # CORS(app)
 CORS(app, resources={r"/api/*": {"origins": "*"}})  # Enable CORS for all API routes
 
+
+
+# Define base paths
+BASE_DIR = Path(__file__).parent.parent  # This gets you to aico/
+FRONTEND_DIR = BASE_DIR / 'frontend' / 'react_dj'
+STATIC_DIR = FRONTEND_DIR / 'public' / 'static'
+AVATARS_DIR = STATIC_DIR / 'avatars'
+
+# Create directories if they don't exist
+AVATARS_DIR.mkdir(parents=True, exist_ok=True)
+
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+
+# if not os.path.exists(UPLOAD_FOLDER):
+#     os.makedirs(UPLOAD_FOLDER)
 
 @app.route('/api/generate-playlist', methods=['POST'])
 def generate_playlist():
@@ -759,6 +779,76 @@ def get_explore_rooms():
     except Exception as e:
         logger.error(f"Error fetching explore rooms: {str(e)}")
         return jsonify({"error": "Failed to fetch rooms"}), 500
+
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+@app.route('/api/user/avatar', methods=['POST'])
+def upload_avatar():
+    auth_token = request.headers.get('Authorization')
+    if not auth_token:
+        return jsonify({"error": "Authentication required"}), 401
+
+    username = get_hash(f"sessions{redis_version}", auth_token)
+    if not username:
+        return jsonify({"error": "Invalid session"}), 401
+
+    if 'avatar' not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+
+    file = request.files['avatar']
+    if file.filename == '':
+        return jsonify({"error": "No file selected"}), 400
+
+    if not allowed_file(file.filename):
+        return jsonify({"error": "Invalid file type"}), 400
+
+    try:
+        # Process and save image
+        image = Image.open(file)
+        
+        # Resize to standard size
+        image.thumbnail((400, 400))
+        
+        # Convert to RGB if necessary
+        if image.mode in ('RGBA', 'P'):
+            image = image.convert('RGB')
+        
+        # Generate unique filename
+        filename = f"{username}_{int(time.time())}.jpg"
+        filepath = AVATARS_DIR / filename
+        logger.info(f'saving avatar for {username} at {filepath}')
+        
+        # Save optimized image
+        image.save(str(filepath), 'JPEG', quality=85, optimize=True)
+        
+        # Generate URL - use relative path from public directory
+        avatar_url = f"/static/avatars/{filename}"
+        
+        # Update user profile in Redis
+        profile_json = get_hash(f"user_profiles{redis_version}", username)
+        profile = json.loads(profile_json) if profile_json else {}
+        profile['avatar'] = avatar_url
+        write_hash(f"user_profiles{redis_version}", username, json.dumps(profile))
+        
+        return jsonify({
+            "message": "Avatar uploaded successfully",
+            "avatar_url": avatar_url
+        })
+
+    except Exception as e:
+        logger.error(f"Error uploading avatar: {str(e)}")
+        return jsonify({"error": "Failed to process image"}), 500
+
+# Add route to serve static files (if needed)
+@app.route('/static/avatars/<path:filename>')
+def serve_avatar(filename):
+    return send_from_directory(str(AVATARS_DIR), filename)
+
+
 
 if __name__ == '__main__':
     # app.run(port=3000, host='10.72.252.213', debug=True)

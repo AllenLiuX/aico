@@ -1,0 +1,67 @@
+/* Add to Profile.css */
+.avatar-container {
+    position: relative;
+    cursor: pointer;
+  }
+  
+  .avatar-upload-popover {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 8px;
+    background: #1e1e1e;
+    border-radius: 8px;
+    padding: 12px;
+    width: 200px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    z-index: 100;
+  }
+  
+  .close-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: none;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    padding: 4px;
+  }
+  
+  .upload-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .upload-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: none;
+    border: 1px solid #3d3d3d;
+    border-radius: 6px;
+    color: #e0e0e0;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  
+  .upload-btn:hover {
+    border-color: #bb86fc;
+    color: #bb86fc;
+  }
+  
+  .upload-error {
+    color: #ef4444;
+    font-size: 12px;
+    margin-top: 8px;
+  }
+  
+  .upload-loading {
+    color: #bb86fc;
+    font-size: 12px;
+    margin-top: 8px;
+    text-align: center;
+  }
