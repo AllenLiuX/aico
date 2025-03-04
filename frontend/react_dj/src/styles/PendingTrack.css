@@ -1,0 +1,131 @@
+/* PendingTrack.css */
+.pending-track-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background-color: #2c2c2c;
+    border-radius: 8px;
+    border-left: 4px solid #ffb300; /* Yellow border to indicate pending */
+    margin-bottom: 8px;
+    transition: background-color 0.2s;
+  }
+  
+  .pending-track-item:hover {
+    background-color: #363636;
+  }
+  
+  .track-requester {
+    display: block;
+    color: #ffb300;
+    font-size: 11px;
+    margin-top: 2px;
+  }
+  
+  /* Track actions for approval/rejection */
+  .track-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+  }
+  
+  .approve-button,
+  .reject-button {
+    padding: 8px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .approve-button {
+    background-color: rgba(76, 175, 80, 0.2);
+    color: #4caf50;
+  }
+  
+  .reject-button {
+    background-color: rgba(207, 102, 121, 0.2);
+    color: #cf6679;
+  }
+  
+  .approve-button:hover {
+    background-color: rgba(76, 175, 80, 0.4);
+  }
+  
+  .reject-button:hover {
+    background-color: rgba(207, 102, 121, 0.4);
+  }
+  
+  .approve-button:disabled,
+  .reject-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  
+  .check-icon,
+  .x-icon {
+    width: 16px;
+    height: 16px;
+  }
+  
+  /* Placeholder for empty requests */
+  .no-requests-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    color: #666;
+    text-align: center;
+    background-color: #2c2c2c;
+    border-radius: 8px;
+    min-height: 120px;
+  }
+  
+  .no-requests-placeholder svg {
+    margin-bottom: 12px;
+    color: #666;
+  }
+  
+  /* Ensure track details are properly sized */
+  .pending-track-item .track-details {
+    flex: 1;
+    min-width: 0;
+    margin-right: 8px;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .pending-track-item {
+      padding: 10px;
+    }
+    
+    .track-actions {
+      gap: 4px;
+    }
+    
+    .approve-button,
+    .reject-button {
+      padding: 6px;
+    }
+    
+    .check-icon,
+    .x-icon {
+      width: 14px;
+      height: 14px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .pending-track-item {
+      padding: 8px;
+    }
+    
+    .track-requester {
+      display: none; /* Hide on very small screens */
+    }
+  }

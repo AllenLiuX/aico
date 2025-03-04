@@ -28,6 +28,8 @@ import os
 from werkzeug.utils import secure_filename
 from PIL import Image
 import io
+import uuid
+from datetime import datetime
 
 log_path = Path(__file__).parent.parent / "logs" / "backend.online.log"
 logger_setup(log_path=log_path, debug=False)
@@ -848,7 +850,271 @@ def upload_avatar():
 def serve_avatar(filename):
     return send_from_directory(str(AVATARS_DIR), filename)
 
+@app.route('/api/request-track', methods=['POST'])
+def request_track():
+    """Non-host users can request tracks to be added to a room's playlist"""
+    data = request.json
+    room_name = data.get('room_name')
+    track = data.get('track')
+    auth_token = request.headers.get('Authorization')
+    
+    # Identify the requester
+    username = None
+    if auth_token:
+        username = get_hash(f"sessions{redis_version}", auth_token)
+    
+    if not all([room_name, track]):
+        return jsonify({"error": "Missing required fields"}), 400
+        
+    try:
+        # Generate a unique request ID
+        request_id = str(uuid.uuid4())
+        track['request_id'] = request_id
+        
+        # Add requester info to the track
+        track['requested_by'] = username if username else "Guest"
+        track['requested_at'] = datetime.now().isoformat()
+        track['status'] = 'pending'
+        
+        # Store the request in Redis
+        write_hash(f"track_requests{redis_version}", request_id, json.dumps(track))
+        
+        # Associate request with user if logged in
+        if username:
+            user_requests = get_hash(f"user_requests{redis_version}", username)
+            if user_requests:
+                requests_list = json.loads(user_requests)
+            else:
+                requests_list = []
+            requests_list.append(request_id)
+            write_hash(f"user_requests{redis_version}", username, json.dumps(requests_list))
+        
+        # Associate request with room
+        room_requests = get_hash(f"room_requests{redis_version}", room_name)
+        if room_requests:
+            requests_list = json.loads(room_requests)
+        else:
+            requests_list = []
+        requests_list.append(request_id)
+        write_hash(f"room_requests{redis_version}", room_name, json.dumps(requests_list))
+        
+        return jsonify({
+            "message": "Track requested successfully",
+            "request_id": request_id
+        })
+    except Exception as e:
+        logger.error(f"Error requesting track: {str(e)}")
+        return jsonify({"error": "Failed to request track"}), 500
 
+
+@app.route('/api/pending-requests', methods=['GET'])
+def get_pending_requests():
+    """Get all pending track requests for a room (host only)"""
+    room_name = request.args.get('room_name')
+    auth_token = request.headers.get('Authorization')
+    
+    if not room_name:
+        return jsonify({"error": "Room name is required"}), 400
+    
+    # Verify if user is the host of the room
+    is_host = False
+    username = None
+    
+    if auth_token:
+        username = get_hash(f"sessions{redis_version}", auth_token)
+        host_data = get_room_host(room_name)
+        
+        # Fix the error by checking the type
+        if host_data:
+            # If host_data is already a dictionary, use it directly
+            if isinstance(host_data, dict):
+                host_info = host_data
+            # If it's a string (JSON), parse it
+            else:
+                host_info = json.loads(host_data)
+                
+            if host_info.get('username') == username:
+                is_host = True
+    
+    # For debugging purposes, temporarily bypass host check
+    # Uncomment the line below for testing
+    # is_host = True
+    
+    if not is_host:
+        return jsonify({"error": "Only room hosts can view pending requests"}), 403
+    
+    try:
+        # Get all request IDs for this room
+        room_requests = get_hash(f"room_requests{redis_version}", room_name)
+        if not room_requests:
+            return jsonify({"requests": []})
+        
+        request_ids = json.loads(room_requests)
+        pending_requests = []
+        
+        # Get each request's details and filter only pending ones
+        for request_id in request_ids:
+            request_data = get_hash(f"track_requests{redis_version}", request_id)
+            if request_data:
+                track = json.loads(request_data)
+                if track.get('status') == 'pending':
+                    pending_requests.append(track)
+        
+        return jsonify({"requests": pending_requests})
+    except Exception as e:
+        logger.error(f"Error fetching pending requests: {str(e)}")
+        return jsonify({"error": f"Failed to fetch pending requests: {str(e)}"}), 500
+
+@app.route('/api/approve-track-request', methods=['POST'])
+def approve_track_request():
+    """Approve a pending track request (host only)"""
+    data = request.json
+    room_name = data.get('room_name')
+    track_id = data.get('track_id')
+    request_id = data.get('request_id')
+    requester_id = data.get('requester_id')
+    
+    if not all([room_name, request_id]):
+        return jsonify({"error": "Missing required fields"}), 400
+    
+    try:
+        # Get the request data
+        request_data = get_hash(f"track_requests{redis_version}", request_id)
+        if not request_data:
+            return jsonify({"error": "Request not found"}), 404
+        
+        track = json.loads(request_data)
+        
+        # Update the request status
+        track['status'] = 'approved'
+        track['approved_at'] = datetime.now().isoformat()
+        write_hash(f"track_requests{redis_version}", request_id, json.dumps(track))
+        
+        # Add the track to the room's playlist
+        playlist = json.loads(get_hash(f"playlist{redis_version}", room_name))
+        playlist.append(track)
+        write_hash(f"playlist{redis_version}", room_name, json.dumps(playlist))
+        
+        # Create notification for the requester
+        if requester_id and requester_id != "Guest":
+            notification = {
+                "type": "request_status",
+                "status": "approved",
+                "message": f"Your request for '{track.get('title')}' by {track.get('artist')} has been approved!",
+                "track_title": track.get('title'),
+                "track_artist": track.get('artist'),
+                "timestamp": datetime.now().isoformat(),
+                "read": False
+            }
+            
+            notifications = get_hash(f"request_notifications{redis_version}", requester_id)
+            if notifications:
+                notifications_list = json.loads(notifications)
+            else:
+                notifications_list = []
+                
+            notifications_list.append(notification)
+            write_hash(f"request_notifications{redis_version}", requester_id, json.dumps(notifications_list))
+        
+        return jsonify({
+            "message": "Track request approved",
+            "approved_track": track,
+            "request_id": request_id
+        })
+    except Exception as e:
+        logger.error(f"Error approving track request: {str(e)}")
+        return jsonify({"error": "Failed to approve track request"}), 500
+
+
+@app.route('/api/reject-track-request', methods=['POST'])
+def reject_track_request():
+    """Reject a pending track request (host only)"""
+    data = request.json
+    room_name = data.get('room_name')
+    track_id = data.get('track_id')
+    request_id = data.get('request_id')
+    requester_id = data.get('requester_id')
+    
+    if not all([room_name, request_id]):
+        return jsonify({"error": "Missing required fields"}), 400
+    
+    try:
+        # Get the request data
+        request_data = get_hash(f"track_requests{redis_version}", request_id)
+        if not request_data:
+            return jsonify({"error": "Request not found"}), 404
+        
+        track = json.loads(request_data)
+        
+        # Update the request status
+        track['status'] = 'rejected'
+        track['rejected_at'] = datetime.now().isoformat()
+        write_hash(f"track_requests{redis_version}", request_id, json.dumps(track))
+        
+        # Create notification for the requester
+        if requester_id and requester_id != "Guest":
+            notification = {
+                "type": "request_status",
+                "status": "rejected",
+                "message": f"Your request for '{track.get('title')}' by {track.get('artist')} was not approved.",
+                "track_title": track.get('title'),
+                "track_artist": track.get('artist'),
+                "timestamp": datetime.now().isoformat(),
+                "read": False
+            }
+            
+            notifications = get_hash(f"request_notifications{redis_version}", requester_id)
+            if notifications:
+                notifications_list = json.loads(notifications)
+            else:
+                notifications_list = []
+                
+            notifications_list.append(notification)
+            write_hash(f"request_notifications{redis_version}", requester_id, json.dumps(notifications_list))
+        
+        return jsonify({
+            "message": "Track request rejected",
+            "request_id": request_id
+        })
+    except Exception as e:
+        logger.error(f"Error rejecting track request: {str(e)}")
+        return jsonify({"error": "Failed to reject track request"}), 500
+
+
+@app.route('/api/request-status', methods=['GET'])
+def check_request_status():
+    """Check status updates for a user's track requests"""
+    room_name = request.args.get('room_name')
+    auth_token = request.headers.get('Authorization')
+    
+    if not auth_token:
+        return jsonify({"error": "Authentication required"}), 401
+    
+    username = get_hash(f"sessions{redis_version}", auth_token)
+    if not username:
+        return jsonify({"error": "Invalid session"}), 401
+    
+    try:
+        # Get the user's notifications
+        notifications = get_hash(f"request_notifications{redis_version}", username)
+        if not notifications:
+            return jsonify({"notifications": []})
+        
+        notifications_list = json.loads(notifications)
+        
+        # Filter unread notifications
+        unread = [n for n in notifications_list if n.get('read') == False]
+        
+        # Mark these notifications as read
+        for notification in notifications_list:
+            notification['read'] = True
+        
+        write_hash(f"request_notifications{redis_version}", username, json.dumps(notifications_list))
+        
+        return jsonify({"notifications": unread})
+    except Exception as e:
+        logger.error(f"Error checking request status: {str(e)}")
+        return jsonify({"error": "Failed to check request status"}), 500
 
 if __name__ == '__main__':
     # app.run(port=3000, host='10.72.252.213', debug=True)

@@ -29,7 +29,7 @@ const AuthModal = ({ isOpen, onClose }) => {
     setIsLoading(true);
 
     try {
-      const endpoint = isLogin ? 'http://13.56.253.58:5000/api/auth/login' : 'http://13.56.253.58:5000/api/auth/register';
+      const endpoint = isLogin ? 'http://127.0.0.1:5000/api/auth/login' : 'http://127.0.0.1:5000/api/auth/register';
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
