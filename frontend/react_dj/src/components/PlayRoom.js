@@ -135,7 +135,7 @@ function PlayRoom() {
       
       <div className="player-grid">
         {/* Player Controls */}
-        <div>
+        <div class= "player-section">
           <PlayerControls
             currentSong={currentSong}
             isPlaying={isPlaying}
@@ -151,9 +151,9 @@ function PlayRoom() {
           <div ref={playerContainerRef} id="youtube-player"></div>
         </div>
         
-        {/* Playlist Container */}
-        <div className="playlist-container">
+       
           {/* Main Playlist */}
+          
           <PlaylistSection
             playlist={playlist}
             isHost={isHost}
@@ -165,6 +165,8 @@ function PlayRoom() {
             stopProgressTracking={stopProgressTracking}
             onAddMusicClick={handleSearchMusic}
           />
+          {/* Placeholder so that the grid layout works as expected */}
+          <div></div>
           
           {/* Pending Requests (Host Only) */}
           {isHost && (
@@ -175,7 +177,6 @@ function PlayRoom() {
               onReject={handleRejectRequest}
             />
           )}
-        </div>
       </div>
 
       {/* Playlist Info */}
