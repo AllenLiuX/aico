@@ -1,7 +1,8 @@
 // SearchMusic.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Search, ArrowLeft, Plus, Music, User } from 'lucide-react';
+import RequestNotificationModal from './RequestNotificationModal';
 import '../styles/SearchMusic.css';
 
 function SearchMusic() {
@@ -10,11 +11,22 @@ function SearchMusic() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchType, setSearchType] = useState('artist');
+  const [isHost, setIsHost] = useState(false);
+  const [showNotification, setShowNotification] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState('');
+  const [notificationTitle, setNotificationTitle] = useState('');
+  const [notificationType, setNotificationType] = useState('info');
   
   const location = useLocation();
   const navigate = useNavigate();
   const queryParams = new URLSearchParams(location.search);
   const roomName = queryParams.get('room');
+  const isHostParam = queryParams.get('is_host');
+
+  useEffect(() => {
+    // Check if user is host
+    setIsHost(isHostParam === 'True');
+  }, [isHostParam]);
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -25,7 +37,7 @@ function SearchMusic() {
     setSearchResults([]);
 
     try {
-      const response = await fetch(`http://13.56.253.58:5000/api/search-music?query=${encodeURIComponent(searchQuery)}&search_type=${searchType}`);
+      const response = await fetch(`http://127.0.0.1:5000/api/search-music?query=${encodeURIComponent(searchQuery)}&search_type=${searchType}`);
       if (!response.ok) {
         throw new Error('Failed to fetch search results');
       }
@@ -41,10 +53,14 @@ function SearchMusic() {
 
   const handleAddToPlaylist = async (track) => {
     try {
-      const response = await fetch(`http://13.56.253.58:5000/api/add-to-playlist`, {
+      // Different endpoints for host vs. non-host
+      const endpoint = isHost ? 'add-to-playlist' : 'request-track';
+      
+      const response = await fetch(`http://127.0.0.1:5000/api/${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': localStorage.getItem('token') || '' // Send user token if available
         },
         body: JSON.stringify({
           room_name: roomName,
@@ -53,20 +69,34 @@ function SearchMusic() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to add track to playlist');
+        throw new Error(`Failed to ${isHost ? 'add' : 'request'} track`);
       }
 
-      alert('Track added to playlist successfully!');
+      // Show different notification based on user role
+      if (isHost) {
+        setNotificationTitle('Track Added');
+        setNotificationMessage('Track added to playlist successfully!');
+        setNotificationType('success');
+      } else {
+        setNotificationTitle('Track Requested');
+        setNotificationMessage('Your song has been requested and is waiting for host approval.');
+        setNotificationType('pending');
+      }
+      
+      setShowNotification(true);
     } catch (err) {
-      alert('Failed to add track to playlist. Please try again.');
-      console.error('Add to playlist error:', err);
+      setNotificationTitle('Error');
+      setNotificationMessage(`Failed to ${isHost ? 'add' : 'request'} track. Please try again.`);
+      setNotificationType('error');
+      setShowNotification(true);
+      console.error('Add/request track error:', err);
     }
   };
 
   return (
     <div className="search-music">
       <button
-        onClick={() => navigate(`/playroom?room_name=${roomName}`)}
+        onClick={() => navigate(`/playroom?room_name=${roomName}&is_host=${isHostParam}`)}
         className="back-button"
       >
         <ArrowLeft size={18} />
@@ -150,7 +180,7 @@ function SearchMusic() {
                     className="action-button add-button"
                   >
                     <Plus size={16} />
-                    Add
+                    {isHost ? 'Add' : 'Request'}
                   </button>
                 </div>
               </div>
@@ -160,6 +190,15 @@ function SearchMusic() {
       ) : searchQuery && !isLoading ? (
         <div className="loading-state">No results found</div>
       ) : null}
+      
+      {/* Notification Modal */}
+      <RequestNotificationModal 
+        isOpen={showNotification}
+        onClose={() => setShowNotification(false)}
+        title={notificationTitle}
+        message={notificationMessage}
+        type={notificationType}
+      />
     </div>
   );
 }

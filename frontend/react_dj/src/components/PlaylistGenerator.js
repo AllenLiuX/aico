@@ -54,7 +54,9 @@ function PlaylistGenerator() {
       // Get auth token from localStorage
       const token = localStorage.getItem('token');
       
-      const response = await fetch('http://13.56.253.58:5000/api/generate-playlist', {
+      const response = await fetch('http://127.0.0.1:5000/api/generate-playlist', {
+      // const response = await fetch('http://13.56.253.58:5000/api/generate-playlist', {
+
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

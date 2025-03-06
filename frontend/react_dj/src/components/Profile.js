@@ -118,10 +118,10 @@ function Profile() {
 
       try {
         const [profileRes, roomsRes] = await Promise.all([
-          fetch('http://13.56.253.58:5000/api/user/profile', {
+          fetch('http://127.0.0.1:5000/api/user/profile', {
             headers: { 'Authorization': token }
           }),
-          fetch('http://13.56.253.58:5000/api/user/rooms', {
+          fetch('http://127.0.0.1:5000/api/user/rooms', {
             headers: { 'Authorization': token }
           })
         ]);

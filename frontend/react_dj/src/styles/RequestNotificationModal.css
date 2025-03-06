@@ -1,0 +1,114 @@
+/* RequestNotificationModal.css */
+.request-notification-overlay {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1100;
+    animation: fadeIn 0.2s ease-out;
+  }
+  
+  .request-notification-modal {
+    background-color: #1e1e1e;
+    border-radius: 12px;
+    padding: 24px;
+    width: 90%;
+    max-width: 400px;
+    position: relative;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    animation: slideIn 0.3s ease-out;
+  }
+  
+  .notification-title {
+    font-size: 20px;
+    margin: 0 0 16px 0;
+    color: #e0e0e0;
+    text-align: center;
+  }
+  
+  .notification-message {
+    color: #aaa;
+    margin-bottom: 24px;
+    text-align: center;
+    line-height: 1.5;
+  }
+  
+  .close-button {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: none;
+    border: none;
+    color: #666;
+    font-size: 24px;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+  
+  .close-button:hover {
+    color: #e0e0e0;
+  }
+  
+  .confirm-button {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 6px;
+    background-color: #bb86fc;
+    color: #121212;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  .confirm-button:hover {
+    background-color: #a66ffe;
+  }
+  
+  /* Style variants */
+  .request-notification-modal.info {
+    border-top: 4px solid #03dac6;
+  }
+  
+  .request-notification-modal.success {
+    border-top: 4px solid #4caf50;
+  }
+  
+  .request-notification-modal.error {
+    border-top: 4px solid #cf6679;
+  }
+  
+  .request-notification-modal.pending {
+    border-top: 4px solid #ffb300;
+  }
+  
+  /* Animations */
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  @keyframes slideIn {
+    from { 
+      opacity: 0;
+      transform: translateY(-30px);
+    }
+    to { 
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Responsive */
+  @media (max-width: 480px) {
+    .request-notification-modal {
+      padding: 20px;
+    }
+    
+    .notification-title {
+      font-size: 18px;
+    }
+  }
