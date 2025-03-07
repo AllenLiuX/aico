@@ -1,4 +1,4 @@
-// SearchMusic.js
+// SearchMusic.js - Updated with enhanced mobile back button
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Search, ArrowLeft, Plus, Music, User } from 'lucide-react';
@@ -16,6 +16,7 @@ function SearchMusic() {
   const [notificationMessage, setNotificationMessage] = useState('');
   const [notificationTitle, setNotificationTitle] = useState('');
   const [notificationType, setNotificationType] = useState('info');
+  const [isMobile, setIsMobile] = useState(false);
   
   const location = useLocation();
   const navigate = useNavigate();
@@ -26,6 +27,21 @@ function SearchMusic() {
   useEffect(() => {
     // Check if user is host
     setIsHost(isHostParam === 'True');
+    
+    // Check if device is mobile
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    // Initial check
+    checkMobile();
+    
+    // Add resize listener
+    window.addEventListener('resize', checkMobile);
+    
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+    };
   }, [isHostParam]);
 
   const handleSearch = async (e) => {
@@ -57,8 +73,7 @@ function SearchMusic() {
       // Different endpoints for host vs. non-host
       const endpoint = isHost ? 'add-to-playlist' : 'request-track';
       
-      // const response = await fetch(`http://127.0.0.1:5000/api/${endpoint}`, {
-      const response = await fetch(`http://13.56.253.58:5000/api/${endpoint}`, {
+      const response = await fetch(`http://127.0.0.1:5000/api/${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -95,14 +110,20 @@ function SearchMusic() {
     }
   };
 
+  const navigateToRoom = () => {
+    navigate(`/playroom?room_name=${roomName}&is_host=${isHostParam}`);
+  };
+
   return (
     <div className="search-music">
       <button
-        onClick={() => navigate(`/playroom?room_name=${roomName}&is_host=${isHostParam}`)}
+        onClick={navigateToRoom}
         className="back-button"
+        aria-label="Back to Room"
       >
-        <ArrowLeft size={18} />
-        Back to Room
+        <ArrowLeft size={isMobile ? 16 : 18} />
+        {!isMobile && "Back to Room"}
+        {isMobile && "Back"}
       </button>
 
       <div className="search-header">

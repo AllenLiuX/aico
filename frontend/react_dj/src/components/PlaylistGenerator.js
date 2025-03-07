@@ -1,7 +1,7 @@
-// PlaylistGenerator.js
+// Updated PlaylistGenerator.js with mobile-friendly song count selection
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ChevronDown, ChevronUp, Music, Tag, Calendar } from 'lucide-react';
+import { ChevronDown, ChevronUp, Music, Tag, Calendar, Hash } from 'lucide-react';
 import '../styles/PlaylistGenerator.css';
 
 const GENRE_OPTIONS = [
@@ -10,6 +10,13 @@ const GENRE_OPTIONS = [
 
 const OCCASION_OPTIONS = [
   'Party', 'Workout', 'Relaxation', 'Study', 'Commute', 'Dinner', 'Other'
+];
+
+const SONG_COUNT_OPTIONS = [
+  { value: 10, label: '10 songs' },
+  { value: 20, label: '20 songs' },
+  { value: 30, label: '30 songs' },
+  { value: 40, label: '40 songs' }
 ];
 
 function PlaylistGenerator() {
@@ -24,8 +31,12 @@ function PlaylistGenerator() {
     genre: '',
     customGenre: '',
     occasion: '',
-    customOccasion: ''
+    customOccasion: '',
+    songCount: 20 // Default to 20 songs
   });
+  
+  // For detecting mobile view
+  const [isMobile, setIsMobile] = useState(false);
   
   const location = useLocation();
   const navigate = useNavigate();
@@ -34,6 +45,22 @@ function PlaylistGenerator() {
     const params = new URLSearchParams(location.search);
     setRoomName(params.get('room_name') || '');
     setModeration(params.get('moderation') || 'no');
+    
+    // Check if we're on mobile
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    // Initial check
+    checkMobile();
+    
+    // Add listener for window resize
+    window.addEventListener('resize', checkMobile);
+    
+    // Cleanup
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+    };
   }, [location]);
 
   const handleInputChange = (e) => {
@@ -66,7 +93,8 @@ function PlaylistGenerator() {
           prompt: formData.prompt,
           genre: formData.genre === 'Other' ? formData.customGenre : formData.genre,
           occasion: formData.occasion === 'Other' ? formData.customOccasion : formData.occasion,
-          room_name: roomName
+          room_name: roomName,
+          song_count: parseInt(formData.songCount) // Add the song count to the request
         }),
       });
 
@@ -91,13 +119,13 @@ function PlaylistGenerator() {
   return (
     <div className="playlist-generator">
       <div className="generator-header">
-        <h1>AICO Room: {roomName || 'Unnamed Room'}</h1>
+        <h1>{isMobile ? "Create Room" : "AICO Room: " + (roomName || 'Unnamed Room')}</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="generator-form">
         <div className="form-group">
           <label htmlFor="prompt" className="form-label">
-            <Music size={18} className="icon" />
+            <Music size={isMobile ? 16 : 18} className="icon" />
             Describe the music you want
           </label>
           <textarea
@@ -111,12 +139,34 @@ function PlaylistGenerator() {
           />
         </div>
 
+        {/* Song count selector - more visible on mobile */}
+        <div className="form-group song-count-group">
+          <label htmlFor="songCount" className="form-label">
+            <Hash size={isMobile ? 16 : 18} className="icon" />
+            Number of songs
+          </label>
+          <div className="song-count-selector">
+            {SONG_COUNT_OPTIONS.map(option => (
+              <button
+                key={option.value}
+                type="button"
+                name="songCount"
+                value={option.value}
+                onClick={handleInputChange}
+                className={`song-count-option ${parseInt(formData.songCount) === option.value ? 'selected' : ''}`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <button
           type="button"
           onClick={() => setShowAdvanced(!showAdvanced)}
           className="advanced-toggle"
         >
-          {showAdvanced ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+          {showAdvanced ? <ChevronUp size={isMobile ? 16 : 20} /> : <ChevronDown size={isMobile ? 16 : 20} />}
           {showAdvanced ? 'Hide Advanced Options' : 'Show Advanced Options'}
         </button>
 
@@ -124,7 +174,7 @@ function PlaylistGenerator() {
           <div className="advanced-options">
             <div className="option-group">
               <label className="option-label">
-                <Tag size={18} className="icon" />
+                <Tag size={isMobile ? 16 : 18} className="icon" />
                 Music Genre
               </label>
               <select
@@ -152,7 +202,7 @@ function PlaylistGenerator() {
 
             <div className="option-group">
               <label className="option-label">
-                <Calendar size={18} className="icon" />
+                <Calendar size={isMobile ? 16 : 18} className="icon" />
                 Occasion
               </label>
               <select

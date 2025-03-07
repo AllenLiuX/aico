@@ -1,4 +1,4 @@
-/* SearchMusic.css */
+/* SearchMusic.css - Complete updated file */
 .search-music {
   max-width: 1200px;
   margin: 0 auto;
@@ -214,38 +214,42 @@
   color: #bb86fc;
 }
 
+/* UPDATED BACK BUTTON STYLES - Key fixes for mobile visibility */
 .back-button {
-  position: fixed;
-  top: 80px;
-  left: 20px;
-  padding: 10px 20px;
-  background-color: #2c2c2c;
-  color: #e0e0e0;
-  border-radius: 8px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  padding: 10px 16px;
+  background-color: #bb86fc;
+  color: #121212;
+  border: none;
+  border-radius: 20px;
   font-size: 14px;
-  border: 1px solid #3d3d3d;
-  transition: all 0.2s ease;
-  z-index: 10;
+  font-weight: 500;
+  gap: 8px;
+  z-index: 1000;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s, background-color 0.2s;
 }
 
-.back-button:hover {
-  background-color: #363636;
-  border-color: #bb86fc;
-  color: #bb86fc;
+.back-button:hover, .back-button:active {
+  background-color: #a76bfa;
+  transform: translateY(-2px);
 }
 
 /* iPhone and mobile styles */
 @media (max-width: 768px) {
   .search-music {
-    padding: 24px 16px;
+    padding: 60px 16px 24px 16px; /* Increased top padding to make room for button */
   }
 
   .search-header h1 {
     font-size: 24px;
-    margin-top: 48px;
+    margin-top: 20px; /* Reduced margin since we have padding */
   }
 
   .search-form {
@@ -283,17 +287,20 @@
     margin-top: 8px;
   }
 
+  /* Mobile-specific back button styling */
   .back-button {
-    top: 16px;
-    left: 16px;
-    padding: 8px 16px;
+    top: 12px;
+    left: 12px;
+    padding: 8px 14px;
+    font-size: 13px;
+    min-width: 80px; /* Ensure minimum width for visibility */
   }
 }
 
 /* Small phones */
 @media (max-width: 380px) {
   .search-music {
-    padding: 16px 12px;
+    padding: 60px 12px 16px 12px;
   }
 
   .track-image {
@@ -313,6 +320,14 @@
     font-size: 12px;
     padding: 6px;
   }
+  
+  /* Even smaller back button */
+  .back-button {
+    top: 10px;
+    left: 10px;
+    padding: 6px 10px;
+    font-size: 12px;
+  }
 }
 
 /* Handle iPhone notch */
@@ -321,6 +336,12 @@
     padding-left: max(16px, env(safe-area-inset-left));
     padding-right: max(16px, env(safe-area-inset-right));
     padding-bottom: max(16px, env(safe-area-inset-bottom));
+    padding-top: max(60px, env(safe-area-inset-top) + 50px);
+  }
+  
+  .back-button {
+    top: max(12px, env(safe-area-inset-top));
+    left: max(12px, env(safe-area-inset-left));
   }
 }
 
@@ -334,7 +355,7 @@
 /* Landscape mode */
 @media (max-height: 480px) and (orientation: landscape) {
   .search-music {
-    padding: 16px;
+    padding: 60px 16px 16px 16px;
   }
 
   .search-results {
@@ -343,5 +364,93 @@
 
   .track-card {
     margin-bottom: 12px;
+  }
+  
+  .back-button {
+    top: 8px;
+  }
+}
+
+/* Updated back button positioning to avoid overlap */
+
+.back-button {
+  position: absolute; /* Change from fixed to absolute */
+  top: 64px; /* Position below the navigation bar */
+  left: 16px;
+  padding: 10px 16px;
+  background-color: #bb86fc;
+  color: #121212;
+  border: none;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  z-index: 100;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+.back-button:hover, .back-button:active {
+  background-color: #a76bfa;
+  transform: translateY(-2px);
+}
+
+/* iPhone and mobile styles */
+@media (max-width: 768px) {
+  .search-music {
+    padding: 100px 16px 24px 16px; /* Increased top padding for button */
+  }
+
+  /* Mobile-specific back button styling */
+  .back-button {
+    top: 60px; /* Adjusted for mobile header height */
+    left: 16px;
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+}
+
+/* Small phones */
+@media (max-width: 380px) {
+  .search-music {
+    padding: 90px 12px 16px 12px; /* Adjusted padding */
+  }
+  
+  /* Even smaller back button */
+  .back-button {
+    top: 50px; /* Lower position for smaller screens */
+    left: 12px;
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+}
+
+/* Handle iPhone notch */
+@supports (padding: max(0px)) {
+  .search-music {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    padding-top: max(100px, env(safe-area-inset-top) + 80px);
+  }
+  
+  .back-button {
+    top: max(60px, env(safe-area-inset-top) + 40px);
+    left: max(16px, env(safe-area-inset-left));
+  }
+}
+
+/* Landscape mode */
+@media (max-height: 480px) and (orientation: landscape) {
+  .search-music {
+    padding: 80px 16px 16px 16px;
+  }
+  
+  .back-button {
+    top: 50px;
   }
 }

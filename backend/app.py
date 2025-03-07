@@ -64,6 +64,8 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 # if not os.path.exists(UPLOAD_FOLDER):
 #     os.makedirs(UPLOAD_FOLDER)
 
+# Update to the generate-playlist endpoint in app.py
+
 @app.route('/api/generate-playlist', methods=['POST'])
 def generate_playlist():
     data = request.json
@@ -71,6 +73,15 @@ def generate_playlist():
     genre = data.get('genre')
     occasion = data.get('occasion')
     room_name = data.get('room_name')
+    song_count = data.get('song_count', 20)  # Default to 20 if not provided
+    
+    # Validate song count
+    if not isinstance(song_count, int) or song_count <= 0:
+        song_count = 20  # Fallback to default if invalid
+    
+    # Limit song count to reasonable range
+    song_count = min(max(song_count, 10), 40)
+    
     auth_token = request.headers.get('Authorization')
     
     # Get user information if logged in
@@ -89,15 +100,16 @@ def generate_playlist():
         logger.info(str(genre))
         logger.info(str(occasion))
         logger.info(str(room_name))
+        logger.info(f"Song count: {song_count}")
 
         settings = {
             "prompt": prompt,
             "genre": genre,
-            "occasion": occasion
+            "occasion": occasion,
+            "song_count": song_count
         }
 
-        song_num = 20
-        titles, artists, introduction, reply = llm.llm_generate_playlist(prompt, genre, occasion, song_num)
+        titles, artists, introduction, reply = llm.llm_generate_playlist(prompt, genre, occasion, song_count)
         
         playlist = []
         
@@ -116,8 +128,6 @@ def generate_playlist():
         redis_api.write_hash(f"settings{redis_version}", room_name, json.dumps(settings))
         redis_api.write_hash(f"intro{redis_version}", room_name, introduction)
 
-        # logger.info(f'Time taken: {time.time() -  start_time}')
-
         # Store host information if user is logged in
         if username and avatar:
             set_room_host(room_name, username, avatar)
@@ -127,7 +137,6 @@ def generate_playlist():
     except Exception as e:
         logger.error(f"Error generating playlist: {str(e)}")
         return jsonify({"error": "Failed to generate playlist"}), 500
-
 
 @app.route('/api/room-playlist', methods=['GET'])
 def get_room_playlist():
