@@ -145,6 +145,10 @@ def df_to_redis(df, name='', date='', overwrite=True, key=['']):
 
     write_hash(name, date, df_json)
 
+def remove_room(room_name):
+    delete_hash(f"playlist{redis_version}", room_name)
+
+
 
 if __name__ == '__main__':
     # write_hash('test', 'test_val', 123)
@@ -157,10 +161,17 @@ if __name__ == '__main__':
     # settings = get_hash(f"settings{redis_version}", room_name)
     # introduction = get_hash(f"intro{redis_version}", room_name)
 
-    playlist = json.loads(get_hash(f"playlist{redis_version}", room_name))
-    settings = json.loads(get_hash(f"settings{redis_version}", room_name))
-    introduction = get_hash(f"intro{redis_version}", room_name)
-    print(f"playlist: {playlist}")
-    print(f"settings: {settings}")
-    print(f"introduction: {introduction}")    
+    # playlist = json.loads(get_hash(f"playlist{redis_version}", room_name))
+    # settings = json.loads(get_hash(f"settings{redis_version}", room_name))
+    # introduction = get_hash(f"intro{redis_version}", room_name)
+    # print(f"playlist: {playlist}")
+    # print(f"settings: {settings}")
+    # print(f"introduction: {introduction}")    
 
+
+
+    all_rooms = get_all_hash(f"playlist{redis_version}")
+    print(all_rooms.keys())
+    # remove_room('jj')
+    # all_rooms = get_all_hash(f"playlist{redis_version}")
+    # print(all_rooms.keys())

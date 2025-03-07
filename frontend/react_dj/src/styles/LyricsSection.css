@@ -1,0 +1,157 @@
+/* LyricsSection.css */
+.lyrics-section {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    overflow: hidden;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .lyrics-header {
+    background-color: #f5f5f5;
+    padding: 12px 16px;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  
+  .lyrics-header h3 {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    font-size: 16px;
+    color: #333;
+  }
+  
+  .lyrics-header .icon {
+    margin-right: 8px;
+    color: #666;
+  }
+  
+  .lyrics-source {
+    font-size: 12px;
+    color: #888;
+    font-weight: normal;
+    margin-left: 8px;
+  }
+  
+  .lyrics-content {
+    padding: 16px;
+    overflow-y: auto;
+    flex-grow: 1;
+    max-height: 400px;
+    /* Add scroll padding to ensure active lyrics aren't at the very edge */
+    scroll-padding: 80px;
+  }
+  
+  .lyrics-text {
+    font-size: 14px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    padding-bottom: 60px; /* Extra padding at bottom for scrolling */
+  }
+  
+  .lyrics-text p {
+    margin: 0 0 8px 0;
+  }
+  
+  /* Timed lyrics styles */
+  .lyrics-text.timed {
+    padding: 20px 0;
+  }
+  
+  .lyric-line {
+    display: flex;
+    padding: 8px 16px;
+    margin-bottom: 4px;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+    color: #777;
+    opacity: 0.7;
+  }
+  
+  .lyric-line.active {
+    background-color: rgba(29, 185, 84, 0.1);
+    color: #1db954;
+    font-weight: bold;
+    opacity: 1;
+    transform: scale(1.03);
+  }
+  
+  .lyric-line.past {
+    color: #333;
+    opacity: 0.9;
+  }
+  
+  .lyric-timestamp {
+    min-width: 60px;
+    margin-right: 12px;
+    color: #999;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+  }
+  
+  .lyric-timestamp svg {
+    margin-right: 4px;
+  }
+  
+  .lyric-content {
+    flex: 1;
+  }
+  
+  .lyrics-loading,
+  .lyrics-error,
+  .lyrics-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+    color: #666;
+  }
+  
+  .lyrics-loading .spin {
+    animation: spin 1s linear infinite;
+    margin-bottom: 16px;
+  }
+  
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  
+  .lyrics-error {
+    color: #e53935;
+  }
+  
+  .lyrics-error svg,
+  .lyrics-placeholder svg {
+    margin-bottom: 16px;
+    opacity: 0.7;
+  }
+  
+  /* For smaller screens, make the lyrics section responsive */
+  @media (max-width: 768px) {
+    .lyrics-section {
+      margin-bottom: 16px;
+    }
+    
+    .lyrics-content {
+      max-height: 250px;
+    }
+    
+    .lyric-timestamp {
+      min-width: 45px;
+      font-size: 10px;
+    }
+  }

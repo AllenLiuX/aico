@@ -21,7 +21,8 @@ const usePlaylist = (roomName, isHost) => {
       try {
         setLoading(true);
         // Fetch main playlist data
-        const response = await fetch(`http://127.0.0.1:5000/api/room-playlist?room_name=${roomName}`);
+        // const response = await fetch(`http://127.0.0.1:5000/api/room-playlist?room_name=${roomName}`);
+        const response = await fetch(`http://13.56.253.58:5000/api/room-playlist?room_name=${roomName}`);
 
         if (!response.ok) {
           throw new Error(`Failed to fetch playlist (${response.status})`);
@@ -54,7 +55,8 @@ const usePlaylist = (roomName, isHost) => {
     if (!isHost || !roomName) return;
     
     try {
-      const response = await fetch(`http://127.0.0.1:5000/api/pending-requests?room_name=${roomName}`, {
+      // const response = await fetch(`http://127.0.0.1:5000/api/pending-requests?room_name=${roomName}`, {
+      const response = await fetch(`http://13.56.253.58:5000/api/pending-requests?room_name=${roomName}`, {
         headers: {
           'Authorization': localStorage.getItem('token') || ''
         }

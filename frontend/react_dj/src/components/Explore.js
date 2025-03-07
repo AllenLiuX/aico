@@ -14,12 +14,21 @@ const RoomCard = ({ room }) => {
   return (
     <div className="room-card" onClick={handleRoomClick}>
       <div className="room-image">
-        <img
+        {/* <img
           src={room.cover_image || '/api/placeholder/300/200'}
           alt={room.name}
           onError={(e) => {
             e.target.onerror = null;
             e.target.src = '/api/placeholder/300/200';
+          }}
+        /> */}
+        <img
+          src={room.cover_image || '/api/placeholder/300/200'}
+          alt={room.name}
+          onError={(e) => {
+            e.target.onerror = null; // Important: prevent further error callbacks
+            e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200"%3E%3Crect width="300" height="200" fill="%232c2c2c"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="18" fill="%23666"%3ENo Image%3C/text%3E%3C/svg%3E';
+            // Using inline SVG data URL instead of calling the API again
           }}
         />
         <div className="song-count">
@@ -53,31 +62,29 @@ const RoomCard = ({ room }) => {
   );
 };
 
+// In Explore.js
 function Explore() {
     const [rooms, setRooms] = useState([]);
     const [loading, setLoading] = useState(false);
     const [hasMore, setHasMore] = useState(true);
     const [page, setPage] = useState(1);
-    const [allRoomsShown, setAllRoomsShown] = useState(false);
+    const [allRoomsLoaded, setAllRoomsLoaded] = useState(false);
     const loader = useRef(null);
+    const initialFetchDone = useRef(false);
     const PAGE_SIZE = 12;
   
-    const fetchRooms = useCallback(async () => {
+    const fetchRooms = async (pageNum) => {
       if (loading || !hasMore) return;
   
       try {
         setLoading(true);
-        console.log('Fetching page:', page); // Debug log
-  
         const response = await fetch(
-          `http://13.56.253.58:5000/api/explore/rooms?page=${page}&limit=${PAGE_SIZE}`
+          `http://13.56.253.58:5000/api/explore/rooms?page=${pageNum}&limit=${PAGE_SIZE}`
         );
   
         if (!response.ok) throw new Error('Failed to fetch rooms');
   
         const data = await response.json();
-        console.log('Received data:', data); // Debug log
-  
         const newRooms = data.rooms;
   
         // Filter out duplicates
@@ -87,15 +94,13 @@ function Explore() {
   
         if (uniqueNewRooms.length > 0) {
           setRooms(prevRooms => [...prevRooms, ...uniqueNewRooms]);
-          setPage(prev => prev + 1);
+          setPage(pageNum + 1);
         }
   
-        // Check if we've shown all rooms
-        if (rooms.length + uniqueNewRooms.length >= data.total) {
+        // Check if all rooms are loaded
+        if (newRooms.length < PAGE_SIZE || uniqueNewRooms.length === 0) {
           setHasMore(false);
-          setAllRoomsShown(true);
-        } else {
-          setHasMore(uniqueNewRooms.length > 0);
+          setAllRoomsLoaded(true);
         }
   
       } catch (error) {
@@ -104,27 +109,34 @@ function Explore() {
       } finally {
         setLoading(false);
       }
-    }, [page, loading, hasMore, rooms]); // Add all dependencies
+    };
   
     const handleObserver = useCallback((entries) => {
       const target = entries[0];
-      console.log('Intersection:', target.isIntersecting); // Debug log
       if (target.isIntersecting && hasMore && !loading) {
-        fetchRooms();
+        fetchRooms(page);
       }
-    }, [hasMore, loading, fetchRooms]);
+    }, [hasMore, loading, page]);
+  
+    useEffect(() => {
+      // Initial fetch only once
+      if (!initialFetchDone.current) {
+        fetchRooms(1);
+        initialFetchDone.current = true;
+      }
+    }, []);
   
     useEffect(() => {
       const currentLoader = loader.current;
       const options = {
         root: null,
-        rootMargin: '100px', // Increased margin to trigger earlier
-        threshold: 0.1 // Reduced threshold to trigger more easily
+        rootMargin: '20px',
+        threshold: 0.1
       };
   
       const observer = new IntersectionObserver(handleObserver, options);
       
-      if (currentLoader) {
+      if (currentLoader && hasMore && !loading) {
         observer.observe(currentLoader);
       }
   
@@ -133,11 +145,7 @@ function Explore() {
           observer.unobserve(currentLoader);
         }
       };
-    }, [handleObserver]);
-  
-    useEffect(() => {
-      fetchRooms();
-    }, []); // Initial fetch
+    }, [handleObserver, hasMore, loading]);
   
     return (
       <div className="explore-container">
@@ -159,20 +167,14 @@ function Explore() {
           </div>
         )}
   
-        {allRoomsShown ? (
+        {allRoomsLoaded && rooms.length > 0 && (
           <div className="end-message">
             You've seen all available rooms!
           </div>
-        ) : (
-          <div 
-            ref={loader}
-            className="loader-element"
-            style={{ 
-              height: '20px',
-              margin: '20px 0',
-              visibility: hasMore ? 'visible' : 'hidden'
-            }}
-          />
+        )}
+  
+        {hasMore && !loading && (
+          <div ref={loader} className="loader-element" />
         )}
       </div>
     );

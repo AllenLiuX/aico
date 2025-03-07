@@ -24,6 +24,9 @@ import json
 from util.generation import *
 from util.all_utils import *
 
+import util.lyrics as lyrics_api
+from util.lyrics import fetch_lyrics
+
 import os
 from werkzeug.utils import secure_filename
 from PIL import Image
@@ -188,7 +191,7 @@ def search_music():
     # logger.info(str(results))
 
     if search_type == 'artist':
-        results = youtube_music.search_artist_tracks(query, max_results=30)
+        results = youtube_music.search_artist_tracks(query, max_results=50)
     else:
         results = youtube_music.search_song_tracks(query, max_results=30)
         
@@ -1115,6 +1118,34 @@ def check_request_status():
     except Exception as e:
         logger.error(f"Error checking request status: {str(e)}")
         return jsonify({"error": "Failed to check request status"}), 500
+
+
+# Add this to app.py
+@app.route('/api/get-lyrics', methods=['GET'])
+def get_lyrics():
+    song_title = request.args.get('title')
+    artist_name = request.args.get('artist')
+    timestamps = request.args.get('timestamps', 'true').lower() == 'true'
+    
+    if not song_title or not artist_name:
+        return jsonify({"error": "Song title and artist name are required"}), 400
+    
+    try:
+        lyrics_data = fetch_lyrics(song_title, artist_name, include_timestamps=True)
+        
+        # Return different formats based on request
+        if timestamps:
+            return jsonify({
+                "lyrics": lyrics_data['formatted_lyrics'],
+                "rawLyrics": lyrics_data['raw_lyrics'],
+                "timedLyrics": lyrics_data['timed_lyrics'],
+                "source": lyrics_data['source']
+            })
+        else:
+            return jsonify({"lyrics": lyrics_data['formatted_lyrics']})
+    except Exception as e:
+        logger.error(f"Error fetching lyrics: {str(e)}")
+        return jsonify({"error": "Failed to fetch lyrics"}), 500
 
 if __name__ == '__main__':
     # app.run(port=3000, host='10.72.252.213', debug=True)

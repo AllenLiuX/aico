@@ -23,7 +23,8 @@ const PendingTrack = ({
       setIsProcessing(true);
       setError(null);
       
-      const response = await fetch('http://127.0.0.1:5000/api/approve-track-request', {
+      // const response = await fetch('http://127.0.0.1:5000/api/approve-track-request', {
+      const response = await fetch('http://13.56.253.58:5000/api/approve-track-request', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -60,7 +61,8 @@ const PendingTrack = ({
       setIsProcessing(true);
       setError(null);
       
-      const response = await fetch('http://127.0.0.1:5000/api/reject-track-request', {
+      // const response = await fetch('http://127.0.0.1:5000/api/reject-track-request', {
+      const response = await fetch('http://13.56.253.58:5000/api/reject-track-request', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

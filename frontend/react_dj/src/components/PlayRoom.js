@@ -1,4 +1,4 @@
-// PlayRoom.js (Final Refactored)
+// PlayRoom.js
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -10,7 +10,8 @@ import {
   PlaylistSection, 
   PendingRequestsSection, 
   PlaylistInfoSection, 
-  QRCodeModal 
+  QRCodeModal,
+  LyricsSection
 } from './playroom-components';
 import RequestNotificationModal from './RequestNotificationModal';
 
@@ -23,6 +24,7 @@ function PlayRoom() {
   const roomName = queryParams.get('room_name');
   const isHost = queryParams.get('is_host') === 'True';
   const [showQRCode, setShowQRCode] = useState(false);
+  const [showLyrics, setShowLyrics] = useState(true); // Set default to true to show lyrics initially
   
   // Check if we have a valid room name
   useEffect(() => {
@@ -133,50 +135,78 @@ function PlayRoom() {
         setShowQRCode={setShowQRCode}
       />
       
+      {/* Lyrics Section - Now positioned above the player/playlist grid */}
+      {showLyrics && (
+        <div className="lyrics-container">
+          <LyricsSection 
+            currentSong={currentSong}
+            isVisible={showLyrics}
+            currentTime={currentTime}
+          />
+        </div>
+      )}
+      
       <div className="player-grid">
         {/* Player Controls */}
-        <div class= "player-section">
-          <PlayerControls
-            currentSong={currentSong}
-            isPlaying={isPlaying}
-            progress={progress}
-            duration={duration}
-            currentTime={currentTime}
-            formatTime={formatTime}
-            handleProgressChange={handleProgressChange}
-            togglePlay={togglePlay}
-            playNext={playNext}
-            playPrevious={playPrevious}
-          />
-          <div ref={playerContainerRef} id="youtube-player"></div>
-        </div>
-        
-       
-          {/* Main Playlist */}
-          
-          <PlaylistSection
-            playlist={playlist}
-            isHost={isHost}
-            currentTrack={currentTrack}
-            roomName={roomName}
-            onTrackClick={playSpecificTrack}
-            onTrackDelete={handleTrackDelete}
-            onPinToTop={handlePinTrack}
-            stopProgressTracking={stopProgressTracking}
-            onAddMusicClick={handleSearchMusic}
-          />
-          {/* Placeholder so that the grid layout works as expected */}
-          <div></div>
-          
-          {/* Pending Requests (Host Only) */}
-          {isHost && (
-            <PendingRequestsSection
-              pendingRequests={pendingRequests}
-              roomName={roomName}
-              onApprove={handleApproveRequest}
-              onReject={handleRejectRequest}
+        <div className="player-section">
+          <div className="player-container">
+            <div className="album-art">
+              {currentSong.cover_img_url ? (
+                <img 
+                  src={currentSong.cover_img_url} 
+                  alt={`${currentSong.title} cover`} 
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = '/api/placeholder/300/300';
+                  }}
+                />
+              ) : (
+                <div className="placeholder-art">
+                  <div>No track selected</div>
+                </div>
+              )}
+            </div>
+            
+            <PlayerControls
+              currentSong={currentSong}
+              isPlaying={isPlaying}
+              progress={progress}
+              duration={duration}
+              currentTime={currentTime}
+              formatTime={formatTime}
+              handleProgressChange={handleProgressChange}
+              togglePlay={togglePlay}
+              playNext={playNext}
+              playPrevious={playPrevious}
+              showLyrics={showLyrics}
+              onToggleLyrics={() => setShowLyrics(!showLyrics)}
             />
-          )}
+            <div ref={playerContainerRef} id="youtube-player" style={{ display: 'none' }}></div>
+          </div>
+        </div>
+       
+        {/* Main Playlist */}
+        <PlaylistSection
+          playlist={playlist}
+          isHost={isHost}
+          currentTrack={currentTrack}
+          roomName={roomName}
+          onTrackClick={playSpecificTrack}
+          onTrackDelete={handleTrackDelete}
+          onPinToTop={handlePinTrack}
+          stopProgressTracking={stopProgressTracking}
+          onAddMusicClick={handleSearchMusic}
+        />
+          
+        {/* Pending Requests (Host Only) */}
+        {isHost && (
+          <PendingRequestsSection
+            pendingRequests={pendingRequests}
+            roomName={roomName}
+            onApprove={handleApproveRequest}
+            onReject={handleRejectRequest}
+          />
+        )}
       </div>
 
       {/* Playlist Info */}

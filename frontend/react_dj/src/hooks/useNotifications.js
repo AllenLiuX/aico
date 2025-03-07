@@ -32,7 +32,8 @@ const useNotifications = (roomName, isHost) => {
     if (!token) return; // Only logged in users can have requests
     
     try {
-      const response = await fetch(`http://127.0.0.1:5000/api/request-status?room_name=${roomName}`, {
+      // const response = await fetch(`http://127.0.0.1:5000/api/request-status?room_name=${roomName}`, {
+      const response = await fetch(`http://13.56.253.58:5000/api/request-status?room_name=${roomName}`, {
         headers: {
           'Authorization': token
         }

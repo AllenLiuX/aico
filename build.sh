@@ -37,3 +37,9 @@ nohup python3 app.py &
 # screen -ls
 # screen -S backend     // create
 
+
+# SELENIUM
+# sudo yum install -y https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm
+# google-chrome --version
+
+

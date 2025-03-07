@@ -32,8 +32,8 @@ const PlaylistTrack = ({
       if (isCurrentTrack) {
         stopProgressTracking();
       }
-        const response = await fetch('http://127.0.0.1:5000/api/remove-from-playlist', {
-      // const response = await fetch('http://13.56.253.58:5000/api/remove-from-playlist', {
+        // const response = await fetch('http://127.0.0.1:5000/api/remove-from-playlist', {
+      const response = await fetch('http://13.56.253.58:5000/api/remove-from-playlist', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

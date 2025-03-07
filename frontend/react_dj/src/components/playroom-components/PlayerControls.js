@@ -1,6 +1,6 @@
 // PlayerControls.js
 import React from 'react';
-import { Play, Pause, SkipBack, SkipForward, Music } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Music, FileText } from 'lucide-react';
 
 const PlayerControls = ({
   currentSong,
@@ -12,27 +12,12 @@ const PlayerControls = ({
   handleProgressChange,
   togglePlay,
   playNext,
-  playPrevious
+  playPrevious,
+  showLyrics,
+  onToggleLyrics
 }) => {
   return (
-    <div className="player-container">
-      <div className="album-art">
-        {currentSong.cover_img_url ? (
-          <img 
-            src={currentSong.cover_img_url} 
-            alt={`${currentSong.title} cover`} 
-            onError={(e) => {
-              e.target.onerror = null;
-              e.target.src = '/api/placeholder/300/300';
-            }}
-          />
-        ) : (
-          <div className="placeholder-art">
-            <Music size={48} />
-          </div>
-        )}
-      </div>
-      
+    <div className="player-controls-container">
       <div className="song-info">
         <h2>{currentSong.title || 'No track selected'}</h2>
         <p>{currentSong.artist || 'Unknown artist'}</p>
@@ -62,6 +47,13 @@ const PlayerControls = ({
         </button>
         <button onClick={playNext} className="control-button">
           <SkipForward size={24} />
+        </button>
+        <button 
+          onClick={onToggleLyrics} 
+          className={`control-button lyrics-button ${showLyrics ? 'active' : ''}`}
+          title={showLyrics ? "Hide lyrics" : "Show lyrics"}
+        >
+          <FileText size={20} />
         </button>
       </div>
     </div>
