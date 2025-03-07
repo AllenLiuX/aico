@@ -37,10 +37,12 @@ def get_random_user_agent():
     """Return a random user agent from the list"""
     return random.choice(USER_AGENTS)
 
+redis_verion = '_v1'
 def create_cache_key(title, artist):
     """Create a standardized cache key for lyrics"""
-    key_string = f"{title.lower().strip()}:{artist.lower().strip()}"
-    return f"lyrics:{hashlib.md5(key_string.encode()).hexdigest()}"
+    key_string = f"{title.lower().strip()}:{artist.lower().strip()}{redis_verion}"
+    # return f"lyrics:{hashlib.md5(key_string.encode()).hexdigest()}"
+    return f"lyrics:{key_string}"
 
 def is_chinese(text):
     """Check if text contains Chinese characters"""
@@ -81,15 +83,15 @@ def fetch_lyrics(song_title, artist_name, include_timestamps=True):
     """
     # Check cache first
     cache_key = create_cache_key(song_title, artist_name)
-    # cached_lyrics = redis_client.get(cache_key)
+    cached_lyrics = redis_client.get(cache_key)
     
-    # if cached_lyrics:
-    #     logger.info(f"Lyrics cache hit for {song_title} by {artist_name}")
-    #     cached_data = json.loads(cached_lyrics.decode('utf-8'))
-    #     if include_timestamps:
-    #         return cached_data
-    #     else:
-    #         return cached_data.get('formatted_lyrics', f"Lyrics for '{song_title}' by {artist_name} not found.")
+    if cached_lyrics:
+        logger.info(f"Lyrics cache hit for {song_title} by {artist_name}")
+        cached_data = json.loads(cached_lyrics.decode('utf-8'))
+        if include_timestamps:
+            return cached_data
+        else:
+            return cached_data.get('formatted_lyrics', f"Lyrics for '{song_title}' by {artist_name} not found.")
     
     # Result structure
     result = {
@@ -168,8 +170,9 @@ def fetch_lyrics(song_title, artist_name, include_timestamps=True):
     if not result['formatted_lyrics']:
         result['formatted_lyrics'] = f"Lyrics for '{song_title}' by {artist_name} not found."
     
-    # Cache the results
-    redis_client.setex(cache_key, CACHE_EXPIRATION, json.dumps(result))
+    else:
+        # Cache the results
+        redis_client.setex(cache_key, CACHE_EXPIRATION, json.dumps(result))
     
     if include_timestamps:
         return result
