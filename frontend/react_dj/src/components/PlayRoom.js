@@ -1,4 +1,4 @@
-// PlayRoom.js with updated layout and moderation switch
+// PlayRoom.js - Updated mobile layout to ensure full width
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -29,6 +29,23 @@ function PlayRoom() {
   const [showLyrics, setShowLyrics] = useState(true);
   const [isHost, setIsHost] = useState(isHostParam);
   const [moderationEnabled, setModerationEnabled] = useState(initialModeration);
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // Check screen size for responsive layout
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    // Initial check
+    checkMobile();
+    
+    // Add listener for resize
+    window.addEventListener('resize', checkMobile);
+    
+    // Clean up
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   
   // Check if we have a valid room name
   useEffect(() => {
@@ -164,7 +181,7 @@ function PlayRoom() {
   const currentSong = playlist[currentTrack] || {};
 
   return (
-    <div className="play-room">
+    <div className={`play-room ${isMobile ? 'mobile-view' : ''}`}>
       {/* Room Header */}
       <RoomHeader 
         roomName={roomName}
@@ -236,12 +253,12 @@ function PlayRoom() {
                 >
                   {moderationEnabled ? (
                     <>
-                      <ToggleRight size={20} /> 
+                      <ToggleRight size={isMobile ? 16 : 20} /> 
                       <span>On</span>
                     </>
                   ) : (
                     <>
-                      <ToggleLeft size={20} /> 
+                      <ToggleLeft size={isMobile ? 16 : 20} /> 
                       <span>Off</span>
                     </>
                   )}

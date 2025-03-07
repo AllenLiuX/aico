@@ -1026,3 +1026,303 @@
     max-height: 250px;
   }
 }
+
+/* Add these styles to your PlayRoom.css file to fix the mobile width issues */
+
+/* Ensure full width on mobile screens */
+@media (max-width: 768px) {
+  /* Remove unnecessary padding that might be causing width issues */
+  .play-room {
+    padding: 16px 8px;
+  }
+  
+  /* Ensure player container fills width */
+  .player-container {
+    width: 100%;
+    padding: 16px 12px;
+    margin: 0;
+    box-sizing: border-box;
+  }
+  
+  /* Fix album art size and centering */
+  .album-art {
+    width: 65%;
+    height: auto;
+    aspect-ratio: 1;
+    margin: 0 auto 16px;
+  }
+  
+  /* Ensure player controls fit mobile width */
+  .player-controls {
+    width: 100%;
+    justify-content: center;
+    padding: 0;
+  }
+  
+  /* Make progress bar fully responsive */
+  .progress-container {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0 4px;
+  }
+  
+  /* Fix left and right columns to take full width */
+  .left-column, 
+  .right-column {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  
+  /* Fix playlist width */
+  .playlist-section {
+    width: 100%;
+    margin: 16px 0;
+    box-sizing: border-box;
+    padding: 16px 12px;
+  }
+  
+  /* Fix moderation section width */
+  .moderation-section {
+    width: 100%;
+    margin: 16px 0;
+    box-sizing: border-box;
+  }
+  
+  .moderation-header {
+    padding: 12px 16px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  /* Fix track list items */
+  .track-item, 
+  .pending-track-item {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 8px;
+  }
+  
+  /* Fix lyrics container */
+  .lyrics-container {
+    width: 100%;
+    margin: 16px 0;
+    box-sizing: border-box;
+  }
+  
+  /* Fix player grid to ensure full width */
+  .player-grid {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+}
+
+/* Extra styles for small phones */
+@media (max-width: 380px) {
+  .play-room {
+    padding: 12px 4px;
+  }
+  
+  .album-art {
+    width: 70%; /* Slightly larger relative size on very small screens */
+  }
+  
+  .player-container,
+  .playlist-section,
+  .moderation-section {
+    padding: 12px 8px;
+    border-radius: 8px; /* Smaller border radius on small screens */
+  }
+  
+  .moderation-header {
+    padding: 10px 12px;
+  }
+  
+  /* Reduce font size of headings for small screens */
+  .moderation-header h3,
+  .playlist-header h3 {
+    font-size: 14px;
+  }
+  
+  /* Ensure toggle fits on small screens */
+  .moderation-toggle {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+}
+
+/* Fix for iOS devices */
+@supports (-webkit-touch-callout: none) {
+  .play-room {
+    width: 100vw;
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+
+/* Additional styles to ensure full width on mobile devices */
+
+/* Mobile view specific class for the root element */
+.play-room.mobile-view {
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  padding: 8px 4px;
+}
+
+/* Force grid layout to column on mobile and ensure full width */
+.mobile-view .player-grid {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* Ensure left and right columns take full width on mobile */
+.mobile-view .left-column,
+.mobile-view .right-column {
+  width: 100%;
+  margin: 0 0 16px 0;
+  padding: 0;
+}
+
+/* Style player container specifically for mobile */
+.mobile-view .player-container {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 16px 12px;
+  margin: 0;
+  border-radius: 10px;
+}
+
+/* Make album art responsive on mobile */
+.mobile-view .album-art {
+  width: 65%;
+  height: auto;
+  aspect-ratio: 1;
+  max-width: 250px;
+  margin: 0 auto 16px;
+}
+
+/* Fix song info width on mobile */
+.mobile-view .song-info {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 8px;
+}
+
+/* Make moderation section full width */
+.mobile-view .moderation-section {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 16px 0;
+  border-radius: 10px;
+}
+
+/* Ensure playlist section fills width on mobile */
+.mobile-view .playlist-section {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 16px;
+  margin: 0;
+  border-radius: 10px;
+}
+
+/* Ensure the header and other content inside playlist fits */
+.mobile-view .playlist-header,
+.mobile-view .track-list {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Optimize buttons for mobile */
+.mobile-view .add-music-button {
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+/* Style track items properly for mobile */
+.mobile-view .track-item,
+.mobile-view .pending-track-item {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px;
+  margin-bottom: 4px;
+}
+
+/* Fix track action buttons spacing */
+.mobile-view .track-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.mobile-view .control-button {
+  padding: 6px;
+}
+
+/* Fix player controls for mobile */
+.mobile-view .player-controls-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.mobile-view .progress-container {
+  width: 100%;
+  padding: 0 4px;
+  box-sizing: border-box;
+}
+
+/* Additional iOS-specific fixes */
+@supports (-webkit-touch-callout: none) {
+  .play-room {
+    padding-left: max(4px, env(safe-area-inset-left));
+    padding-right: max(4px, env(safe-area-inset-right));
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+  
+  /* Fix for iOS margin issues */
+  .mobile-view .player-container,
+  .mobile-view .playlist-section,
+  .mobile-view .moderation-section {
+    width: calc(100% - 8px);
+    margin: 0 auto 16px;
+  }
+}
+
+/* Handle extremely small screens */
+@media (max-width: 320px) {
+  .play-room.mobile-view {
+    padding: 4px 2px;
+  }
+  
+  .mobile-view .player-container,
+  .mobile-view .moderation-section,
+  .mobile-view .playlist-section {
+    padding: 10px 8px;
+  }
+  
+  .mobile-view .album-art {
+    width: 75%;
+  }
+  
+  .mobile-view .moderation-header {
+    padding: 8px 10px;
+  }
+  
+  .mobile-view .moderation-toggle {
+    padding: 3px 6px;
+    font-size: 11px;
+  }
+  
+  .mobile-view .moderation-header h3,
+  .mobile-view .playlist-header h3 {
+    font-size: 13px;
+  }
+}
