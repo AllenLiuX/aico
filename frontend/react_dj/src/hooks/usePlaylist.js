@@ -98,6 +98,38 @@ const usePlaylist = (roomName, isHost) => {
     );
   };
 
+  // Add this to your usePlaylist hook in hooks/usePlaylist.js
+
+  // Inside the usePlaylist hook function
+  const updateRoomModeration = async (roomName, moderationEnabled) => {
+    try {
+      const token = localStorage.getItem('token');
+      // const response = await fetch('http://127.0.0.1:5000/api/room/update-moderation', {
+      const response = await fetch('http://13.56.253.58:5000/api/room/update-moderation', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token || ''
+        },
+        body: JSON.stringify({
+          room_name: roomName,
+          moderation_enabled: moderationEnabled
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update moderation settings');
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Error updating moderation settings:', error);
+      throw error;
+    }
+  };
+
+  // Update the return value to include the new function
   return {
     playlist,
     setPlaylist,
@@ -110,7 +142,8 @@ const usePlaylist = (roomName, isHost) => {
     error,
     handleTrackDelete,
     handleApproveRequest,
-    handleRejectRequest
+    handleRejectRequest,
+    updateRoomModeration  // Add this line
   };
 };
 

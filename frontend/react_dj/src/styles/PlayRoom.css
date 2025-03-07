@@ -888,3 +888,141 @@
     padding: 10px;
   }
 }
+
+/* Add these styles to your PlayRoom.css file */
+
+/* Updated grid layout for the new structure */
+.player-grid {
+  display: grid;
+  grid-template-columns: 1fr 420px;
+  gap: 32px;
+  margin-bottom: 48px;
+}
+
+/* New column structure */
+.left-column {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.right-column {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Moderation section styling */
+.moderation-section {
+  background-color: #1e1e1e;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.moderation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background-color: #2c2c2c;
+  border-bottom: 1px solid #363636;
+}
+
+.moderation-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #bb86fc;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.moderation-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background-color: #333;
+  border: none;
+  border-radius: 20px;
+  color: #e0e0e0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.moderation-toggle.enabled {
+  background-color: rgba(29, 185, 84, 0.2);
+  color: #1db954;
+}
+
+.moderation-toggle.disabled {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.moderation-toggle:hover {
+  transform: scale(1.05);
+}
+
+/* Adjust pending requests section to fit in the left column */
+.pending-requests-section {
+  padding: 0;
+  flex-grow: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.pending-track-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  overflow-y: auto;
+  max-height: 300px;
+}
+
+.no-requests-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 20px;
+  color: #555;
+  text-align: center;
+}
+
+.no-requests-placeholder svg {
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .player-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .left-column, .right-column {
+    width: 100%;
+  }
+  
+  .moderation-section {
+    order: 2; /* Move below playlist on mobile */
+  }
+}
+
+@media (max-width: 768px) {
+  .moderation-header {
+    padding: 12px 16px;
+  }
+  
+  .moderation-toggle {
+    padding: 4px 10px;
+    font-size: 14px;
+  }
+  
+  .pending-track-list {
+    max-height: 250px;
+  }
+}

@@ -862,9 +862,14 @@ def upload_avatar():
 def serve_avatar(filename):
     return send_from_directory(str(AVATARS_DIR), filename)
 
+# Update the existing request-track endpoint in app.py
+
 @app.route('/api/request-track', methods=['POST'])
 def request_track():
-    """Non-host users can request tracks to be added to a room's playlist"""
+    """
+    Non-host users can request tracks to be added to a room's playlist
+    With moderation toggle: tracks go directly to playlist when moderation is off
+    """
     data = request.json
     room_name = data.get('room_name')
     track = data.get('track')
@@ -879,6 +884,13 @@ def request_track():
         return jsonify({"error": "Missing required fields"}), 400
         
     try:
+        # Check moderation setting
+        settings_json = get_hash(f"settings{redis_version}", room_name)
+        settings = json.loads(settings_json) if settings_json else {}
+        
+        # Default to moderation enabled if not specified
+        moderation_enabled = settings.get('moderation_enabled', True)
+        
         # Generate a unique request ID
         request_id = str(uuid.uuid4())
         track['request_id'] = request_id
@@ -886,6 +898,25 @@ def request_track():
         # Add requester info to the track
         track['requested_by'] = username if username else "Guest"
         track['requested_at'] = datetime.now().isoformat()
+        
+        # If moderation is off, add directly to playlist
+        if not moderation_enabled:
+            # Get existing playlist
+            playlist = json.loads(get_hash(f"playlist{redis_version}", room_name))
+            playlist.append(track)
+            
+            # Update the playlist in Redis
+            write_hash(f"playlist{redis_version}", room_name, json.dumps(playlist))
+            
+            logger.info(f"Track added directly to playlist for room {room_name} (moderation off)")
+            
+            return jsonify({
+                "message": "Track added to playlist",
+                "request_id": request_id,
+                "moderated": False
+            })
+        
+        # With moderation enabled, store as pending request
         track['status'] = 'pending'
         
         # Store the request in Redis
@@ -910,9 +941,12 @@ def request_track():
         requests_list.append(request_id)
         write_hash(f"room_requests{redis_version}", room_name, json.dumps(requests_list))
         
+        logger.info(f"Track added to pending requests for room {room_name} (moderation on)")
+        
         return jsonify({
             "message": "Track requested successfully",
-            "request_id": request_id
+            "request_id": request_id,
+            "moderated": True
         })
     except Exception as e:
         logger.error(f"Error requesting track: {str(e)}")
@@ -1155,6 +1189,62 @@ def get_lyrics():
     except Exception as e:
         logger.error(f"Error fetching lyrics: {str(e)}")
         return jsonify({"error": "Failed to fetch lyrics"}), 500
+
+
+# Add this endpoint to app.py to support moderation toggle
+
+@app.route('/api/room/update-moderation', methods=['POST'])
+def update_room_moderation():
+    data = request.json
+    room_name = data.get('room_name')
+    moderation_enabled = data.get('moderation_enabled', False)
+    auth_token = request.headers.get('Authorization')
+    
+    # Verify if user is the host of the room
+    if not room_name:
+        return jsonify({"error": "Room name is required"}), 400
+    
+    username = None
+    if auth_token:
+        username = get_hash(f"sessions{redis_version}", auth_token)
+    
+    # Check if user is host
+    host_data = get_room_host(room_name)
+    is_host = False
+    logger.info(f'host_data:{host_data}')
+    
+    if host_data and username:
+        try:
+            # host_info = json.loads(host_data)
+            if host_data.get('username') == username:
+                is_host = True
+        except:
+            pass
+    
+    if not is_host:
+        return jsonify({"error": "Only room hosts can update moderation settings"}), 403
+    
+    try:
+        # Get existing settings
+        settings_json = get_hash(f"settings{redis_version}", room_name)
+        settings = json.loads(settings_json) if settings_json else {}
+        
+        # Update moderation setting
+        settings['moderation_enabled'] = bool(moderation_enabled)
+        
+        # Save updated settings
+        write_hash(f"settings{redis_version}", room_name, json.dumps(settings))
+        
+        logger.info(f"Updated moderation for room {room_name} to {moderation_enabled}")
+        
+        return jsonify({
+            "message": "Moderation settings updated successfully",
+            "moderation_enabled": moderation_enabled
+        })
+    
+    except Exception as e:
+        logger.error(f"Error updating moderation settings: {str(e)}")
+        return jsonify({"error": "Failed to update moderation settings"}), 500
 
 if __name__ == '__main__':
     # app.run(port=3000, host='10.72.252.213', debug=True)
