@@ -129,6 +129,40 @@ const usePlaylist = (roomName, isHost) => {
     }
   };
 
+  // Add this function to your usePlaylist hook
+
+// Inside the usePlaylist hook function - add this function
+const updatePlaylistInfo = async (roomName, newIntroduction) => {
+  try {
+    const token = localStorage.getItem('token');
+    // const response = await fetch('http://127.0.0.1:5000/api/update-playlist-info', {
+    const response = await fetch('http://13.56.253.58:5000/api/update-playlist-info', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token || ''
+      },
+      body: JSON.stringify({
+        room_name: roomName,
+        introduction: newIntroduction
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update playlist information');
+    }
+
+    // Update local state
+    setIntroduction(newIntroduction);
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error updating playlist information:', error);
+    throw error;
+  }
+};
+
+
   // Update the return value to include the new function
   return {
     playlist,
@@ -143,7 +177,8 @@ const usePlaylist = (roomName, isHost) => {
     handleTrackDelete,
     handleApproveRequest,
     handleRejectRequest,
-    updateRoomModeration  // Add this line
+    updateRoomModeration,
+    updatePlaylistInfo,
   };
 };
 

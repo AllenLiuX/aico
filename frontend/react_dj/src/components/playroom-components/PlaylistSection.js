@@ -1,10 +1,11 @@
-// PlaylistSection.js
+// Fixed PlaylistSection.js to properly handle track selection
 import React from 'react';
 import { Plus } from 'lucide-react';
 import PlaylistTrack from '../PlaylistTrack';
 
 const PlaylistSection = ({
   playlist,
+  fullPlaylistLength, // Added for pagination
   isHost,
   currentTrack,
   roomName,
@@ -17,7 +18,7 @@ const PlaylistSection = ({
   return (
     <div className="playlist-section">
       <div className="playlist-header">
-        <h3>Playlist ({playlist.length} songs)</h3>
+        <h3>Playlist ({fullPlaylistLength || playlist.length} songs)</h3>
         <button onClick={onAddMusicClick} className="control-button add-music-button">
           <Plus size={20} />
           Add Music
@@ -31,10 +32,11 @@ const PlaylistSection = ({
               track={track}
               index={index}
               isHost={isHost}
-              isCurrentTrack={index === currentTrack}
+              // Check if this track is the current track by comparing song_id rather than index
+              isCurrentTrack={track.song_id === playlist[currentTrack]?.song_id}
               currentPlayingIndex={currentTrack}
               roomName={roomName}
-              onTrackClick={onTrackClick}
+              onTrackClick={() => onTrackClick(index)}
               onTrackDelete={onTrackDelete}
               onPinToTop={onPinToTop}
               stopProgressTracking={stopProgressTracking}

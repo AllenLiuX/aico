@@ -1246,6 +1246,57 @@ def update_room_moderation():
         logger.error(f"Error updating moderation settings: {str(e)}")
         return jsonify({"error": "Failed to update moderation settings"}), 500
 
+    
+    # Add this endpoint to app.py to support playlist info editing
+
+@app.route('/api/update-playlist-info', methods=['POST'])
+def update_playlist_info():
+    data = request.json
+    room_name = data.get('room_name')
+    introduction = data.get('introduction')
+    auth_token = request.headers.get('Authorization')
+    
+    # Validate request
+    if not room_name:
+        return jsonify({"error": "Room name is required"}), 400
+        
+    if introduction is None:
+        return jsonify({"error": "Introduction is required"}), 400
+    
+    # Verify if user is the host of the room
+    username = None
+    if auth_token:
+        username = get_hash(f"sessions{redis_version}", auth_token)
+    
+    # Check if user is host
+    host_data = get_room_host(room_name)
+    is_host = False
+    
+    if host_data and username:
+        try:
+            host_info = json.loads(host_data)
+            if host_info.get('username') == username:
+                is_host = True
+        except:
+            pass
+    
+    if not is_host:
+        return jsonify({"error": "Only room hosts can update playlist information"}), 403
+    
+    try:
+        # Update the playlist introduction
+        write_hash(f"intro{redis_version}", room_name, introduction)
+        
+        logger.info(f"Updated playlist info for room {room_name}")
+        
+        return jsonify({
+            "message": "Playlist information updated successfully"
+        })
+    
+    except Exception as e:
+        logger.error(f"Error updating playlist info: {str(e)}")
+        return jsonify({"error": "Failed to update playlist information"}), 500
+
 if __name__ == '__main__':
     # app.run(port=3000, host='10.72.252.213', debug=True)
     app.run(port=5000, host='0.0.0.0', debug=True)
