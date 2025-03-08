@@ -1,4 +1,4 @@
-// PlayRoom.js with fixes for layout and track selection
+// PlayRoom.js with mobile responsiveness fixes
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -11,7 +11,8 @@ import {
   PendingRequestsSection, 
   PlaylistInfoSection, 
   QRCodeModal,
-  LyricsSection
+  LyricsSection,
+  MobileResponsiveWrapper,
 } from './playroom-components';
 import RequestNotificationModal from './RequestNotificationModal';
 import { ToggleLeft, ToggleRight, Edit } from 'lucide-react';
@@ -245,231 +246,233 @@ function PlayRoom() {
   const currentSong = playlist[currentTrack] || {};
 
   return (
-    <div className={`play-room ${isMobile ? 'mobile-view' : ''}`}>
-      {/* Room Header */}
-      <RoomHeader 
-        roomName={roomName}
-        hostData={hostData}
-        showQRCode={showQRCode}
-        setShowQRCode={setShowQRCode}
-      />
-      
-      <div className="main-content">
-        <div className="player-playlist-grid">
-          {/* Left Column: Player and Moderation */}
-          <div className="left-column">
-            <div className="player-container">
-              <div className="album-art">
-                {currentSong.cover_img_url ? (
-                  <img 
-                    src={currentSong.cover_img_url} 
-                    alt={`${currentSong.title} cover`} 
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = '/api/placeholder/300/300';
-                    }}
-                  />
-                ) : (
-                  <div className="placeholder-art">
-                    <div>No track selected</div>
+    <MobileResponsiveWrapper>
+      <div className={`play-room ${isMobile ? 'mobile-view' : ''}`}>
+        {/* Room Header */}
+        <RoomHeader 
+          roomName={roomName}
+          hostData={hostData}
+          showQRCode={showQRCode}
+          setShowQRCode={setShowQRCode}
+        />
+        
+        <div className="main-content">
+          <div className="player-playlist-grid">
+            {/* Left Column: Player and Moderation */}
+            <div className="left-column">
+              <div className="player-container">
+                <div className="album-art">
+                  {currentSong.cover_img_url ? (
+                    <img 
+                      src={currentSong.cover_img_url} 
+                      alt={`${currentSong.title} cover`} 
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = '/api/placeholder/300/300';
+                      }}
+                    />
+                  ) : (
+                    <div className="placeholder-art">
+                      <div>No track selected</div>
+                    </div>
+                  )}
+                </div>
+                
+                <PlayerControls
+                  currentSong={currentSong}
+                  isPlaying={isPlaying}
+                  progress={progress}
+                  duration={duration}
+                  currentTime={currentTime}
+                  formatTime={formatTime}
+                  handleProgressChange={handleProgressChange}
+                  togglePlay={togglePlay}
+                  playNext={playNext}
+                  playPrevious={playPrevious}
+                  showLyrics={showLyrics}
+                  onToggleLyrics={() => setShowLyrics(!showLyrics)}
+                />
+                
+                {/* Integrated lyrics section within player */}
+                {showLyrics && (
+                  <div className="integrated-lyrics">
+                    <LyricsSection 
+                      currentSong={currentSong}
+                      isVisible={showLyrics}
+                      currentTime={currentTime}
+                    />
                   </div>
                 )}
+                
+                <div ref={playerContainerRef} id="youtube-player" style={{ display: 'none' }}></div>
               </div>
               
-              <PlayerControls
-                currentSong={currentSong}
-                isPlaying={isPlaying}
-                progress={progress}
-                duration={duration}
-                currentTime={currentTime}
-                formatTime={formatTime}
-                handleProgressChange={handleProgressChange}
-                togglePlay={togglePlay}
-                playNext={playNext}
-                playPrevious={playPrevious}
-                showLyrics={showLyrics}
-                onToggleLyrics={() => setShowLyrics(!showLyrics)}
-              />
-              
-              {/* Integrated lyrics section within player */}
-              {showLyrics && (
-                <div className="integrated-lyrics">
-                  <LyricsSection 
-                    currentSong={currentSong}
-                    isVisible={showLyrics}
-                    currentTime={currentTime}
+              {/* Moderation Section - Directly below player in left column */}
+              {isHost && (
+                <div className="moderation-section">
+                  <div className="moderation-header">
+                    <h3>Moderation</h3>
+                    <button 
+                      className={`moderation-toggle ${moderationEnabled ? 'enabled' : 'disabled'}`}
+                      onClick={toggleModeration}
+                      title={moderationEnabled ? "Moderation On" : "Moderation Off"}
+                    >
+                      {moderationEnabled ? (
+                        <>
+                          <ToggleRight size={isMobile ? 16 : 20} /> 
+                          <span>On</span>
+                        </>
+                      ) : (
+                        <>
+                          <ToggleLeft size={isMobile ? 16 : 20} /> 
+                          <span>Off</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  
+                  <PendingRequestsSection
+                    pendingRequests={pendingRequests}
+                    roomName={roomName}
+                    onApprove={handleApproveRequest}
+                    onReject={handleRejectRequest}
                   />
                 </div>
               )}
-              
-              <div ref={playerContainerRef} id="youtube-player" style={{ display: 'none' }}></div>
             </div>
             
-            {/* Moderation Section - Directly below player in left column */}
-            {isHost && (
-              <div className="moderation-section">
-                <div className="moderation-header">
-                  <h3>Moderation</h3>
+            {/* Right Column: Playlist with Pagination */}
+            <div className="right-column">
+              <PlaylistSection
+                playlist={getCurrentPageSongs()}
+                fullPlaylistLength={playlist.length}
+                isHost={isHost}
+                currentTrack={currentTrack}
+                roomName={roomName}
+                onTrackClick={handlePlaySpecificTrack}
+                onTrackDelete={handleTrackDelete}
+                onPinToTop={handlePinTrack}
+                stopProgressTracking={stopProgressTracking}
+                onAddMusicClick={handleSearchMusic}
+              />
+              
+              {/* Pagination Controls */}
+              {playlist.length > SONGS_PER_PAGE && (
+                <div className="pagination-controls">
                   <button 
-                    className={`moderation-toggle ${moderationEnabled ? 'enabled' : 'disabled'}`}
-                    onClick={toggleModeration}
-                    title={moderationEnabled ? "Moderation On" : "Moderation Off"}
+                    className="pagination-button" 
+                    onClick={handlePrevPage}
+                    disabled={currentPage === 1}
                   >
-                    {moderationEnabled ? (
-                      <>
-                        <ToggleRight size={isMobile ? 16 : 20} /> 
-                        <span>On</span>
-                      </>
-                    ) : (
-                      <>
-                        <ToggleLeft size={isMobile ? 16 : 20} /> 
-                        <span>Off</span>
-                      </>
-                    )}
+                    Previous
+                  </button>
+                  <span className="pagination-info">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button 
+                    className="pagination-button" 
+                    onClick={handleNextPage}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
                   </button>
                 </div>
-                
-                <PendingRequestsSection
-                  pendingRequests={pendingRequests}
-                  roomName={roomName}
-                  onApprove={handleApproveRequest}
-                  onReject={handleRejectRequest}
-                />
-              </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Playlist Info with Edit Option */}
+        <div className="playlist-info-container">
+          <div className="playlist-info-header">
+            <h2>About This Playlist</h2>
+            {isHost && (
+              <button 
+                className="edit-info-button"
+                onClick={handleEditInfo}
+                title="Edit playlist information"
+              >
+                <Edit size={16} />
+                Edit
+              </button>
             )}
           </div>
           
-          {/* Right Column: Playlist with Pagination */}
-          <div className="right-column">
-            <PlaylistSection
-              playlist={getCurrentPageSongs()}
-              fullPlaylistLength={playlist.length}
-              isHost={isHost}
-              currentTrack={currentTrack}
-              roomName={roomName}
-              onTrackClick={handlePlaySpecificTrack}
-              onTrackDelete={handleTrackDelete}
-              onPinToTop={handlePinTrack}
-              stopProgressTracking={stopProgressTracking}
-              onAddMusicClick={handleSearchMusic}
-            />
-            
-            {/* Pagination Controls */}
-            {playlist.length > SONGS_PER_PAGE && (
-              <div className="pagination-controls">
+          {showEditInfo ? (
+            <div className="playlist-info-edit">
+              <textarea
+                name="introduction"
+                value={infoEditing.introduction}
+                onChange={handleInfoChange}
+                className="info-edit-textarea"
+                placeholder="Enter playlist description..."
+                rows={4}
+              ></textarea>
+              <div className="edit-buttons">
                 <button 
-                  className="pagination-button" 
-                  onClick={handlePrevPage}
-                  disabled={currentPage === 1}
+                  className="cancel-edit-button"
+                  onClick={() => {
+                    setInfoEditing({ introduction });
+                    setShowEditInfo(false);
+                  }}
                 >
-                  Previous
+                  Cancel
                 </button>
-                <span className="pagination-info">
-                  Page {currentPage} of {totalPages}
-                </span>
                 <button 
-                  className="pagination-button" 
-                  onClick={handleNextPage}
-                  disabled={currentPage === totalPages}
+                  className="save-edit-button"
+                  onClick={handleSaveInfo}
                 >
-                  Next
+                  Save
                 </button>
               </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Playlist Info with Edit Option - Fixed the duplicate heading */}
-      <div className="playlist-info-container">
-        <div className="playlist-info-header">
-          <h2>About This Playlist</h2>
-          {isHost && (
-            <button 
-              className="edit-info-button"
-              onClick={handleEditInfo}
-              title="Edit playlist information"
-            >
-              <Edit size={16} />
-              Edit
-            </button>
+            </div>
+          ) : (
+            <div className="playlist-info-content">
+              <div className="playlist-description">{introduction}</div>
+              
+              {settings && Object.keys(settings).length > 0 && (
+                <div className="playlist-settings">
+                  {settings.prompt && (
+                    <div className="setting-item">
+                      <span className="setting-label">Prompt:</span>
+                      <span>{settings.prompt}</span>
+                    </div>
+                  )}
+                  {settings.genre && (
+                    <div className="setting-item">
+                      <span className="setting-label">Genre:</span>
+                      <span>{settings.genre}</span>
+                    </div>
+                  )}
+                  {settings.occasion && (
+                    <div className="setting-item">
+                      <span className="setting-label">Occasion:</span>
+                      <span>{settings.occasion}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           )}
         </div>
-        
-        {showEditInfo ? (
-          <div className="playlist-info-edit">
-            <textarea
-              name="introduction"
-              value={infoEditing.introduction}
-              onChange={handleInfoChange}
-              className="info-edit-textarea"
-              placeholder="Enter playlist description..."
-              rows={4}
-            ></textarea>
-            <div className="edit-buttons">
-              <button 
-                className="cancel-edit-button"
-                onClick={() => {
-                  setInfoEditing({ introduction });
-                  setShowEditInfo(false);
-                }}
-              >
-                Cancel
-              </button>
-              <button 
-                className="save-edit-button"
-                onClick={handleSaveInfo}
-              >
-                Save
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="playlist-info-content">
-            <div className="playlist-description">{introduction}</div>
-            
-            {settings && Object.keys(settings).length > 0 && (
-              <div className="playlist-settings">
-                {settings.prompt && (
-                  <div className="setting-item">
-                    <span className="setting-label">Prompt:</span>
-                    <span>{settings.prompt}</span>
-                  </div>
-                )}
-                {settings.genre && (
-                  <div className="setting-item">
-                    <span className="setting-label">Genre:</span>
-                    <span>{settings.genre}</span>
-                  </div>
-                )}
-                {settings.occasion && (
-                  <div className="setting-item">
-                    <span className="setting-label">Occasion:</span>
-                    <span>{settings.occasion}</span>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
 
-      {/* QR Code Modal */}
-      <QRCodeModal
-        show={showQRCode}
-        roomName={roomName}
-        onClose={() => setShowQRCode(false)}
-      />
-      
-      {/* Notification Modal */}
-      <RequestNotificationModal
-        isOpen={showNotification}
-        onClose={() => setShowNotification(false)}
-        title={notificationTitle}
-        message={notificationMessage}
-        type={notificationType}
-      />
-    </div>
+        {/* QR Code Modal */}
+        <QRCodeModal
+          show={showQRCode}
+          roomName={roomName}
+          onClose={() => setShowQRCode(false)}
+        />
+        
+        {/* Notification Modal */}
+        <RequestNotificationModal
+          isOpen={showNotification}
+          onClose={() => setShowNotification(false)}
+          title={notificationTitle}
+          message={notificationMessage}
+          type={notificationType}
+        />
+      </div>
+    </MobileResponsiveWrapper>
   );
 }
 

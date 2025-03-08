@@ -7,3 +7,4 @@ export { default as PendingRequestsSection } from './PendingRequestsSection';
 export { default as PlaylistInfoSection } from './PlaylistInfoSection';
 export { default as QRCodeModal } from './QRCodeModal';
 export { default as LyricsSection } from '../LyricsSection';
+export {default as MobileResponsiveWrapper} from "./MobileResponsiveWrapper";
