@@ -1297,6 +1297,266 @@ def update_playlist_info():
         logger.error(f"Error updating playlist info: {str(e)}")
         return jsonify({"error": "Failed to update playlist information"}), 500
 
+
+# Add these endpoint functions to your app.py file
+
+@app.route('/api/user/favorites', methods=['GET'])
+def get_favorites():
+    """Get user's favorite rooms"""
+    auth_token = request.headers.get('Authorization')
+    if not auth_token:
+        return jsonify({"error": "Authentication required"}), 401
+
+    username = get_hash(f"sessions{redis_version}", auth_token)
+    if not username:
+        return jsonify({"error": "Invalid session"}), 401
+
+    try:
+        # Get user's favorites list
+        favorites_json = get_hash(f"user_favorites{redis_version}", username)
+        favorites = json.loads(favorites_json) if favorites_json else []
+        
+        # Get details for each favorite room if requested
+        detailed = request.args.get('detailed', 'false').lower() == 'true'
+        
+        if detailed:
+            rooms_data = []
+            for room_name in favorites:
+                try:
+                    # Get room data
+                    playlist_json = get_hash(f"playlist{redis_version}", room_name)
+                    settings_json = get_hash(f"settings{redis_version}", room_name)
+                    intro = get_hash(f"intro{redis_version}", room_name)
+                    
+                    if not playlist_json:
+                        continue  # Skip if room no longer exists
+                        
+                    playlist = json.loads(playlist_json)
+                    settings = json.loads(settings_json) if settings_json else {}
+                    
+                    # Get first song's cover image as room cover
+                    cover_image = (playlist[0].get('cover_img_url', '') 
+                                 if playlist and len(playlist) > 0 
+                                 else '')
+                    
+                    rooms_data.append({
+                        "name": room_name,
+                        "cover_image": cover_image,
+                        "introduction": intro[:100] + '...' if intro and len(intro) > 100 else intro,
+                        "song_count": len(playlist),
+                        "genre": settings.get('genre', ''),
+                        "occasion": settings.get('occasion', '')
+                    })
+                except Exception as e:
+                    logger.error(f"Error getting favorite room details: {e}")
+                    continue
+            
+            return jsonify({"favorites": favorites, "rooms": rooms_data})
+        else:
+            return jsonify({"favorites": favorites})
+            
+    except Exception as e:
+        logger.error(f"Error fetching user favorites: {str(e)}")
+        return jsonify({"error": "Failed to fetch favorites"}), 500
+
+@app.route('/api/user/following', methods=['GET'])
+def get_following():
+    """Get list of users the current user is following"""
+    auth_token = request.headers.get('Authorization')
+    if not auth_token:
+        return jsonify({"error": "Authentication required"}), 401
+
+    username = get_hash(f"sessions{redis_version}", auth_token)
+    if not username:
+        return jsonify({"error": "Invalid session"}), 401
+
+    try:
+        # Get following list
+        following_json = get_hash(f"user_following{redis_version}", username)
+        following = json.loads(following_json) if following_json else []
+        
+        # Get details for each followed user if requested
+        detailed = request.args.get('detailed', 'false').lower() == 'true'
+        
+        if detailed:
+            users_data = []
+            for followed_username in following:
+                try:
+                    profile_json = get_hash(f"user_profiles{redis_version}", followed_username)
+                    if profile_json:
+                        profile = json.loads(profile_json)
+                        users_data.append({
+                            "username": followed_username,
+                            "avatar": profile.get('avatar', f"/api/avatar/{followed_username}")
+                        })
+                except Exception as e:
+                    logger.error(f"Error getting followed user details: {e}")
+                    continue
+            
+            return jsonify({"following": following, "users": users_data})
+        else:
+            return jsonify({"following": following})
+            
+    except Exception as e:
+        logger.error(f"Error fetching followed users: {str(e)}")
+        return jsonify({"error": "Failed to fetch followed users"}), 500
+
+@app.route('/api/user/followers', methods=['GET'])
+def get_followers():
+    """Get list of users following the current user"""
+    auth_token = request.headers.get('Authorization')
+    if not auth_token:
+        return jsonify({"error": "Authentication required"}), 401
+
+    username = get_hash(f"sessions{redis_version}", auth_token)
+    if not username:
+        return jsonify({"error": "Invalid session"}), 401
+
+    try:
+        # Get followers list
+        followers_json = get_hash(f"user_followers{redis_version}", username)
+        followers = json.loads(followers_json) if followers_json else []
+        
+        # Get details for each follower if requested
+        detailed = request.args.get('detailed', 'false').lower() == 'true'
+        
+        if detailed:
+            users_data = []
+            for follower_username in followers:
+                try:
+                    profile_json = get_hash(f"user_profiles{redis_version}", follower_username)
+                    if profile_json:
+                        profile = json.loads(profile_json)
+                        users_data.append({
+                            "username": follower_username,
+                            "avatar": profile.get('avatar', f"/api/avatar/{follower_username}")
+                        })
+                except Exception as e:
+                    logger.error(f"Error getting follower details: {e}")
+                    continue
+            
+            return jsonify({"followers": followers, "users": users_data})
+        else:
+            return jsonify({"followers": followers})
+            
+    except Exception as e:
+        logger.error(f"Error fetching followers: {str(e)}")
+        return jsonify({"error": "Failed to fetch followers"}), 500
+
+# Make sure the follow endpoint works for both follow and unfollow actions
+@app.route('/api/user/follow', methods=['POST'])
+def toggle_follow_user():
+    """Follow or unfollow a user"""
+    auth_token = request.headers.get('Authorization')
+    if not auth_token:
+        return jsonify({"error": "Authentication required"}), 401
+
+    username = get_hash(f"sessions{redis_version}", auth_token)
+    if not username:
+        return jsonify({"error": "Invalid session"}), 401
+
+    try:
+        data = request.json
+        target_username = data.get('username')
+        action = data.get('action')  # 'follow' or 'unfollow'
+
+        if not target_username or action not in ['follow', 'unfollow']:
+            return jsonify({"error": "Invalid request"}), 400
+            
+        # Prevent following yourself
+        if username == target_username:
+            return jsonify({"error": "You cannot follow yourself"}), 400
+
+        # Get current following list for the user
+        following_json = get_hash(f"user_following{redis_version}", username)
+        following = json.loads(following_json) if following_json else []
+
+        # Get followers list for the target user
+        followers_json = get_hash(f"user_followers{redis_version}", target_username)
+        followers = json.loads(followers_json) if followers_json else []
+
+        if action == 'follow':
+            # Add target to user's following list if not already there
+            if target_username not in following:
+                following.append(target_username)
+                
+            # Add user to target's followers list if not already there
+            if username not in followers:
+                followers.append(username)
+                
+        else:  # unfollow
+            # Remove target from user's following list
+            if target_username in following:
+                following.remove(target_username)
+                
+            # Remove user from target's followers list
+            if username in followers:
+                followers.remove(username)
+
+        # Update Redis
+        write_hash(f"user_following{redis_version}", username, json.dumps(following))
+        write_hash(f"user_followers{redis_version}", target_username, json.dumps(followers))
+
+        return jsonify({"message": f"Successfully {action}ed user", "following": following})
+
+    except Exception as e:
+        logger.error(f"Error in follow/unfollow: {str(e)}")
+        return jsonify({"error": "Operation failed"}), 500
+
+# Update the existing favorite endpoint to ensure it's working correctly
+@app.route('/api/user/favorite', methods=['POST'])
+def toggle_favorite_room():
+    """Add or remove a room from user's favorites"""
+    auth_token = request.headers.get('Authorization')
+    if not auth_token:
+        return jsonify({"error": "Authentication required"}), 401
+
+    username = get_hash(f"sessions{redis_version}", auth_token)
+    if not username:
+        return jsonify({"error": "Invalid session"}), 401
+
+    try:
+        data = request.json
+        room_name = data.get('room_name')
+        action = data.get('action')  # 'add' or 'remove'
+
+        if not room_name or action not in ['add', 'remove']:
+            return jsonify({"error": "Invalid request"}), 400
+
+        # Get current favorites list
+        favorites_json = get_hash(f"user_favorites{redis_version}", username)
+        favorites = json.loads(favorites_json) if favorites_json else []
+
+        if action == 'add':
+            # Add room to favorites if not already there
+            if room_name not in favorites:
+                favorites.append(room_name)
+        else:  # remove
+            # Remove room from favorites
+            if room_name in favorites:
+                favorites.remove(room_name)
+
+        # Update Redis
+        write_hash(f"user_favorites{redis_version}", username, json.dumps(favorites))
+
+        # Also update user profile stats
+        profile_json = get_hash(f"user_profiles{redis_version}", username)
+        if profile_json:
+            profile = json.loads(profile_json)
+            if 'stats' not in profile:
+                profile['stats'] = {}
+            profile['stats']['favorites'] = len(favorites)
+            write_hash(f"user_profiles{redis_version}", username, json.dumps(profile))
+
+        return jsonify({
+            "message": f"Successfully {action}ed room to favorites", 
+            "favorites": favorites
+        })
+
+    except Exception as e:
+        logger.error(f"Error in favorite operation: {str(e)}")
+        return jsonify({"error": "Operation failed"}), 500
+
 if __name__ == '__main__':
     # app.run(port=3000, host='10.72.252.213', debug=True)
     app.run(port=5000, host='0.0.0.0', debug=True)

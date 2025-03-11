@@ -1,0 +1,115 @@
+/* SocialActionButtons.css */
+.social-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    position: relative;
+  }
+  
+  .action-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    background-color: #2c2c2c;
+    color: #e0e0e0;
+  }
+  
+  .action-button:hover {
+    background-color: #363636;
+    transform: translateY(-2px);
+  }
+  
+  .action-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+  
+  .action-button svg {
+    transition: transform 0.2s ease;
+  }
+  
+  .action-button:hover svg {
+    transform: scale(1.1);
+  }
+  
+  /* Favorite button styling */
+  .favorite-button.active {
+    background-color: rgba(255, 193, 7, 0.15);
+    color: #ffc107;
+    border-color: rgba(255, 193, 7, 0.3);
+  }
+  
+  .favorite-button svg {
+    color: #ffc107;
+    fill: transparent;
+    transition: fill 0.3s ease;
+  }
+  
+  .favorite-button.active svg {
+    fill: #ffc107;
+  }
+  
+  /* Follow button styling */
+  .follow-button.active {
+    background-color: rgba(187, 134, 252, 0.15);
+    color: #bb86fc;
+    border-color: rgba(187, 134, 252, 0.3);
+  }
+  
+  .follow-button svg {
+    color: #bb86fc;
+  }
+  
+  /* Action message styling */
+  .action-message {
+    position: absolute;
+    bottom: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: white;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    animation: fadeIn 0.3s ease-out, fadeOut 0.3s ease-out 2.7s;
+    z-index: 10;
+    white-space: nowrap;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translate(-50%, 10px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+  }
+  
+  @keyframes fadeOut {
+    from { opacity: 1; transform: translate(-50%, 0); }
+    to { opacity: 0; transform: translate(-50%, 10px); }
+  }
+  
+  /* Mobile responsive styles */
+  @media (max-width: 768px) {
+    .social-actions {
+      justify-content: center;
+    }
+    
+    .action-button {
+      padding: 6px 12px;
+      font-size: 13px;
+    }
+    
+    .action-message {
+      font-size: 11px;
+      padding: 4px 10px;
+    }
+  }

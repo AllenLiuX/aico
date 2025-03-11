@@ -73,7 +73,7 @@ function SearchMusic() {
       // Different endpoints for host vs. non-host
       const endpoint = isHost ? 'add-to-playlist' : 'request-track';
       
-      const response = await fetch(`http://127.0.0.1:5000/api/${endpoint}`, {
+      const response = await fetch(`http://13.56.253.58:5000/api/${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

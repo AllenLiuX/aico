@@ -1,8 +1,9 @@
-// RoomHeader.js with fixed share button functionality
+// Updated RoomHeader.js with social action buttons
 import React, { useState } from 'react';
 import { Share2, QrCode } from 'lucide-react';
+import SocialActionButtons from './SocialActionButtons';
 
-const RoomHeader = ({ roomName, hostData, showQRCode, setShowQRCode }) => {
+const RoomHeader = ({ roomName, hostData, showQRCode, setShowQRCode, roomInfo }) => {
   const [showTooltip, setShowTooltip] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
 
@@ -11,8 +12,7 @@ const RoomHeader = ({ roomName, hostData, showQRCode, setShowQRCode }) => {
     e.preventDefault();
     e.stopPropagation();
 
-    // The URL to be copied - use the current domain to ensure it works on all environments
-    // Replace 'aico-music.com' with the proper domain or use window.location for dynamic detection
+    // The URL to be copied
     const currentDomain = window.location.origin;
     const shareLink = `${currentDomain}/playroom?room_name=${encodeURIComponent(roomName)}`;
 
@@ -88,6 +88,13 @@ const RoomHeader = ({ roomName, hostData, showQRCode, setShowQRCode }) => {
                 }}
               />
               <span>Created by {hostData.username}</span>
+              
+              {/* Social Action Buttons */}
+              <SocialActionButtons 
+                roomName={roomName} 
+                hostUsername={hostData.username}
+                roomInfo={roomInfo}
+              />
             </>
           ) : (
             <span>Public Room</span>

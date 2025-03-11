@@ -11,13 +11,41 @@ import {
   PendingRequestsSection, 
   PlaylistInfoSection, 
   QRCodeModal,
-  LyricsSection,
-  MobileResponsiveWrapper,
+  LyricsSection
 } from './playroom-components';
 import RequestNotificationModal from './RequestNotificationModal';
 import { ToggleLeft, ToggleRight, Edit } from 'lucide-react';
 
 import '../styles/PlayRoom.css';
+
+// Mobile Wrapper Component - You can put this in a separate file
+const MobileResponsiveWrapper = ({ children }) => {
+  const [isMobile, setIsMobile] = useState(false);
+  
+  useEffect(() => {
+    // Check if screen is mobile size
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    // Initial check
+    checkMobile();
+    
+    // Add resize listener
+    window.addEventListener('resize', checkMobile);
+    
+    // Clean up
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+    };
+  }, []);
+  
+  return (
+    <div className={`content-wrapper ${isMobile ? 'mobile-view' : ''}`}>
+      {children}
+    </div>
+  );
+};
 
 function PlayRoom() {
   const location = useLocation();
@@ -254,6 +282,7 @@ function PlayRoom() {
           hostData={hostData}
           showQRCode={showQRCode}
           setShowQRCode={setShowQRCode}
+          roomInfo={settings}
         />
         
         <div className="main-content">

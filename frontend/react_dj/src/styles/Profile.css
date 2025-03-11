@@ -422,3 +422,177 @@
   font-size: 12px;
   font-weight: 500;
 }
+
+
+
+/* Add to your Profile.css file */
+
+/* Tab Navigation */
+.profile-tabs {
+  display: flex;
+  gap: 12px;
+  margin: 28px 0 20px;
+  border-bottom: 1px solid #3d3d3d;
+  padding-bottom: 2px;
+  overflow-x: auto;
+  scrollbar-width: none; /* For Firefox */
+}
+
+.profile-tabs::-webkit-scrollbar {
+  display: none; /* For Chrome, Safari, and Opera */
+}
+
+.tab-button {
+  background: none;
+  border: none;
+  color: #666;
+  padding: 10px 16px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+
+.tab-button:hover {
+  color: #bb86fc;
+}
+
+.tab-button.active {
+  color: #bb86fc;
+  border-bottom-color: #bb86fc;
+}
+
+/* Section Headers */
+.rooms-section h2,
+.users-section h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  color: #e0e0e0;
+  margin-bottom: 20px;
+}
+
+.rooms-section h2 svg,
+.users-section h2 svg {
+  color: #bb86fc;
+}
+
+.count {
+  color: #666;
+  font-weight: normal;
+}
+
+/* User Card Styling */
+.users-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.user-card {
+  background: #1e1e1e;
+  border-radius: 12px;
+  overflow: hidden;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  transition: transform 0.2s, background-color 0.2s;
+  cursor: pointer;
+}
+
+.user-card:hover {
+  background: #282828;
+  transform: translateY(-2px);
+}
+
+.user-card-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.user-info {
+  flex: 1;
+}
+
+.user-info h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #e0e0e0;
+}
+
+.unfollow-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: rgba(207, 102, 121, 0.1);
+  color: #cf6679;
+  border: 1px solid rgba(207, 102, 121, 0.3);
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  align-self: flex-start;
+}
+
+.unfollow-button:hover {
+  background-color: rgba(207, 102, 121, 0.2);
+}
+
+/* Empty state styling */
+.empty-state {
+  background: #1e1e1e;
+  border-radius: 12px;
+  padding: 40px 20px;
+  text-align: center;
+  color: #666;
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 16px;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .profile-tabs {
+    gap: 8px;
+    padding-bottom: 0;
+  }
+  
+  .tab-button {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  
+  .users-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .user-card {
+    padding: 12px;
+  }
+  
+  .user-avatar {
+    width: 48px;
+    height: 48px;
+  }
+  
+  .unfollow-button {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+}

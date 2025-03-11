@@ -1,7 +1,7 @@
 // Profile.js
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Music, Plus, MapPin, Calendar, Edit2, Users } from 'lucide-react';
+import { Music, Plus, MapPin, Calendar, Edit2, Users, Star, UserPlus, UserMinus } from 'lucide-react';
 import AvatarUpload from './AvatarUpload';
 import '../styles/Profile.css';
 
@@ -79,13 +79,47 @@ const RoomCard = ({ room }) => {
   );
 };
 
-const CreateRoomCard = ({ onClick }) => (
-  <div className="room-card create-card" onClick={onClick}>
-    <div className="create-content">
-      <Plus size={32} />
+// User Card component for following/followers
+const UserCard = ({ user, onUnfollow, isFollower = false }) => {
+  const navigate = useNavigate();
+
+  const handleProfileClick = () => {
+    // We would navigate to the user's profile if that feature exists
+    // For now, just log the action
+    console.log(`View profile of ${user.username}`);
+  };
+
+  return (
+    <div className="user-card">
+      <div className="user-card-content" onClick={handleProfileClick}>
+        <img 
+          src={user.avatar || `/api/avatar/${user.username}`}
+          alt={user.username}
+          className="user-avatar"
+          onError={(e) => {
+            e.target.onerror = null;
+            e.target.src = '/api/placeholder/64/64';
+          }}
+        />
+        <div className="user-info">
+          <h3>{user.username}</h3>
+        </div>
+      </div>
+      {!isFollower && onUnfollow && (
+        <button 
+          className="unfollow-button" 
+          onClick={(e) => {
+            e.stopPropagation();
+            onUnfollow();
+          }}
+        >
+          <UserMinus size={16} />
+          <span>Unfollow</span>
+        </button>
+      )}
     </div>
-  </div>
-);
+  );
+};
 
 function Profile() {
   const [user, setUser] = useState({
@@ -109,6 +143,13 @@ function Profile() {
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({});
   const [showAvatarUpload, setShowAvatarUpload] = useState(false);
+  
+  // New state for social features
+  const [favoriteRooms, setFavoriteRooms] = useState([]);
+  const [followingUsers, setFollowingUsers] = useState([]);
+  const [followerUsers, setFollowerUsers] = useState([]);
+  const [activeTab, setActiveTab] = useState('rooms'); // 'rooms', 'favorites', 'following', or 'followers'
+  
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -117,13 +158,21 @@ function Profile() {
       if (!token) return;
 
       try {
-        const [profileRes, roomsRes] = await Promise.all([
-          // fetch('http://127.0.0.1:5000/api/user/profile', {
+        // Fetch all user data in parallel
+        const [profileRes, roomsRes, favoritesRes, followingRes, followersRes] = await Promise.all([
           fetch('http://13.56.253.58:5000/api/user/profile', {
             headers: { 'Authorization': token }
           }),
-          // fetch('http://127.0.0.1:5000/api/user/rooms', {
           fetch('http://13.56.253.58:5000/api/user/rooms', {
+            headers: { 'Authorization': token }
+          }),
+          fetch('http://13.56.253.58:5000/api/user/favorites?detailed=true', {
+            headers: { 'Authorization': token }
+          }),
+          fetch('http://13.56.253.58:5000/api/user/following?detailed=true', {
+            headers: { 'Authorization': token }
+          }),
+          fetch('http://13.56.253.58:5000/api/user/followers?detailed=true', {
             headers: { 'Authorization': token }
           })
         ]);
@@ -136,6 +185,22 @@ function Profile() {
         setUser(profileData);
         setRooms(roomsData.rooms || []);
         setEditForm(profileData);
+        
+        // Handle social data responses
+        if (favoritesRes.ok) {
+          const favoritesData = await favoritesRes.json();
+          setFavoriteRooms(favoritesData.rooms || []);
+        }
+        
+        if (followingRes.ok) {
+          const followingData = await followingRes.json();
+          setFollowingUsers(followingData.users || []);
+        }
+        
+        if (followersRes.ok) {
+          const followersData = await followersRes.json();
+          setFollowerUsers(followersData.users || []);
+        }
       } catch (error) {
         console.error('Error fetching data:', error);
       }
@@ -215,13 +280,40 @@ function Profile() {
       avatar: newAvatarUrl
     }));
   };
+  
+  // Function to handle tab switching
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+  };
+  
+  // Function to handle unfollowing a user
+  const handleUnfollow = async (targetUsername) => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
 
-  const stats = [
-    { label: 'Rooms', value: rooms.length },
-    { label: 'Favorites', value: user.stats?.favorites || 0 },
-    { label: 'Following', value: user.stats?.following || 0 },
-    { label: 'Followers', value: user.stats?.followers || 0 }
-  ];
+    try {
+      const response = await fetch('http://13.56.253.58:5000/api/user/follow', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token
+        },
+        body: JSON.stringify({
+          username: targetUsername,
+          action: 'unfollow'
+        })
+      });
+
+      if (!response.ok) throw new Error('Failed to unfollow user');
+
+      // Update the following list by removing the unfollowed user
+      setFollowingUsers(prevUsers => 
+        prevUsers.filter(user => user.username !== targetUsername)
+      );
+    } catch (error) {
+      console.error('Error unfollowing user:', error);
+    }
+  };
 
   // Helper function to get full avatar URL
   const getFullAvatarUrl = (avatarPath) => {
@@ -230,16 +322,19 @@ function Profile() {
     return `http://13.56.253.58:5000${avatarPath}`;
   };
 
+  // Calculate stats for display
+  const stats = [
+    { label: 'Rooms', value: rooms.length },
+    { label: 'Favorites', value: favoriteRooms.length },
+    { label: 'Following', value: followingUsers.length },
+    { label: 'Followers', value: followerUsers.length }
+  ];
+
   return (
     <div className="profile-container">
       <div className="profile-header">
         <div className="profile-main">
           <div className="avatar-container" onClick={() => setShowAvatarUpload(!showAvatarUpload)}>
-            {/* <img
-              src={user.avatar || `/api/avatar/${user.username}`}
-              alt="Profile"
-              className="avatar"
-            /> */}
             <img
               src={getFullAvatarUrl(user.avatar) || `/api/avatar/${user.username}`}
               alt="Profile"
@@ -329,20 +424,122 @@ function Profile() {
         </div>
       </div>
 
-      <div className="rooms-section">
-        <h2>
-          <Users size={16} />
-          Your Rooms <span className="count">({rooms.length})</span>
-        </h2>
-        <div className="rooms-grid">
-          {rooms.map(room => (
-            <RoomCard key={room.name} room={room} />
-          ))}
-          <div className="room-card create-card" onClick={() => navigate('/create_room')}>
-            <Plus size={32} />
+      {/* Tab Navigation */}
+      <div className="profile-tabs">
+        <button 
+          className={`tab-button ${activeTab === 'rooms' ? 'active' : ''}`}
+          onClick={() => handleTabChange('rooms')}
+        >
+          Rooms ({rooms.length})
+        </button>
+        <button 
+          className={`tab-button ${activeTab === 'favorites' ? 'active' : ''}`}
+          onClick={() => handleTabChange('favorites')}
+        >
+          Favorites ({favoriteRooms.length})
+        </button>
+        <button 
+          className={`tab-button ${activeTab === 'following' ? 'active' : ''}`}
+          onClick={() => handleTabChange('following')}
+        >
+          Following ({followingUsers.length})
+        </button>
+        <button 
+          className={`tab-button ${activeTab === 'followers' ? 'active' : ''}`}
+          onClick={() => handleTabChange('followers')}
+        >
+          Followers ({followerUsers.length})
+        </button>
+      </div>
+
+      {/* Tab content - User's Rooms */}
+      {activeTab === 'rooms' && (
+        <div className="rooms-section">
+          <h2>
+            <Users size={16} />
+            Your Rooms <span className="count">({rooms.length})</span>
+          </h2>
+          <div className="rooms-grid">
+            {rooms.map(room => (
+              <RoomCard key={room.name} room={room} />
+            ))}
+            <div className="room-card create-card" onClick={() => navigate('/create_room')}>
+              <Plus size={32} />
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Tab content - Favorite Rooms */}
+      {activeTab === 'favorites' && (
+        <div className="rooms-section">
+          <h2>
+            <Star size={16} />
+            Favorite Rooms <span className="count">({favoriteRooms.length})</span>
+          </h2>
+          {favoriteRooms.length > 0 ? (
+            <div className="rooms-grid">
+              {favoriteRooms.map(room => (
+                <RoomCard key={room.name} room={room} />
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state">
+              <p>You haven't favorited any rooms yet.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab content - Following Users */}
+      {activeTab === 'following' && (
+        <div className="users-section">
+          <h2>
+            <UserPlus size={16} />
+            Following <span className="count">({followingUsers.length})</span>
+          </h2>
+          {followingUsers.length > 0 ? (
+            <div className="users-grid">
+              {followingUsers.map(user => (
+                <UserCard 
+                  key={user.username} 
+                  user={user} 
+                  onUnfollow={() => handleUnfollow(user.username)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state">
+              <p>You aren't following anyone yet.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab content - Followers */}
+      {activeTab === 'followers' && (
+        <div className="users-section">
+          <h2>
+            <Users size={16} />
+            Followers <span className="count">({followerUsers.length})</span>
+          </h2>
+          {followerUsers.length > 0 ? (
+            <div className="users-grid">
+              {followerUsers.map(user => (
+                <UserCard 
+                  key={user.username} 
+                  user={user}
+                  isFollower={true}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state">
+              <p>You don't have any followers yet.</p>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
