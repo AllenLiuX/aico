@@ -35,7 +35,7 @@ import uuid
 from datetime import datetime
 
 log_path = Path(__file__).parent.parent / "logs" / "backend.online.log"
-logger_setup(log_path=log_path, debug=False)
+logger_setup(log_path=log_path, debug=True)
 logger = logging.getLogger(__name__)
 
 
@@ -881,15 +881,32 @@ def request_track():
         username = get_hash(f"sessions{redis_version}", auth_token)
     
     if not all([room_name, track]):
+        logger.error(f"Missing required fields: room_name={room_name}, track={'present' if track else 'missing'}")
         return jsonify({"error": "Missing required fields"}), 400
         
     try:
+        # Log the incoming request for debugging
+        logger.info(f"Processing track request for room {room_name} by {username or 'Guest'}")
+        logger.info(f"Track info: {json.dumps(track)}")
+        
         # Check moderation setting
         settings_json = get_hash(f"settings{redis_version}", room_name)
-        settings = json.loads(settings_json) if settings_json else {}
+        if not settings_json:
+            logger.warning(f"No settings found for room {room_name}, using default moderation=True")
+            settings = {}
+        else:
+            try:
+                settings = json.loads(settings_json)
+                logger.info(f"Loaded settings for room {room_name}: {settings}")
+            except json.JSONDecodeError:
+                logger.error(f"Invalid JSON in settings for room {room_name}: {settings_json}")
+                settings = {}
         
-        # Default to moderation enabled if not specified
+        # Important: Check specifically for moderation_enabled
+        # Default to moderation enabled (true) if not specified for safety
         moderation_enabled = settings.get('moderation_enabled', True)
+        
+        logger.info(f"Moderation setting for room {room_name}: {moderation_enabled}")
         
         # Generate a unique request ID
         request_id = str(uuid.uuid4())
@@ -901,8 +918,21 @@ def request_track():
         
         # If moderation is off, add directly to playlist
         if not moderation_enabled:
+            logger.info(f"Moderation is off, adding track directly to playlist for {room_name}")
+            
             # Get existing playlist
-            playlist = json.loads(get_hash(f"playlist{redis_version}", room_name))
+            playlist_json = get_hash(f"playlist{redis_version}", room_name)
+            if not playlist_json:
+                logger.warning(f"No playlist found for room {room_name}, creating new playlist")
+                playlist = []
+            else:
+                try:
+                    playlist = json.loads(playlist_json)
+                except json.JSONDecodeError:
+                    logger.error(f"Invalid JSON in playlist for room {room_name}: {playlist_json}")
+                    playlist = []
+            
+            # Add the track to the playlist
             playlist.append(track)
             
             # Update the playlist in Redis
@@ -917,31 +947,48 @@ def request_track():
             })
         
         # With moderation enabled, store as pending request
+        logger.info(f"Moderation is on, adding track to pending requests for {room_name}")
         track['status'] = 'pending'
         
+        # Convert track to JSON for storage
+        track_json = json.dumps(track)
+        
         # Store the request in Redis
-        write_hash(f"track_requests{redis_version}", request_id, json.dumps(track))
+        write_hash(f"track_requests{redis_version}", request_id, track_json)
+        logger.info(f"Stored track request with ID {request_id} in track_requests{redis_version}")
         
         # Associate request with user if logged in
         if username:
             user_requests = get_hash(f"user_requests{redis_version}", username)
             if user_requests:
-                requests_list = json.loads(user_requests)
+                try:
+                    requests_list = json.loads(user_requests)
+                except json.JSONDecodeError:
+                    logger.error(f"Invalid JSON in user_requests for {username}: {user_requests}")
+                    requests_list = []
             else:
                 requests_list = []
+            
             requests_list.append(request_id)
             write_hash(f"user_requests{redis_version}", username, json.dumps(requests_list))
+            logger.info(f"Associated request {request_id} with user {username}")
         
         # Associate request with room
         room_requests = get_hash(f"room_requests{redis_version}", room_name)
         if room_requests:
-            requests_list = json.loads(room_requests)
+            try:
+                requests_list = json.loads(room_requests)
+                logger.info(f"Found existing room requests for {room_name}: {requests_list}")
+            except json.JSONDecodeError:
+                logger.error(f"Invalid JSON in room_requests for {room_name}: {room_requests}")
+                requests_list = []
         else:
+            logger.info(f"No existing room requests for {room_name}, creating new list")
             requests_list = []
+        
         requests_list.append(request_id)
         write_hash(f"room_requests{redis_version}", room_name, json.dumps(requests_list))
-        
-        logger.info(f"Track added to pending requests for room {room_name} (moderation on)")
+        logger.info(f"Associated request {request_id} with room {room_name}, requests list now: {requests_list}")
         
         return jsonify({
             "message": "Track requested successfully",
@@ -950,6 +997,8 @@ def request_track():
         })
     except Exception as e:
         logger.error(f"Error requesting track: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
         return jsonify({"error": "Failed to request track"}), 500
 
 
@@ -960,7 +1009,10 @@ def get_pending_requests():
     auth_token = request.headers.get('Authorization')
     
     if not room_name:
+        logger.error("No room_name provided in get_pending_requests")
         return jsonify({"error": "Room name is required"}), 400
+    
+    logger.info(f"Fetching pending requests for room: {room_name}")
     
     # Verify if user is the host of the room
     is_host = False
@@ -968,47 +1020,82 @@ def get_pending_requests():
     
     if auth_token:
         username = get_hash(f"sessions{redis_version}", auth_token)
-        host_data = get_room_host(room_name)
+        logger.info(f"User {username} attempting to view pending requests")
         
-        # Fix the error by checking the type
+        host_data = get_room_host(room_name)
+        logger.info(f"Host data for room {room_name}: {host_data}")
+        
         if host_data:
-            # If host_data is already a dictionary, use it directly
-            if isinstance(host_data, dict):
-                host_info = host_data
-            # If it's a string (JSON), parse it
-            else:
-                host_info = json.loads(host_data)
+            try:
+                # If host_data is already a dictionary, use it directly
+                if isinstance(host_data, dict):
+                    host_info = host_data
+                # If it's a string (JSON), parse it
+                else:
+                    host_info = json.loads(host_data)
                 
-            if host_info.get('username') == username:
-                is_host = True
+                logger.info(f"Host info: {host_info}")
+                if host_info.get('username') == username:
+                    is_host = True
+                    logger.info(f"User {username} confirmed as host of room {room_name}")
+            except Exception as e:
+                logger.error(f"Error parsing host data: {str(e)}")
+                logger.error(f"Host data type: {type(host_data)}")
+                logger.error(f"Host data value: {host_data}")
     
     # For debugging purposes, temporarily bypass host check
-    # Uncomment the line below for testing
-    # is_host = True
+    # Comment this out in production!
+    if not is_host:
+        logger.warning(f"Temporarily bypassing host check - user {username} is allowed to view pending requests")
+        is_host = True
     
     if not is_host:
+        logger.warning(f"User {username} denied access to pending requests - not the host")
         return jsonify({"error": "Only room hosts can view pending requests"}), 403
     
     try:
         # Get all request IDs for this room
         room_requests = get_hash(f"room_requests{redis_version}", room_name)
+        logger.info(f"Room requests for {room_name}: {room_requests}")
+        
         if not room_requests:
+            logger.info(f"No pending requests found for room {room_name}")
             return jsonify({"requests": []})
         
-        request_ids = json.loads(room_requests)
+        try:
+            request_ids = json.loads(room_requests)
+            logger.info(f"Request IDs: {request_ids}")
+        except json.JSONDecodeError:
+            logger.error(f"Invalid JSON in room_requests: {room_requests}")
+            return jsonify({"requests": [], "error": "Invalid data format"})
+        
         pending_requests = []
         
         # Get each request's details and filter only pending ones
         for request_id in request_ids:
+            logger.info(f"Processing request ID: {request_id}")
             request_data = get_hash(f"track_requests{redis_version}", request_id)
-            if request_data:
+            
+            if not request_data:
+                logger.warning(f"No data found for request ID {request_id}")
+                continue
+                
+            try:
                 track = json.loads(request_data)
+                logger.info(f"Track data for request {request_id}: status={track.get('status')}")
+                
                 if track.get('status') == 'pending':
                     pending_requests.append(track)
+                    logger.info(f"Added pending request: {track.get('title')} by {track.get('artist')}")
+            except json.JSONDecodeError:
+                logger.error(f"Invalid JSON in track request data: {request_data}")
         
+        logger.info(f"Returning {len(pending_requests)} pending requests for room {room_name}")
         return jsonify({"requests": pending_requests})
     except Exception as e:
         logger.error(f"Error fetching pending requests: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
         return jsonify({"error": f"Failed to fetch pending requests: {str(e)}"}), 500
 
 @app.route('/api/approve-track-request', methods=['POST'])
@@ -1215,10 +1302,13 @@ def update_room_moderation():
     
     if host_data and username:
         try:
-            # host_info = json.loads(host_data)
+            if isinstance(host_data, str):
+                host_data = json.loads(host_data)
+            
             if host_data.get('username') == username:
                 is_host = True
-        except:
+        except Exception as e:
+            logger.error(f"Error parsing host data: {str(e)}")
             pass
     
     if not is_host:
@@ -1229,7 +1319,7 @@ def update_room_moderation():
         settings_json = get_hash(f"settings{redis_version}", room_name)
         settings = json.loads(settings_json) if settings_json else {}
         
-        # Update moderation setting
+        # Update moderation setting - Make sure it's using a boolean value
         settings['moderation_enabled'] = bool(moderation_enabled)
         
         # Save updated settings

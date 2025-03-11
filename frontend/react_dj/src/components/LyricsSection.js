@@ -1,30 +1,85 @@
-// LyricsSection.js
+// LyricsSection.js - Fixed scrolling and rerender issues
 import React, { useState, useEffect, useRef } from 'react';
 import { FileText, Loader, AlertCircle, Clock } from 'lucide-react';
 import '../styles/LyricsSection.css';
 
-const LyricsSection = ({ currentSong, isVisible, currentTime = 0 }) => {
+const LyricsSection = ({ 
+  currentSong, 
+  isVisible, 
+  currentTime = 0,
+  preventPageScroll = true,
+  onCurrentLineChange = () => {}, // New callback to report current line to parent
+  initialLineIndex = -1 // Allow parent to pass initial line index for restoration
+}) => {
   const [lyrics, setLyrics] = useState('');
   const [timedLyrics, setTimedLyrics] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [currentLineIndex, setCurrentLineIndex] = useState(-1);
+  const [currentLineIndex, setCurrentLineIndex] = useState(initialLineIndex);
   const [lyricsSource, setLyricsSource] = useState('');
   const lyricsRef = useRef(null);
   const activeLine = useRef(null);
+  const hasScrolledToCurrentLine = useRef(false);
+  const isFirstRender = useRef(true);
 
+  // Reset states when song changes
   useEffect(() => {
-    // Reset states when song changes
     setLyrics('');
     setTimedLyrics([]);
     setCurrentLineIndex(-1);
     setError(null);
+    hasScrolledToCurrentLine.current = false;
     
     // Only fetch lyrics if we have a current song and the component is visible
     if (currentSong?.title && currentSong?.artist && isVisible) {
       fetchLyrics(currentSong.title, currentSong.artist);
     }
   }, [currentSong?.title, currentSong?.artist, isVisible]);
+
+  // Effect for when component first mounts or becomes visible
+  useEffect(() => {
+    if (!isVisible) return;
+    
+    // Reset the scroll position flag when lyrics are toggled
+    hasScrolledToCurrentLine.current = false;
+    
+    // If we have a specific initial line from the parent, use it
+    if (initialLineIndex >= 0 && timedLyrics.length > initialLineIndex) {
+      setCurrentLineIndex(initialLineIndex);
+      
+      // Schedule a scroll to this line after render
+      setTimeout(() => {
+        if (activeLine.current && lyricsRef.current) {
+          scrollToActiveLine(activeLine.current, lyricsRef.current, true);
+        }
+      }, 100);
+    }
+  }, [isVisible, initialLineIndex, timedLyrics.length]);
+
+  // Helper function to scroll to active line
+  const scrollToActiveLine = (element, container, force = false) => {
+    if (!element || !container) return;
+    
+    // Skip if we've already scrolled to current line and not forced
+    if (hasScrolledToCurrentLine.current && !force) return;
+    
+    // Calculate how far to scroll - center the active lyric in the container
+    const scrollTop = element.offsetTop - container.offsetTop - 
+                    (container.clientHeight / 2) + (element.clientHeight / 2);
+    
+    // Use requestAnimationFrame to ensure this happens after layout updates
+    requestAnimationFrame(() => {
+      // Scroll only within the container - this is the key fix
+      container.scrollTo({
+        top: scrollTop,
+        behavior: isFirstRender.current ? 'auto' : 'smooth' // First scroll is instant
+      });
+      
+      // Mark that we've scrolled to the current line
+      hasScrolledToCurrentLine.current = true;
+      isFirstRender.current = false;
+    });
+  };
 
   // Effect for tracking current lyric line based on currentTime
   useEffect(() => {
@@ -47,20 +102,24 @@ const LyricsSection = ({ currentSong, isVisible, currentTime = 0 }) => {
     if (foundIndex !== currentLineIndex) {
       setCurrentLineIndex(foundIndex);
       
-      // Scroll the active line into view with smooth scrolling
-      if (foundIndex >= 0 && activeLine.current) {
-        activeLine.current.scrollIntoView({ 
-          behavior: 'smooth', 
-          block: 'center' 
-        });
+      // Notify parent of line change
+      onCurrentLineChange(foundIndex);
+      
+      // Only scroll if we have proper references to the elements
+      if (foundIndex >= 0 && lyricsRef.current) {
+        // We'll get the activeLine ref in the next render, so delay the scroll
+        setTimeout(() => {
+          if (activeLine.current && lyricsRef.current) {
+            scrollToActiveLine(activeLine.current, lyricsRef.current);
+          }
+        }, 50);
       }
     }
-  }, [currentTime, timedLyrics, currentLineIndex]);
+  }, [currentTime, timedLyrics, currentLineIndex, onCurrentLineChange]);
 
   const fetchLyrics = async (title, artist) => {
     setLoading(true);
     try {
-      // const response = await fetch(`http://127.0.0.1:5000/api/get-lyrics?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}&timestamps=true`);
       const response = await fetch(`http://13.56.253.58:5000/api/get-lyrics?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}&timestamps=true`);
       
       if (!response.ok) {
@@ -90,6 +149,10 @@ const LyricsSection = ({ currentSong, isVisible, currentTime = 0 }) => {
         }
         
         setError(null);
+        
+        // Reset scrolling state when new lyrics load
+        hasScrolledToCurrentLine.current = false;
+        isFirstRender.current = true;
       }
     } catch (err) {
       setError('Unable to load lyrics. Please try again later.');

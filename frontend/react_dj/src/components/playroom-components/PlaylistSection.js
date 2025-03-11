@@ -31,14 +31,14 @@ const PlaylistSection = ({
               key={`${track.song_id}-${index}`}
               track={track}
               index={index}
+              pageIndex={index} // Keep the original page index for display
               isHost={isHost}
-              // Check if this track is the current track by comparing song_id rather than index
               isCurrentTrack={track.song_id === playlist[currentTrack]?.song_id}
               currentPlayingIndex={currentTrack}
               roomName={roomName}
               onTrackClick={() => onTrackClick(index)}
               onTrackDelete={onTrackDelete}
-              onPinToTop={onPinToTop}
+              onPinToTop={onPinToTop} // Keep passing the same function, we'll adjust the index in PlayRoom.js
               stopProgressTracking={stopProgressTracking}
             />
           ))

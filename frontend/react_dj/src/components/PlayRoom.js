@@ -1,5 +1,5 @@
-// PlayRoom.js with mobile responsiveness fixes
-import React, { useEffect, useState } from 'react';
+// PlayRoom.js with all fixes implemented
+import React, { useEffect, useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 // Hooks and Components
@@ -14,11 +14,11 @@ import {
   LyricsSection
 } from './playroom-components';
 import RequestNotificationModal from './RequestNotificationModal';
-import { ToggleLeft, ToggleRight, Edit } from 'lucide-react';
+import { ToggleLeft, ToggleRight, Edit, RefreshCw } from 'lucide-react';
 
 import '../styles/PlayRoom.css';
 
-// Mobile Wrapper Component - You can put this in a separate file
+// Mobile Wrapper Component
 const MobileResponsiveWrapper = ({ children }) => {
   const [isMobile, setIsMobile] = useState(false);
   
@@ -64,6 +64,10 @@ function PlayRoom() {
   const [infoEditing, setInfoEditing] = useState({
     introduction: ''
   });
+  const [refreshing, setRefreshing] = useState(false);
+  
+  // Add a ref to preserve current line index when toggling lyrics
+  const currentLineIndexRef = useRef(-1);
   
   const SONGS_PER_PAGE = 10;
   
@@ -109,6 +113,14 @@ function PlayRoom() {
     updatePlaylistInfo
   } = usePlaylist(roomName, isHost);
 
+  // Set initial moderation state based on settings
+  useEffect(() => {
+    if (settings && settings.moderation_enabled !== undefined) {
+      console.log(`Setting moderation from settings: ${settings.moderation_enabled}`);
+      setModerationEnabled(settings.moderation_enabled);
+    }
+  }, [settings]);
+
   // Set initial editing state when introduction loads
   useEffect(() => {
     if (introduction) {
@@ -143,20 +155,52 @@ function PlayRoom() {
     showNotificationMessage
   } = useNotifications(roomName, isHost);
 
-  // Set up polling for pending requests (host only)
+  // Handle toggling lyrics visibility with better state preservation
+  const handleToggleLyrics = () => {
+    // Use a callback to ensure proper state update
+    setShowLyrics(prev => !prev);
+  };
+
+  // Set up polling for pending requests - improved version
   useEffect(() => {
-    if (!isHost || !roomName) return;
+    if (!roomName) return;
+    
+    console.log(`Setting up polling for room ${roomName}, isHost: ${isHost}`);
+    
+    // Fetch immediately when component mounts
+    fetchPendingRequests();
     
     const pollInterval = setInterval(() => {
+      console.log("Polling for pending requests...");
       fetchPendingRequests();
-    }, 10000); // Poll every 10 seconds
+    }, 10000); // Poll every 5 seconds
     
-    return () => clearInterval(pollInterval);
-  }, [isHost, roomName, fetchPendingRequests]);
+    return () => {
+      console.log("Cleaning up polling interval");
+      clearInterval(pollInterval);
+    };
+  }, [roomName, fetchPendingRequests]); // Removed isHost dependency
+
+  // Manual fetch function for pending requests
+  const manualFetchPendingRequests = async () => {
+    setRefreshing(true);
+    console.log(`Manually fetching pending requests for room ${roomName}`);
+    
+    try {
+      await fetchPendingRequests();
+    } finally {
+      // Add a slight delay so the spinner is visible
+      setTimeout(() => setRefreshing(false), 500);
+    }
+  };
 
   // Handle pin to top action (requires updating playlist state)
   const handlePinTrack = (selectedIndex, currentPlayingIndex) => {
-    const newPlaylist = handlePinToTop(selectedIndex, currentPlayingIndex);
+    // Convert page-relative index to absolute index in the full playlist
+    const actualIndex = (currentPage - 1) * SONGS_PER_PAGE + selectedIndex;
+    
+    // Use the actual index with the pin function
+    const newPlaylist = handlePinToTop(actualIndex, currentPlayingIndex);
     if (newPlaylist) {
       setPlaylist(newPlaylist);
       showNotificationMessage('Track Pinned', 'Track will play after the current song', 'success');
@@ -171,16 +215,18 @@ function PlayRoom() {
   // Toggle moderation setting
   const toggleModeration = async () => {
     const newModerationState = !moderationEnabled;
-    setModerationEnabled(newModerationState);
     
-    // Update URL parameter
-    const params = new URLSearchParams(location.search);
-    params.set('moderation', newModerationState ? 'True' : 'False');
-    navigate(`${location.pathname}?${params.toString()}`, { replace: true });
-    
-    // Update backend setting if available
-    if (updateRoomModeration) {
-      try {
+    try {
+      // Update UI state first for immediate feedback
+      setModerationEnabled(newModerationState);
+      
+      // Update URL parameter
+      const params = new URLSearchParams(location.search);
+      params.set('moderation', newModerationState ? 'True' : 'False');
+      navigate(`${location.pathname}?${params.toString()}`, { replace: true });
+      
+      // Update backend setting
+      if (updateRoomModeration) {
         await updateRoomModeration(roomName, newModerationState);
         showNotificationMessage(
           'Moderation Setting Updated', 
@@ -189,14 +235,16 @@ function PlayRoom() {
             : 'Song requests will be added directly to the playlist',
           'success'
         );
-      } catch (err) {
-        console.error('Failed to update moderation setting:', err);
-        showNotificationMessage(
-          'Error', 
-          'Failed to update moderation setting',
-          'error'
-        );
       }
+    } catch (err) {
+      console.error('Failed to update moderation setting:', err);
+      // Revert UI state if backend update fails
+      setModerationEnabled(!newModerationState);
+      showNotificationMessage(
+        'Error', 
+        'Failed to update moderation setting',
+        'error'
+      );
     }
   };
 
@@ -247,6 +295,11 @@ function PlayRoom() {
       ...prev,
       [name]: value
     }));
+  };
+
+  // Save current line index when updating so it can be restored
+  const handleSaveCurrentLineIndex = (lineIndex) => {
+    currentLineIndexRef.current = lineIndex;
   };
 
   // Display appropriate messages when there are errors or loading
@@ -319,7 +372,7 @@ function PlayRoom() {
                   playNext={playNext}
                   playPrevious={playPrevious}
                   showLyrics={showLyrics}
-                  onToggleLyrics={() => setShowLyrics(!showLyrics)}
+                  onToggleLyrics={handleToggleLyrics}
                 />
                 
                 {/* Integrated lyrics section within player */}
@@ -329,6 +382,9 @@ function PlayRoom() {
                       currentSong={currentSong}
                       isVisible={showLyrics}
                       currentTime={currentTime}
+                      preventPageScroll={true}
+                      onCurrentLineChange={handleSaveCurrentLineIndex}
+                      initialLineIndex={currentLineIndexRef.current}
                     />
                   </div>
                 )}
@@ -336,28 +392,48 @@ function PlayRoom() {
                 <div ref={playerContainerRef} id="youtube-player" style={{ display: 'none' }}></div>
               </div>
               
-              {/* Moderation Section - Directly below player in left column */}
+              {/* Moderation Section - with improved controls */}
               {isHost && (
                 <div className="moderation-section">
                   <div className="moderation-header">
                     <h3>Moderation</h3>
-                    <button 
-                      className={`moderation-toggle ${moderationEnabled ? 'enabled' : 'disabled'}`}
-                      onClick={toggleModeration}
-                      title={moderationEnabled ? "Moderation On" : "Moderation Off"}
-                    >
-                      {moderationEnabled ? (
-                        <>
-                          <ToggleRight size={isMobile ? 16 : 20} /> 
-                          <span>On</span>
-                        </>
-                      ) : (
-                        <>
-                          <ToggleLeft size={isMobile ? 16 : 20} /> 
-                          <span>Off</span>
-                        </>
-                      )}
-                    </button>
+                    <div className="moderation-controls">
+                      <button 
+                        className={`moderation-toggle ${moderationEnabled ? 'enabled' : 'disabled'}`}
+                        onClick={toggleModeration}
+                        title={moderationEnabled ? "Moderation On" : "Moderation Off"}
+                      >
+                        {moderationEnabled ? (
+                          <>
+                            <ToggleRight size={isMobile ? 16 : 20} /> 
+                            <span>On</span>
+                          </>
+                        ) : (
+                          <>
+                            <ToggleLeft size={isMobile ? 16 : 20} /> 
+                            <span>Off</span>
+                          </>
+                        )}
+                      </button>
+                      
+                      {/* Refresh button for pending requests */}
+                      <button 
+                        onClick={manualFetchPendingRequests}
+                        className="refresh-button"
+                        disabled={refreshing}
+                        title="Refresh pending requests"
+                      >
+                        <RefreshCw size={isMobile ? 16 : 18} className={refreshing ? 'spinning' : ''} />
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* Pending Requests section with count badge */}
+                  <div className="pending-requests-header">
+                    <span>Pending Requests</span>
+                    {pendingRequests.length > 0 && (
+                      <span className="pending-count">{pendingRequests.length}</span>
+                    )}
                   </div>
                   
                   <PendingRequestsSection

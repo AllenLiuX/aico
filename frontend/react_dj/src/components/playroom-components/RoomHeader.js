@@ -1,4 +1,4 @@
-// Updated RoomHeader.js with social action buttons
+// Updated RoomHeader.js with improved host info and social buttons display
 import React, { useState } from 'react';
 import { Share2, QrCode } from 'lucide-react';
 import SocialActionButtons from './SocialActionButtons';
@@ -75,9 +75,11 @@ const RoomHeader = ({ roomName, hostData, showQRCode, setShowQRCode, roomInfo })
     <div className="room-header">
       <div className="room-info">
         <h1>{roomName}</h1>
-        <div className="host-info">
-          {hostData ? (
-            <>
+        
+        {/* Host info with social buttons in a container for better layout */}
+        {hostData && (
+          <div className="host-container">
+            <div className="host-info">
               <img 
                 src={hostData.avatar} 
                 alt={`${hostData.username}'s avatar`}
@@ -88,18 +90,16 @@ const RoomHeader = ({ roomName, hostData, showQRCode, setShowQRCode, roomInfo })
                 }}
               />
               <span>Created by {hostData.username}</span>
-              
-              {/* Social Action Buttons */}
-              <SocialActionButtons 
-                roomName={roomName} 
-                hostUsername={hostData.username}
-                roomInfo={roomInfo}
-              />
-            </>
-          ) : (
-            <span>Public Room</span>
-          )}
-        </div>
+            </div>
+            
+            {/* Social Action Buttons - moved outside of host-info for better spacing */}
+            <SocialActionButtons 
+              roomName={roomName} 
+              hostUsername={hostData.username}
+              roomInfo={roomInfo}
+            />
+          </div>
+        )}
       </div>
       <div className="room-controls">
         <button 

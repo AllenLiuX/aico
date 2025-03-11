@@ -1,4 +1,4 @@
-// SocialActionButtons.js
+// Updated SocialActionButtons.js component
 import React, { useState, useEffect } from 'react';
 import { Star, Heart, UserPlus, UserMinus } from 'lucide-react';
 import '../../styles/SocialActionButtons.css';
@@ -29,6 +29,14 @@ const SocialActionButtons = ({ roomName, hostUsername, roomInfo }) => {
         checkFollowingStatus(hostUsername);
       }
     }
+
+    // Debug log to check if component is rendering
+    console.log("SocialActionButtons initialized", {
+      roomName,
+      hostUsername,
+      userData: userData?.username,
+      authorized: !!token
+    });
   }, [roomName, hostUsername]);
 
   // Check if room is in user's favorites
@@ -45,6 +53,7 @@ const SocialActionButtons = ({ roomName, hostUsername, roomInfo }) => {
         const data = await response.json();
         const favorites = data.favorites || [];
         setIsFavorite(favorites.includes(roomName));
+        console.log("Favorite check complete", {isFavorite: favorites.includes(roomName)});
       }
     } catch (error) {
       console.error('Error checking favorite status:', error);
@@ -65,6 +74,7 @@ const SocialActionButtons = ({ roomName, hostUsername, roomInfo }) => {
         const data = await response.json();
         const following = data.following || [];
         setIsFollowing(following.includes(hostUsername));
+        console.log("Following check complete", {isFollowing: following.includes(hostUsername)});
       }
     } catch (error) {
       console.error('Error checking following status:', error);
@@ -163,6 +173,7 @@ const SocialActionButtons = ({ roomName, hostUsername, roomInfo }) => {
   // Don't show follow button for the room creator
   const shouldShowFollowButton = hostUsername && userData && hostUsername !== userData.username;
 
+  // Render both buttons in all cases (for debugging)
   return (
     <div className="social-actions">
       <button 
