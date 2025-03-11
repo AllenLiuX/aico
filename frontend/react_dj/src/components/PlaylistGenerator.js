@@ -257,6 +257,10 @@ function PlaylistGenerator() {
             </p>
           </div>
 
+          <button onClick={createRoom} className="create-room-button">
+            Create Room with This Playlist
+          </button>
+          
           <div className="playlist-tracks">
             {playlist.map((track, index) => (
               <div key={index} className="playlist-track">
@@ -279,15 +283,12 @@ function PlaylistGenerator() {
                   rel="noopener noreferrer"
                   className="play-button"
                 >
-                  Listen
+                  Preview
                 </a>
               </div>
             ))}
           </div>
 
-          <button onClick={createRoom} className="create-room-button">
-            Create Room with This Playlist
-          </button>
         </div>
       )}
     </div>

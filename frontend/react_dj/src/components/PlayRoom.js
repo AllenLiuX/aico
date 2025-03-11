@@ -173,7 +173,7 @@ function PlayRoom() {
     const pollInterval = setInterval(() => {
       console.log("Polling for pending requests...");
       fetchPendingRequests();
-    }, 10000); // Poll every 5 seconds
+    }, 30000); // Poll every 5 seconds
     
     return () => {
       console.log("Cleaning up polling interval");
@@ -190,7 +190,7 @@ function PlayRoom() {
       await fetchPendingRequests();
     } finally {
       // Add a slight delay so the spinner is visible
-      setTimeout(() => setRefreshing(false), 500);
+      setTimeout(() => setRefreshing(false), 5000);
     }
   };
 

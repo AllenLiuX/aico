@@ -1,10 +1,14 @@
 // usePlaylist.js
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import debounce from 'lodash/debounce';
 
 /**
- * Custom hook to manage playlist data and pending requests
+ * Custom hook to manage playlist data and room interactions
+ * @param {string} roomName - The name of the current room
+ * @param {boolean} isHost - Whether the current user is the host of the room
  */
 const usePlaylist = (roomName, isHost) => {
+  // State for playlist and related data
   const [playlist, setPlaylist] = useState([]);
   const [pendingRequests, setPendingRequests] = useState([]);
   const [introduction, setIntroduction] = useState('');
@@ -13,16 +17,68 @@ const usePlaylist = (roomName, isHost) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Refs for managing polling and request state
+  const pollIntervalRef = useRef(null);
+  const isPollingRef = useRef(false);
+  const mountedRef = useRef(true);
+  const pollAttemptsRef = useRef(0);
+
+  // Debounced fetch function to prevent rapid repeated calls
+  const fetchPendingRequests = useCallback(
+    debounce(async () => {
+      // Exit early if not the host or component is unmounted
+      if (!isHost || !mountedRef.current || isPollingRef.current) return;
+
+      try {
+        isPollingRef.current = true;
+        
+        const token = localStorage.getItem('token');
+        const response = await fetch(
+          `http://13.56.253.58:5000/api/pending-requests?room_name=${roomName}`, 
+          {
+            headers: {
+              'Authorization': token || ''
+            }
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch pending requests');
+        }
+
+        const data = await response.json();
+        
+        // Only update if requests have changed
+        setPendingRequests(prevRequests => {
+          const requestsChanged = JSON.stringify(prevRequests) !== JSON.stringify(data.requests);
+          return requestsChanged ? data.requests : prevRequests;
+        });
+
+        // Reset poll attempts on successful fetch
+        pollAttemptsRef.current = 0;
+      } catch (err) {
+        console.error('Error fetching pending requests:', err);
+        
+        // Implement exponential backoff
+        pollAttemptsRef.current = Math.min(pollAttemptsRef.current + 1, 5);
+      } finally {
+        isPollingRef.current = false;
+      }
+    }, 500), // 500ms debounce
+    [roomName, isHost]
+  );
+
   // Fetch initial room data
   useEffect(() => {
+    // Reset state when room changes
+    setLoading(true);
+    setError(null);
+    mountedRef.current = true;
+
     if (!roomName) return;
 
     const fetchRoomData = async () => {
       try {
-        setLoading(true);
-        console.log(`Fetching room data for ${roomName}`);
-        
-        // Fetch main playlist data
         const response = await fetch(`http://13.56.253.58:5000/api/room-playlist?room_name=${roomName}`);
 
         if (!response.ok) {
@@ -30,76 +86,67 @@ const usePlaylist = (roomName, isHost) => {
         }
         
         const data = await response.json();
-        console.log(`Received room data: playlist: ${data.playlist?.length || 0} songs`);
         
-        setPlaylist(data.playlist || []);
-        setIntroduction(data.introduction || '');
-        setSettings(data.settings || {});
-        setHostData(data.host || null);
-        
-        // If user is host, also fetch pending requests
-        if (isHost) {
-          console.log(`User is host, fetching pending requests for ${roomName}`);
-          await fetchPendingRequests();
+        if (mountedRef.current) {
+          setPlaylist(data.playlist || []);
+          setIntroduction(data.introduction || '');
+          setSettings(data.settings || {});
+          setHostData(data.host || null);
+          
+          // If host, start polling for pending requests
+          if (isHost) {
+            startPolling();
+          }
         }
-        
-        setLoading(false);
       } catch (error) {
         console.error('Error fetching room data:', error);
-        setError(`Failed to load playlist: ${error.message}`);
-        setLoading(false);
+        if (mountedRef.current) {
+          setError(`Failed to load playlist: ${error.message}`);
+        }
+      } finally {
+        if (mountedRef.current) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchRoomData();
-  }, [roomName, isHost]);
-
-  // Function to fetch pending requests
-  const fetchPendingRequests = async () => {
-    if (!roomName) return;
-    
-    // Log the fetch attempt with host status
-    console.log(`Fetching pending requests for room ${roomName}, isHost=${isHost}`);
-    
-    try {
-      const token = localStorage.getItem('token') || '';
-      console.log(`Request with token: ${token ? 'Token present' : 'No token'}`);
-      
-      const response = await fetch(`http://13.56.253.58:5000/api/pending-requests?room_name=${roomName}`, {
-        headers: {
-          'Authorization': token,
-          'Cache-Control': 'no-cache' // Prevent caching
-        }
-      });
-      
-      console.log(`Pending requests response status: ${response.status}`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log(`Received pending requests: ${data.requests ? data.requests.length : 0}`);
-        
-        // Always update the state with the latest data, removing the conditional
-        setPendingRequests(data.requests || []);
-        
-        if (data.requests && data.requests.length > 0) {
-          console.log('Pending requests details:', data.requests);
-        }
-      } else {
-        // Log the error response
-        const errorText = await response.text();
-        console.error(`Error fetching pending requests: ${response.status}`, errorText);
+    // Start polling method with exponential backoff
+    const startPolling = () => {
+      // Clear any existing intervals
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
       }
-    } catch (err) {
-      console.error('Exception fetching pending requests:', err);
-    }
-  };
 
-  // Function to handle track deletion
+      // Calculate interval with exponential backoff (max 60 seconds)
+      const calculateInterval = () => {
+        const baseInterval = 10000; // 10 seconds
+        const attempts = pollAttemptsRef.current;
+        return Math.min(baseInterval * Math.pow(2, attempts), 60000);
+      };
+
+      // Set up interval
+      pollIntervalRef.current = setInterval(() => {
+        fetchPendingRequests();
+      }, calculateInterval());
+    };
+
+    fetchRoomData();
+
+    // Cleanup function
+    return () => {
+      mountedRef.current = false;
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
+    };
+  }, [roomName, isHost, fetchPendingRequests]);
+
+  // Track deletion handler
   const handleTrackDelete = (newPlaylist) => {
     setPlaylist(newPlaylist);
   };
 
-  // Function to approve a request
+  // Approve request handler
   const handleApproveRequest = (data) => {
     // Update the main playlist with the newly approved track
     setPlaylist(prev => [...prev, data.approved_track]);
@@ -108,31 +155,17 @@ const usePlaylist = (roomName, isHost) => {
     setPendingRequests(prev => 
       prev.filter(track => track.request_id !== data.request_id)
     );
-    
-    console.log(`Approved request ${data.request_id}, added to playlist`);
-    
-    // Fetch pending requests again to sync
-    setTimeout(() => {
-      fetchPendingRequests();
-    }, 10000);
   };
   
-  // Function to reject a request
+  // Reject request handler
   const handleRejectRequest = (data) => {
     // Remove the track from pending requests
     setPendingRequests(prev => 
       prev.filter(track => track.request_id !== data.request_id)
     );
-    
-    console.log(`Rejected request ${data.request_id}`);
-    
-    // Fetch pending requests again to sync
-    setTimeout(() => {
-      fetchPendingRequests();
-    }, 10000);
   };
 
-  // Function to update room moderation settings
+  // Room moderation update method
   const updateRoomModeration = async (roomName, moderationEnabled) => {
     try {
       const token = localStorage.getItem('token');
@@ -153,14 +186,13 @@ const usePlaylist = (roomName, isHost) => {
       }
 
       const data = await response.json();
-      console.log(`Updated moderation settings: ${moderationEnabled}`);
       
-      // Update local settings state
+      // Update local settings
       setSettings(prev => ({
         ...prev,
         moderation_enabled: moderationEnabled
       }));
-      
+
       return data;
     } catch (error) {
       console.error('Error updating moderation settings:', error);
@@ -168,7 +200,7 @@ const usePlaylist = (roomName, isHost) => {
     }
   };
 
-  // Function to update playlist info (introduction)
+  // Playlist info update method
   const updatePlaylistInfo = async (roomName, newIntroduction) => {
     try {
       const token = localStorage.getItem('token');
@@ -188,9 +220,8 @@ const usePlaylist = (roomName, isHost) => {
         throw new Error('Failed to update playlist information');
       }
 
-      // Update local state
+      // Update local introduction state
       setIntroduction(newIntroduction);
-      console.log(`Updated playlist introduction for ${roomName}`);
       
       return await response.json();
     } catch (error) {
@@ -199,12 +230,12 @@ const usePlaylist = (roomName, isHost) => {
     }
   };
 
-
-  // Return values and functions from the hook
+  // Return all necessary methods and states
   return {
     playlist,
     setPlaylist,
     pendingRequests,
+    setPendingRequests,
     fetchPendingRequests,
     introduction,
     settings,
@@ -215,7 +246,7 @@ const usePlaylist = (roomName, isHost) => {
     handleApproveRequest,
     handleRejectRequest,
     updateRoomModeration,
-    updatePlaylistInfo
+    updatePlaylistInfo,
   };
 };
 
