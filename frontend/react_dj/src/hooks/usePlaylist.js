@@ -230,6 +230,38 @@ const usePlaylist = (roomName, isHost) => {
     }
   };
 
+  // Handle pin to top action
+  const handlePinToTop = async (actualIndex, currentPlayingIndex) => {
+    try {
+      const trackToPin = playlist[actualIndex];
+      
+      // Make API call to pin track
+      const response = await fetch('http://13.56.253.58:5000/api/pin-track', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          room_name: roomName,
+          track_id: trackToPin.song_id,
+          current_playing_index: currentPlayingIndex,
+          selected_index: actualIndex
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to pin track');
+      }
+
+      const data = await response.json();
+      return data.playlist;
+      
+    } catch (error) {
+      console.error('Error pinning track:', error);
+      return null;
+    }
+  };
+
   // Return all necessary methods and states
   return {
     playlist,
@@ -247,6 +279,7 @@ const usePlaylist = (roomName, isHost) => {
     handleRejectRequest,
     updateRoomModeration,
     updatePlaylistInfo,
+    handlePinToTop,
   };
 };
 

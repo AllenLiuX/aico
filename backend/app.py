@@ -142,12 +142,18 @@ def generate_playlist():
 def get_room_playlist():
     room_name = request.args.get('room_name')
 
+    # Sanitize room name for file path (replace slashes and other unsafe characters)
+    safe_room_name = room_name.replace('/', '_').replace('\\', '_')
+    
     # Only generate QR code if it doesn't exist
-    qr_code_path = Path(__file__).parent.parent / 'frontend' / 'react_dj' / 'public' / 'images' / f"qr_code_{room_name}.png"
+    qr_code_path = Path(__file__).parent.parent / 'frontend' / 'react_dj' / 'public' / 'images' / f"qr_code_{safe_room_name}.png"
     if not qr_code_path.exists():
+        # Create images directory if it doesn't exist
+        qr_code_path.parent.mkdir(parents=True, exist_ok=True)
         generate_qr_code_with_logo(f'http://aico-music.com/playroom?room_name={room_name}', qr_code_path)
         
-        build_path = Path(__file__).parent.parent / 'frontend' / 'react_dj' / 'build' / 'images' / f"qr_code_{room_name}.png"
+        build_path = Path(__file__).parent.parent / 'frontend' / 'react_dj' / 'build' / 'images' / f"qr_code_{safe_room_name}.png"
+        build_path.parent.mkdir(parents=True, exist_ok=True)
         generate_qr_code_with_logo(f'http://aico-music.com/playroom?room_name={room_name}', build_path)
 
     try:
@@ -1646,6 +1652,46 @@ def toggle_favorite_room():
     except Exception as e:
         logger.error(f"Error in favorite operation: {str(e)}")
         return jsonify({"error": "Operation failed"}), 500
+
+@app.route('/api/pin-track', methods=['POST'])
+def pin_track():
+    try:
+        data = request.json
+        room_name = data.get('room_name')
+        track_id = data.get('track_id')
+        current_playing_index = data.get('current_playing_index')
+        selected_index = data.get('selected_index')
+
+        if not all([room_name, track_id]):
+            return jsonify({"error": "Missing required parameters"}), 400
+
+        # Get current playlist from Redis
+        playlist_json = get_hash(f"playlist{redis_version}", room_name)
+        if not playlist_json:
+            return jsonify({"error": "Playlist not found"}), 404
+
+        playlist = json.loads(playlist_json)
+
+        # Calculate the actual position to insert the track (after current playing track)
+        insert_position = current_playing_index + 1
+
+        # Remove the track from its current position
+        track_to_pin = playlist.pop(selected_index)
+
+        # Insert the track after the currently playing track
+        playlist.insert(insert_position, track_to_pin)
+
+        # Update Redis with the new playlist order
+        redis_api.write_hash(f"playlist{redis_version}", room_name, json.dumps(playlist))
+
+        return jsonify({
+            "message": "Track pinned successfully",
+            "playlist": playlist
+        })
+
+    except Exception as e:
+        logger.error(f"Error pinning track: {str(e)}")
+        return jsonify({"error": "Failed to pin track"}), 500
 
 if __name__ == '__main__':
     # app.run(port=3000, host='10.72.252.213', debug=True)

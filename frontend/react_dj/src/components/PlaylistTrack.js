@@ -19,7 +19,7 @@ const PlaylistTrack = ({
   const [error, setError] = useState(null);
 
   const handleDelete = async (e) => {
-    e.stopPropagation(); // Prevent triggering track click when deleting
+    e.stopPropagation(); // Prevent triggering track click
     
     if (!isHost || isDeleting || !track.song_id) return;
     
@@ -59,7 +59,7 @@ const PlaylistTrack = ({
     }
   };
 
-  const handlePinToTop = (e) => {
+  const handlePinToTop = async (e) => {
     e.stopPropagation(); // Prevent triggering track click
     
     if (!isHost || isPinning || isCurrentTrack) return;
@@ -68,7 +68,7 @@ const PlaylistTrack = ({
       setIsPinning(true);
       setError(null);
       
-      // Call the parent function to handle the pin action
+      // Call the parent function first to get the actual index
       onPinToTop(index, currentPlayingIndex);
       
     } catch (err) {

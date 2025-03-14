@@ -110,7 +110,8 @@ function PlayRoom() {
     handleApproveRequest,
     handleRejectRequest,
     updateRoomModeration,
-    updatePlaylistInfo
+    updatePlaylistInfo,
+    handlePinToTop
   } = usePlaylist(roomName, isHost);
 
   // Set initial moderation state based on settings
@@ -142,7 +143,7 @@ function PlayRoom() {
     formatTime,
     handleProgressChange,
     playSpecificTrack,
-    handlePinToTop,
+    handlePinToTop: handlePinToTopPlayer,
     stopProgressTracking
   } = useYouTubePlayer(playlist);
 
@@ -195,12 +196,12 @@ function PlayRoom() {
   };
 
   // Handle pin to top action (requires updating playlist state)
-  const handlePinTrack = (selectedIndex, currentPlayingIndex) => {
+  const handlePinTrack = async (selectedIndex, currentPlayingIndex) => {
     // Convert page-relative index to absolute index in the full playlist
     const actualIndex = (currentPage - 1) * SONGS_PER_PAGE + selectedIndex;
     
-    // Use the actual index with the pin function
-    const newPlaylist = handlePinToTop(actualIndex, currentPlayingIndex);
+    // Pass the actual index to the backend
+    const newPlaylist = await handlePinToTop(actualIndex, currentPlayingIndex);
     if (newPlaylist) {
       setPlaylist(newPlaylist);
       showNotificationMessage('Track Pinned', 'Track will play after the current song', 'success');
