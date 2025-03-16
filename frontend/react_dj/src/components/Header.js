@@ -5,6 +5,7 @@ import { UserCircle } from 'lucide-react';
 import AuthModal from './AuthModal';
 import ProfileDropdown from './ProfileDropdown';
 import '../styles/Header.css';
+import { API_URL } from '../config';
 
 function Header() {
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -42,7 +43,7 @@ function Header() {
   const getFullAvatarUrl = (avatarPath) => {
     if (!avatarPath) return null;
     if (avatarPath.startsWith('http')) return avatarPath;
-    return `http://13.56.253.58:5000${avatarPath}`;
+    return `${API_URL}${avatarPath}`;
   };
   
   return (

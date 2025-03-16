@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Music, Plus, MapPin, Calendar, Edit2, Users, Star, UserPlus, UserMinus } from 'lucide-react';
 import AvatarUpload from './AvatarUpload';
 import '../styles/Profile.css';
+import { API_URL } from '../config';
 
 // Available tags for selection
 const AVAILABLE_TAGS = {
@@ -160,19 +161,19 @@ function Profile() {
       try {
         // Fetch all user data in parallel
         const [profileRes, roomsRes, favoritesRes, followingRes, followersRes] = await Promise.all([
-          fetch('http://13.56.253.58:5000/api/user/profile', {
+          fetch(`${API_URL}/api/user/profile`, {
             headers: { 'Authorization': token }
           }),
-          fetch('http://13.56.253.58:5000/api/user/rooms', {
+          fetch(`${API_URL}/api/user/rooms`, {
             headers: { 'Authorization': token }
           }),
-          fetch('http://13.56.253.58:5000/api/user/favorites?detailed=true', {
+          fetch(`${API_URL}/api/user/favorites?detailed=true`, {
             headers: { 'Authorization': token }
           }),
-          fetch('http://13.56.253.58:5000/api/user/following?detailed=true', {
+          fetch(`${API_URL}/api/user/following?detailed=true`, {
             headers: { 'Authorization': token }
           }),
-          fetch('http://13.56.253.58:5000/api/user/followers?detailed=true', {
+          fetch(`${API_URL}/api/user/followers?detailed=true`, {
             headers: { 'Authorization': token }
           })
         ]);
@@ -242,7 +243,7 @@ function Profile() {
   const handleSubmit = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://13.56.253.58:5000/api/user/profile', {
+      const response = await fetch(`${API_URL}/api/user/profile`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -292,7 +293,7 @@ function Profile() {
     if (!token) return;
 
     try {
-      const response = await fetch('http://13.56.253.58:5000/api/user/follow', {
+      const response = await fetch(`${API_URL}/api/user/follow`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -319,7 +320,7 @@ function Profile() {
   const getFullAvatarUrl = (avatarPath) => {
     if (!avatarPath) return null;
     if (avatarPath.startsWith('http')) return avatarPath;
-    return `http://13.56.253.58:5000${avatarPath}`;
+    return `${API_URL}${avatarPath}`;
   };
 
   // Calculate stats for display

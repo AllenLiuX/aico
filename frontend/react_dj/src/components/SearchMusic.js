@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Search, ArrowLeft, Plus, Music, User } from 'lucide-react';
 import RequestNotificationModal from './RequestNotificationModal';
+import { API_URL } from '../config';
 import '../styles/SearchMusic.css';
 
 function SearchMusic() {
@@ -53,8 +54,7 @@ function SearchMusic() {
     setSearchResults([]);
 
     try {
-      // const response = await fetch(`http://127.0.0.1:5000/api/search-music?query=${encodeURIComponent(searchQuery)}&search_type=${searchType}`);
-      const response = await fetch(`http://13.56.253.58:5000/api/search-music?query=${encodeURIComponent(searchQuery)}&search_type=${searchType}`);
+      const response = await fetch(`${API_URL}/api/search-music?query=${encodeURIComponent(searchQuery)}&search_type=${searchType}`);
       if (!response.ok) {
         throw new Error('Failed to fetch search results');
       }
@@ -73,7 +73,7 @@ function SearchMusic() {
       // Different endpoints for host vs. non-host
       const endpoint = isHost ? 'add-to-playlist' : 'request-track';
       
-      const response = await fetch(`http://13.56.253.58:5000/api/${endpoint}`, {
+      const response = await fetch(`${API_URL}/api/${endpoint}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

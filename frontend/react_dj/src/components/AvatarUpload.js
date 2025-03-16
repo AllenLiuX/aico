@@ -1,6 +1,7 @@
 // AvatarUpload.js
 import React, { useRef, useState } from 'react';
 import { Upload, X } from 'lucide-react';
+import { API_URL } from '../config';
 
 const AvatarUpload = ({ onUpload, onClose, show }) => {
   const [uploading, setUploading] = useState(false);
@@ -21,7 +22,7 @@ const handleFileSelect = async (e) => {
       setError('');
 
       const token = localStorage.getItem('token');
-      const response = await fetch('http://13.56.253.58:5000/api/user/avatar', {
+      const response = await fetch(`${API_URL}/api/user/avatar`, {
         method: 'POST',
         headers: {
           'Authorization': token

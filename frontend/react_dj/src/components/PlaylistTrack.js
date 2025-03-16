@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Trash2, ArrowUp } from 'lucide-react';
+import { API_URL } from '../config';
 import '../styles/PlaylistTrack.css';
 
 const PlaylistTrack = ({ 
@@ -32,8 +33,7 @@ const PlaylistTrack = ({
       if (isCurrentTrack) {
         stopProgressTracking();
       }
-        // const response = await fetch('http://127.0.0.1:5000/api/remove-from-playlist', {
-      const response = await fetch('http://13.56.253.58:5000/api/remove-from-playlist', {
+      const response = await fetch(`${API_URL}/api/remove-from-playlist`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

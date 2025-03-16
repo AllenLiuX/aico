@@ -46,7 +46,8 @@ redis_version = '_v1'
 app = Flask(__name__)
 
 # CORS(app)
-CORS(app, resources={r"/api/*": {"origins": "*"}})  # Enable CORS for all API routes
+# CORS(app, resources={r"/api/*": {"origins": "*"}})  # Enable CORS for all API routes
+CORS(app, resources={r"/*": {"origins": "*"}})  # 允许所有域访问
 
 
 

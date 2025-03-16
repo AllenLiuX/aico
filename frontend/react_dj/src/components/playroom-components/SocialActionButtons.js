@@ -1,6 +1,7 @@
 // Updated SocialActionButtons.js component
 import React, { useState, useEffect } from 'react';
 import { Star, Heart, UserPlus, UserMinus } from 'lucide-react';
+import { API_URL } from '../../config';
 import '../../styles/SocialActionButtons.css';
 
 const SocialActionButtons = ({ roomName, hostUsername, roomInfo }) => {
@@ -43,7 +44,7 @@ const SocialActionButtons = ({ roomName, hostUsername, roomInfo }) => {
   const checkFavoriteStatus = async (roomName) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://13.56.253.58:5000/api/user/favorites', {
+      const response = await fetch(`${API_URL}/api/user/favorites`, {
         headers: {
           'Authorization': token
         }
@@ -64,7 +65,7 @@ const SocialActionButtons = ({ roomName, hostUsername, roomInfo }) => {
   const checkFollowingStatus = async (hostUsername) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://13.56.253.58:5000/api/user/following', {
+      const response = await fetch(`${API_URL}/api/user/following`, {
         headers: {
           'Authorization': token
         }
@@ -93,7 +94,7 @@ const SocialActionButtons = ({ roomName, hostUsername, roomInfo }) => {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://13.56.253.58:5000/api/user/favorite', {
+      const response = await fetch(`${API_URL}/api/user/favorite`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -141,7 +142,7 @@ const SocialActionButtons = ({ roomName, hostUsername, roomInfo }) => {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://13.56.253.58:5000/api/user/follow', {
+      const response = await fetch(`${API_URL}/api/user/follow`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

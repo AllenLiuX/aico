@@ -1,6 +1,7 @@
 // usePlaylist.js
 import { useState, useEffect, useRef, useCallback } from 'react';
 import debounce from 'lodash/debounce';
+import { API_URL } from '../config';
 
 /**
  * Custom hook to manage playlist data and room interactions
@@ -34,7 +35,7 @@ const usePlaylist = (roomName, isHost) => {
         
         const token = localStorage.getItem('token');
         const response = await fetch(
-          `http://13.56.253.58:5000/api/pending-requests?room_name=${roomName}`, 
+          `${API_URL}/api/pending-requests?room_name=${roomName}`, 
           {
             headers: {
               'Authorization': token || ''
@@ -79,7 +80,7 @@ const usePlaylist = (roomName, isHost) => {
 
     const fetchRoomData = async () => {
       try {
-        const response = await fetch(`http://13.56.253.58:5000/api/room-playlist?room_name=${roomName}`);
+        const response = await fetch(`${API_URL}/api/room-playlist?room_name=${roomName}`);
 
         if (!response.ok) {
           throw new Error(`Failed to fetch playlist (${response.status})`);
@@ -169,7 +170,7 @@ const usePlaylist = (roomName, isHost) => {
   const updateRoomModeration = async (roomName, moderationEnabled) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://13.56.253.58:5000/api/room/update-moderation', {
+      const response = await fetch(`${API_URL}/api/room/update-moderation`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -204,7 +205,7 @@ const usePlaylist = (roomName, isHost) => {
   const updatePlaylistInfo = async (roomName, newIntroduction) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://13.56.253.58:5000/api/update-playlist-info', {
+      const response = await fetch(`${API_URL}/api/update-playlist-info`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -236,7 +237,7 @@ const usePlaylist = (roomName, isHost) => {
       const trackToPin = playlist[actualIndex];
       
       // Make API call to pin track
-      const response = await fetch('http://13.56.253.58:5000/api/pin-track', {
+      const response = await fetch(`${API_URL}/api/pin-track`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

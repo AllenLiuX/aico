@@ -1,7 +1,10 @@
 // AuthModal.js
 import React, { useState } from 'react';
 import { Mail, Lock, Github, AlertCircle } from 'lucide-react';
+import { GoogleLogin } from '@react-oauth/google';
+import { jwtDecode } from 'jwt-decode';
 import '../styles/AuthModal.css';
+import { API_URL, FRONTEND_URL } from '../config';
 
 const AuthModal = ({ isOpen, onClose }) => {
   const [isLogin, setIsLogin] = useState(true);
@@ -30,7 +33,8 @@ const AuthModal = ({ isOpen, onClose }) => {
 
     try {
       // const endpoint = isLogin ? 'http://127.0.0.1:5000/api/auth/login' : 'http://127.0.0.1:5000/api/auth/register';
-      const endpoint = isLogin ? 'http://13.56.253.58:5000/api/auth/login' : 'http://13.56.253.58:5000/api/auth/register';
+      // const endpoint = isLogin ? 'http://13.56.253.58:5000/api/auth/login' : 'http://13.56.253.58:5000/api/auth/register';
+      const endpoint = isLogin ? `${API_URL}/api/auth/login` : `${API_URL}/api/auth/register`;
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -62,6 +66,63 @@ const AuthModal = ({ isOpen, onClose }) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      setError('');
+      setIsLoading(true);
+      
+      // Decode the credential to get user info including picture
+      const decoded = jwtDecode(credentialResponse.credential);
+      const googleUserInfo = {
+        email: decoded.email,
+        name: decoded.name,
+        picture: decoded.picture // Google avatar URL
+      };
+      
+      const response = await fetch(`${API_URL}/api/auth/google`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          credential: credentialResponse.credential,
+          redirect_uri: FRONTEND_URL,
+          user_info: googleUserInfo
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Google authentication failed');
+      }
+
+      // Store token and user data with Google avatar
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify({
+        ...data.user,
+        avatar: googleUserInfo.picture // Ensure we use Google's avatar URL
+      }));
+      localStorage.setItem('userProfile', JSON.stringify({
+        name: data.user.username,
+        email: data.user.email,
+        picture: googleUserInfo.picture // Use Google's avatar URL
+      }));
+
+      // Close modal and refresh page
+      onClose();
+      window.location.reload();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError('Google login failed. Please try again.');
   };
 
   return (
@@ -134,10 +195,18 @@ const AuthModal = ({ isOpen, onClose }) => {
         </div>
 
         <div className="social-buttons">
-          <button className="social-button">
-            <Mail size={20} />
-            <span>Google</span>
-          </button>
+          <div className="google-login-wrapper">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+              useOneTap
+              theme="filled_black"
+              shape="pill"
+              size="large"
+              text="continue_with"
+              locale="en"
+            />
+          </div>
           <button className="social-button">
             <Github size={20} />
             <span>Github</span>

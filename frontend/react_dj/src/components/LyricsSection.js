@@ -1,6 +1,7 @@
 // LyricsSection.js - Fixed scrolling and rerender issues
 import React, { useState, useEffect, useRef } from 'react';
 import { FileText, Loader, AlertCircle, Clock } from 'lucide-react';
+import { API_URL } from '../config';
 import '../styles/LyricsSection.css';
 
 const LyricsSection = ({ 
@@ -120,7 +121,7 @@ const LyricsSection = ({
   const fetchLyrics = async (title, artist) => {
     setLoading(true);
     try {
-      const response = await fetch(`http://13.56.253.58:5000/api/get-lyrics?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}&timestamps=true`);
+      const response = await fetch(`${API_URL}/api/get-lyrics?title=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}&timestamps=true`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch lyrics');

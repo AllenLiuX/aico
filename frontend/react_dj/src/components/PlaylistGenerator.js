@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ChevronDown, ChevronUp, Music, Tag, Calendar, Hash } from 'lucide-react';
+import { API_URL } from '../config';
 import '../styles/PlaylistGenerator.css';
 
 const GENRE_OPTIONS = [
@@ -81,8 +82,7 @@ function PlaylistGenerator() {
       // Get auth token from localStorage
       const token = localStorage.getItem('token');
       
-      // const response = await fetch('http://127.0.0.1:5000/api/generate-playlist', {
-      const response = await fetch('http://13.56.253.58:5000/api/generate-playlist', {
+      const response = await fetch(`${API_URL}/api/generate-playlist`, {
 
         method: 'POST',
         headers: {

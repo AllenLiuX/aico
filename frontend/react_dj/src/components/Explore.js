@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Music } from 'lucide-react';
 import '../styles/Explore.css';
+import { API_URL } from '../config';
 
 const RoomCard = ({ room }) => {
   const navigate = useNavigate();
@@ -79,7 +80,7 @@ function Explore() {
       try {
         setLoading(true);
         const response = await fetch(
-          `http://13.56.253.58:5000/api/explore/rooms?page=${pageNum}&limit=${PAGE_SIZE}`
+          `${API_URL}/api/explore/rooms?page=${pageNum}&limit=${PAGE_SIZE}`
         );
   
         if (!response.ok) throw new Error('Failed to fetch rooms');
