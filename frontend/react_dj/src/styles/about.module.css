@@ -1,0 +1,444 @@
+:root {
+  --primary: #8A2BE2;
+  --primary-foreground: #ffffff;
+  --secondary: rgba(138, 43, 226, 0.06);
+  --secondary-foreground: #1a1a1a;
+  --muted: #666666;
+  --muted-foreground: #888888;
+  --accent: #5D3FD3;
+  --accent-foreground: #ffffff;
+  --background: #000000;
+  --foreground: #ffffff;
+  --radius: 0.75rem;
+  --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --hover-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.aboutContainer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 8rem 2rem 6rem;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--foreground);
+  background: var(--background);
+  min-height: 100vh;
+  letter-spacing: -0.02em;
+}
+
+.langSwitch {
+  position: fixed;
+  top: 5rem;
+  right: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.25rem;
+  border-radius: 6.25rem;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  z-index: 100;
+}
+
+.langButton {
+  padding: 0.5rem 1rem;
+  border-radius: 5rem;
+  border: none;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.875rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+.langButton.active {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--foreground);
+}
+
+.hero {
+  text-align: center;
+  margin-bottom: 8rem;
+  position: relative;
+}
+
+.heroTitle {
+  font-size: 4.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.7) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 2rem;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.heroSubtitle {
+  font-size: 1.25rem;
+  color: var(--muted-foreground);
+  max-width: 800px;
+  margin: 0 auto;
+  line-height: 1.6;
+  font-weight: 300;
+}
+
+.valueGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 3rem;
+  margin: 8rem 0;
+}
+
+.valueCard {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--radius);
+  padding: 3rem;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(255, 255, 255, 0.03);
+  position: relative;
+  overflow: hidden;
+}
+
+.valueCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  z-index: 1;
+}
+
+.valueCard:hover {
+  transform: translateY(-5px);
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.valueCard:hover::before {
+  opacity: 0.05;
+}
+
+.cardIcon {
+  color: var(--primary);
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  background: rgba(138, 43, 226, 0.1);
+  border-radius: 0.75rem;
+  position: relative;
+  z-index: 2;
+}
+
+.cardTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  color: var(--foreground);
+  position: relative;
+  z-index: 2;
+  letter-spacing: -0.01em;
+}
+
+.cardText {
+  color: var(--muted-foreground);
+  line-height: 1.6;
+  position: relative;
+  z-index: 2;
+  font-weight: 300;
+}
+
+.features {
+  margin: 8rem 0;
+  padding: 5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--radius);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.featuresTitle {
+  text-align: center;
+  font-size: 2.5rem;
+  font-weight: 600;
+  margin-bottom: 5rem;
+  color: var(--foreground);
+  position: relative;
+  z-index: 2;
+  letter-spacing: -0.02em;
+}
+
+.featuresList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 4rem 3rem;
+  position: relative;
+  z-index: 2;
+}
+
+.featureItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+}
+
+.featureIcon {
+  color: var(--primary);
+  background: rgba(138, 43, 226, 0.1);
+  padding: 1rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.featureContent h4 {
+  color: var(--foreground);
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.01em;
+}
+
+.featureContent p {
+  color: var(--muted-foreground);
+  font-size: 1rem;
+  line-height: 1.6;
+  font-weight: 300;
+}
+
+.mission {
+  text-align: center;
+  margin: 8rem 0;
+  padding: 5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--radius);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.missionTitle {
+  font-size: 2.5rem;
+  font-weight: 600;
+  margin-bottom: 2rem;
+  color: var(--foreground);
+  position: relative;
+  z-index: 2;
+  letter-spacing: -0.02em;
+}
+
+.missionText {
+  font-size: 1.25rem;
+  color: var(--muted-foreground);
+  max-width: 800px;
+  margin: 0 auto;
+  line-height: 1.7;
+  position: relative;
+  z-index: 2;
+  font-weight: 300;
+}
+
+.testimonials {
+  margin: 8rem 0;
+}
+
+.testimonialsTitle {
+  text-align: center;
+  font-size: 2.5rem;
+  font-weight: 600;
+  margin-bottom: 5rem;
+  color: var(--foreground);
+  letter-spacing: -0.02em;
+}
+
+.testimonialGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 3rem;
+}
+
+.testimonialCard {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: var(--radius);
+  padding: 3rem;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+.testimonialCard::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  z-index: 1;
+}
+
+.testimonialCard:hover {
+  transform: translateY(-5px);
+  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.testimonialCard:hover::before {
+  opacity: 0.05;
+}
+
+.testimonialText {
+  color: var(--muted-foreground);
+  font-size: 1.125rem;
+  line-height: 1.7;
+  margin-bottom: 2.5rem;
+  font-style: italic;
+  position: relative;
+  z-index: 2;
+  font-weight: 300;
+  quotes: """ """ "'" "'";
+}
+
+.testimonialText::before {
+  content: open-quote;
+  font-size: 4em;
+  line-height: 0.1em;
+  margin-right: 0.25em;
+  vertical-align: -0.4em;
+  opacity: 0.1;
+  font-family: Georgia, serif;
+}
+
+.testimonialAuthor {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  position: relative;
+  z-index: 2;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  padding-top: 1.5rem;
+}
+
+.authorInfo h4 {
+  color: var(--foreground);
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  font-size: 1.125rem;
+  letter-spacing: -0.01em;
+}
+
+.authorInfo p {
+  color: var(--muted-foreground);
+  font-size: 0.875rem;
+  font-weight: 300;
+}
+
+.cta {
+  text-align: center;
+  margin-top: 8rem;
+}
+
+.ctaButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  padding: 1.25rem 2.5rem;
+  border-radius: 6.25rem;
+  font-weight: 500;
+  font-size: 1.125rem;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border: none;
+  cursor: pointer;
+  letter-spacing: -0.01em;
+}
+
+.ctaButton:hover {
+  transform: translateY(-2px);
+  background: var(--accent);
+}
+
+@media (max-width: 768px) {
+  .aboutContainer {
+    padding: 6rem 1.5rem 4rem;
+  }
+
+  .langSwitch {
+    top: 4rem;
+    right: 1rem;
+  }
+
+  .heroTitle {
+    font-size: 3rem;
+  }
+
+  .heroSubtitle {
+    font-size: 1.125rem;
+  }
+
+  .valueGrid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    margin: 6rem 0;
+  }
+
+  .valueCard {
+    padding: 2.5rem;
+  }
+
+  .features {
+    padding: 3rem 1.5rem;
+    margin: 6rem 0;
+  }
+
+  .featuresList {
+    gap: 3rem 2rem;
+  }
+
+  .mission {
+    padding: 3rem 1.5rem;
+    margin: 6rem 0;
+  }
+
+  .missionTitle {
+    font-size: 2rem;
+  }
+
+  .missionText {
+    font-size: 1.125rem;
+  }
+
+  .testimonialGrid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .testimonialCard {
+    padding: 2.5rem;
+  }
+
+  .testimonialText {
+    font-size: 1rem;
+  }
+
+  .ctaButton {
+    padding: 1rem 2rem;
+    font-size: 1rem;
+  }
+}
