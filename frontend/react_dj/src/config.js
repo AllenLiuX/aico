@@ -1,5 +1,7 @@
 // API configuration
 export const API_URL = "http://13.56.253.58:5000";
+// export const API_URL = "http://127.0.0.1:5000";
+
 // export const API_URL = "https://api.aico-remix.com";
 export const FRONTEND_URL = "http://aico-music.com";
 

@@ -1425,3 +1425,186 @@ body.play-room-active {
     min-height: -webkit-fill-available;
   }
 }
+
+/* Add these styles to your PlayRoom.css file */
+
+/* Guest-specific player controls */
+.guest-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background-color: rgba(187, 134, 252, 0.1);
+  padding: 10px 20px;
+  border-radius: 30px;
+}
+
+.volume-icon {
+  color: #bb86fc;
+}
+
+.sync-status {
+  font-size: 14px;
+  font-weight: 500;
+  color: #e0e0e0;
+}
+
+.guest-message {
+  text-align: center;
+  color: #03dac6;
+  font-size: 13px;
+  margin-top: 10px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.sync-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #03dac6;
+  position: relative;
+}
+
+.sync-indicator::after {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: 50%;
+  border: 2px solid rgba(3, 218, 198, 0.3);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.8); opacity: 1; }
+  70% { transform: scale(1.2); opacity: 0; }
+  100% { transform: scale(0.8); opacity: 0; }
+}
+
+/* Make progress bar visually different for guests */
+.progress-bar.guest-progress {
+  cursor: default;
+  opacity: 0.8;
+}
+
+/* Connection status styles */
+.connection-error {
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.connection-error button {
+  background-color: rgba(239, 68, 68, 0.2);
+  border: none;
+  color: #ef4444;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* Connected users display */
+.connected-users {
+  background-color: rgba(187, 134, 252, 0.05);
+  border: 1px solid rgba(187, 134, 252, 0.1);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.connected-users h4 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: #bb86fc;
+}
+
+.connected-users ul {
+  margin: 0;
+  padding: 0 0 0 20px;
+  font-size: 13px;
+  color: #e0e0e0;
+}
+
+.connected-users li {
+  margin-bottom: 4px;
+}
+
+/* Add a loading spinner animation */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+/* Real-time indicator for guests */
+.realtime-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background-color: rgba(3, 218, 198, 0.1);
+  border-radius: 12px;
+  font-size: 12px;
+  color: #03dac6;
+  margin-left: 8px;
+}
+
+.realtime-indicator::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #03dac6;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+/* Make it clear that guests cannot interact with certain controls */
+.guest-track-hover:hover {
+  cursor: default !important;
+  background-color: #2c2c2c !important;
+  transform: none !important;
+}
+
+/* Mobile optimizations for the player controls */
+@media (max-width: 768px) {
+  .guest-controls {
+    padding: 8px 16px;
+  }
+  
+  .guest-message {
+    font-size: 12px;
+  }
+  
+  .connected-users {
+    padding: 10px;
+  }
+  
+  .connected-users h4 {
+    font-size: 13px;
+  }
+  
+  .connected-users ul {
+    font-size: 12px;
+  }
+}
