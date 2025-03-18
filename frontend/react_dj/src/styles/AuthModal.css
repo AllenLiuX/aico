@@ -44,7 +44,7 @@
 
 .auth-header h2 {
   font-size: 24px;
-  color: #bb86fc;
+  color: #2CBDFB;
   margin: 0;
 }
 
@@ -78,12 +78,12 @@
 }
 
 .auth-input:focus {
-  border-color: #bb86fc;
+  border-color: #2CBDFB;
   outline: none;
 }
 
 .submit-button {
-  background-color: #bb86fc;
+  background-color: #2CBDFB;
   color: #121212;
   padding: 12px;
   border-radius: 8px;
@@ -92,7 +92,7 @@
 }
 
 .submit-button:hover {
-  background-color: #a66ffe;
+  background-color: #0f9cd8;
 }
 
 .auth-divider {
@@ -145,7 +145,7 @@
 .auth-switch button {
   background: none;
   border: none;
-  color: #bb86fc;
+  color: #2CBDFB;
   cursor: pointer;
   padding: 4px;
 }

@@ -30,7 +30,7 @@
   .form-label {
     display: block;
     margin-bottom: 8px;
-    color: #bb86fc;
+    color: #2CBDFB;
     font-weight: 500;
   }
   
@@ -45,7 +45,7 @@
   }
   
   .form-input:focus {
-    border-color: #bb86fc;
+    border-color: #2CBDFB;
     outline: none;
   }
   
@@ -67,7 +67,7 @@
   .submit-button {
     width: 100%;
     padding: 14px;
-    background-color: #bb86fc;
+    background-color: #2CBDFB;
     color: #121212;
     border: none;
     border-radius: 8px;
@@ -78,7 +78,7 @@
   }
   
   .submit-button:hover {
-    background-color: #a66ffe;
+    background-color: #0f9cd8;
   }
   
   .back-link {
@@ -90,7 +90,7 @@
   }
   
   .back-link:hover {
-    color: #bb86fc;
+    color: #2CBDFB;
   }
   
   /* Additional styles specific to CreateRoom */
@@ -143,7 +143,7 @@
   }
   
   .toggle-input:checked + .toggle-slider {
-    background-color: #bb86fc;
+    background-color: #2CBDFB;
   }
   
   .toggle-input:checked + .toggle-slider:before {

@@ -49,8 +49,8 @@
   }
   
   .upload-btn:hover {
-    border-color: #bb86fc;
-    color: #bb86fc;
+    border-color: #2CBDFB;
+    color: #2CBDFB;
   }
   
   .upload-error {
@@ -60,7 +60,7 @@
   }
   
   .upload-loading {
-    color: #bb86fc;
+    color: #2CBDFB;
     font-size: 12px;
     margin-top: 8px;
     text-align: center;

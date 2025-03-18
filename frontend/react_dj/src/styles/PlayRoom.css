@@ -115,7 +115,7 @@
   -webkit-appearance: none;
   width: 12px;
   height: 12px;
-  background-color: #bb86fc;
+  background-color: #2CBDFB;
   border-radius: 50%;
   cursor: pointer;
 }
@@ -146,7 +146,7 @@
 }
 
 .control-button:hover {
-  color: #bb86fc;
+  color: #2CBDFB;
   transform: scale(1.1);
 }
 
@@ -154,7 +154,7 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background-color: #bb86fc;
+  background-color: #2CBDFB;
   color: #121212;
   display: flex;
   align-items: center;
@@ -162,7 +162,7 @@
 }
 
 .play-button:hover {
-  background-color: #a66ffe;
+  background-color: #0f9cd8;
   transform: scale(1.05);
 }
 
@@ -227,7 +227,7 @@
 
 .playlist-header h3 {
   margin: 0;
-  color: #bb86fc;
+  color: #2CBDFB;
 }
 
 .track-list {
@@ -303,7 +303,7 @@
 .moderation-header h3 {
   margin: 0;
   font-size: 16px;
-  color: #bb86fc;
+  color: #2CBDFB;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -385,7 +385,7 @@
 }
 
 .playlist-info-header h2 {
-  color: #bb86fc;
+  color: #2CBDFB;
   font-size: 1.5rem;
   margin: 0;
 }
@@ -406,7 +406,7 @@
 
 .edit-info-button:hover {
   background-color: #444;
-  color: #bb86fc;
+  color: #2CBDFB;
 }
 
 .playlist-info-content {
@@ -434,7 +434,7 @@
 }
 
 .setting-label {
-  color: #bb86fc;
+  color: #2CBDFB;
   font-weight: 500;
   margin-right: 8px;
 }
@@ -459,7 +459,7 @@
 }
 
 .info-edit-textarea:focus {
-  border-color: #bb86fc;
+  border-color: #2CBDFB;
   outline: none;
 }
 
@@ -485,7 +485,7 @@
 }
 
 .save-edit-button {
-  background-color: #bb86fc;
+  background-color: #2CBDFB;
   color: #121212;
 }
 
@@ -494,7 +494,7 @@
 }
 
 .save-edit-button:hover {
-  background-color: #a66ffe;
+  background-color: #0f9cd8;
 }
 
 /* Share Button and QR Code */
@@ -504,7 +504,7 @@
 }
 
 .share-button {
-  background-color: #bb86fc;
+  background-color: #2CBDFB;
   color: #121212;
   padding: 12px 24px;
   border-radius: 20px;
@@ -514,7 +514,7 @@
 }
 
 .share-button:hover {
-  background-color: #a66ffe;
+  background-color: #0f9cd8;
 }
 
 .qr-code-overlay {
@@ -554,7 +554,7 @@
 }
 
 .lyrics-button.active {
-  color: #bb86fc;
+  color: #2CBDFB;
   background-color: rgba(187, 134, 252, 0.1);
 }
 
@@ -566,12 +566,12 @@
   transform: translateX(-50%);
   width: 6px;
   height: 6px;
-  background-color: #bb86fc;
+  background-color: #2CBDFB;
   border-radius: 50%;
 }
 
 .lyrics-button:hover {
-  color: #bb86fc;
+  color: #2CBDFB;
 }
 
 /* Make the YouTube player invisible but still functional */
@@ -890,7 +890,7 @@
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background-color: #bb86fc;
+  background-color: #2CBDFB;
   color: #121212;
   border: none;
   border-radius: 20px;
@@ -901,7 +901,7 @@
 }
 
 .share-button:hover {
-  background-color: #a66ffe;
+  background-color: #0f9cd8;
   transform: translateY(-2px);
 }
 
@@ -997,7 +997,7 @@
 }
 
 .integrated-lyrics .lyrics-header .icon {
-  color: #bb86fc; /* Purple accent */
+  color: #2CBDFB; /* Purple accent */
 }
 
 .integrated-lyrics .lyrics-content {
@@ -1021,8 +1021,8 @@
 
 .integrated-lyrics .lyric-line.active {
   background-color: rgba(187, 134, 252, 0.1); /* Purple tint for active line */
-  color: #bb86fc; /* Purple text */
-  border-left: 2px solid #bb86fc; /* Purple left border */
+  color: #2CBDFB; /* Purple text */
+  border-left: 2px solid #2CBDFB; /* Purple left border */
   padding-left: 8px; /* Adjust for the border */
 }
 
@@ -1121,7 +1121,7 @@
 }
 
 .lyrics-button.active {
-  color: #bb86fc;
+  color: #2CBDFB;
   background-color: rgba(187, 134, 252, 0.1);
 }
 
@@ -1133,12 +1133,12 @@
   transform: translateX(-50%);
   width: 6px;
   height: 6px;
-  background-color: #bb86fc;
+  background-color: #2CBDFB;
   border-radius: 50%;
 }
 
 .lyrics-button:hover {
-  color: #bb86fc;
+  color: #2CBDFB;
 }
 
 /* Main content layout - ensure proper positioning and no unexpected shifts */
@@ -1440,7 +1440,7 @@ body.play-room-active {
 }
 
 .volume-icon {
-  color: #bb86fc;
+  color: #2CBDFB;
 }
 
 .sync-status {
@@ -1527,7 +1527,7 @@ body.play-room-active {
 .connected-users h4 {
   margin: 0 0 8px 0;
   font-size: 14px;
-  color: #bb86fc;
+  color: #2CBDFB;
 }
 
 .connected-users ul {

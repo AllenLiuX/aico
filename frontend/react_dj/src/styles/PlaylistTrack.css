@@ -8,7 +8,7 @@
 
 .track-item.active {
   background-color: #363636;
-  border-left: 4px solid #bb86fc;
+  border-left: 4px solid #2CBDFB;
 }
 
 .track-number {
@@ -51,7 +51,7 @@
 /* Common styling for action buttons */
 .delete-button,
 .pin-button {
-  color: #bb86fc;
+  color: #2CBDFB;
   padding: 10px;
   background-color: transparent;
   cursor: pointer;
@@ -67,7 +67,7 @@
 .delete-button:hover,
 .pin-button:hover {
   color: black;
-  background-color: #bb86fc;
+  background-color: #2CBDFB;
 }
 
 .delete-button:disabled,
@@ -181,7 +181,7 @@
 
 .now-playing {
   flex-shrink: 0;
-  color: #bb86fc;
+  color: #2CBDFB;
   margin-left: auto;
   width: 20px;
   text-align: center;
@@ -194,7 +194,7 @@
 
 .track-item.active {
   background-color: #363636;
-  border-left: 4px solid #bb86fc;
+  border-left: 4px solid #2CBDFB;
 }
 
 
@@ -219,12 +219,12 @@
 
 .auth-warning {
   background-color: rgba(187, 134, 252, 0.1);
-  border: 1px solid #bb86fc;
+  border: 1px solid #2CBDFB;
   border-radius: 8px;
   padding: 12px;
   margin-bottom: 24px;
   text-align: center;
-  color: #bb86fc;
+  color: #2CBDFB;
   font-size: 14px;
 }
 

@@ -30,7 +30,7 @@ main {
 
 /* Typography */
 h1, h2, h3, h4, h5, h6 {
-  color: #bb86fc;
+  color: #2CBDFB;
   line-height: 1.2;
   margin-bottom: 1rem;
 }
@@ -48,13 +48,13 @@ p {
 
 /* Links */
 a {
-  color: #bb86fc;
+  color: #2CBDFB;
   text-decoration: none;
   transition: color 0.2s ease;
 }
 
 a:hover {
-  color: #a66ffe;
+  color: #0f9cd8;
 }
 
 /* Common form elements - basic styles only */
@@ -95,8 +95,8 @@ button {
 
 /* Theme colors for general use */
 :root {
-  --primary: #bb86fc;
-  --primary-hover: #a66ffe;
+  --primary: #2CBDFB;
+  --primary-hover: #0f9cd8;
   --secondary: #03dac6;
   --background: #121212;
   --surface: #1e1e1e;

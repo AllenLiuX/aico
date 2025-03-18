@@ -66,12 +66,12 @@
 /* Follow button styling */
 .follow-button.active {
   background-color: rgba(187, 134, 252, 0.15);
-  color: #bb86fc;
+  color: #2CBDFB;
   border-color: rgba(187, 134, 252, 0.3);
 }
 
 .follow-button svg {
-  color: #bb86fc;
+  color: #2CBDFB;
 }
 
 /* Action message styling */

@@ -1,8 +1,9 @@
-// SearchMusic.js - Updated with enhanced mobile back button
+// SearchMusic.js - Updated with confirmation modal
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Search, ArrowLeft, Plus, Music, User } from 'lucide-react';
 import RequestNotificationModal from './RequestNotificationModal';
+import RequestConfirmModal from './RequestConfirmModal'; // Import the new component
 import { API_URL } from '../config';
 import '../styles/SearchMusic.css';
 
@@ -18,6 +19,11 @@ function SearchMusic() {
   const [notificationTitle, setNotificationTitle] = useState('');
   const [notificationType, setNotificationType] = useState('info');
   const [isMobile, setIsMobile] = useState(false);
+  
+  // New state for confirmation modal
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [trackToRequest, setTrackToRequest] = useState(null);
+  const [currentTrackPlaying, setCurrentTrackPlaying] = useState(null);
   
   const location = useLocation();
   const navigate = useNavigate();
@@ -40,10 +46,42 @@ function SearchMusic() {
     // Add resize listener
     window.addEventListener('resize', checkMobile);
     
+    // Fetch current playing track when component mounts
+    fetchCurrentPlayingTrack();
+    
     return () => {
       window.removeEventListener('resize', checkMobile);
     };
   }, [isHostParam]);
+
+  // Function to fetch current playing track
+  const fetchCurrentPlayingTrack = async () => {
+    if (!roomName) return;
+    
+    try {
+      const response = await fetch(`${API_URL}/api/room-playlist?room_name=${roomName}`);
+      if (response.ok) {
+        const data = await response.json();
+        // Find the current playing track if there's a socket state
+        const playerStateResponse = await fetch(`${API_URL}/api/room/player-state?room_name=${roomName}`);
+        
+        if (playerStateResponse.ok) {
+          const playerState = await playerStateResponse.json();
+          if (playerState && playerState.currentTrack !== undefined && data.playlist) {
+            setCurrentTrackPlaying(data.playlist[playerState.currentTrack] || null);
+          } else if (data.playlist && data.playlist.length > 0) {
+            // Fallback to first track if no player state
+            setCurrentTrackPlaying(data.playlist[0]);
+          }
+        } else if (data.playlist && data.playlist.length > 0) {
+          // Fallback to first track if no player state endpoint
+          setCurrentTrackPlaying(data.playlist[0]);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching current track:', error);
+    }
+  };
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -68,7 +106,20 @@ function SearchMusic() {
     }
   };
 
-  const handleAddToPlaylist = async (track) => {
+  // Modified to show confirmation modal first for non-hosts
+  const handleAddToPlaylist = (track) => {
+    if (isHost) {
+      // Host can add directly without confirmation
+      addTrackToPlaylist(track);
+    } else {
+      // For non-hosts, show confirmation modal first
+      setTrackToRequest(track);
+      setShowConfirmModal(true);
+    }
+  };
+
+  // Actual function to add track to playlist or request it
+  const addTrackToPlaylist = async (track) => {
     try {
       // Different endpoints for host vs. non-host
       const endpoint = isHost ? 'add-to-playlist' : 'request-track';
@@ -107,6 +158,14 @@ function SearchMusic() {
       setNotificationType('error');
       setShowNotification(true);
       console.error('Add/request track error:', err);
+    }
+  };
+
+  // Handler for confirmation modal's confirm button
+  const handleConfirmRequest = () => {
+    setShowConfirmModal(false);
+    if (trackToRequest) {
+      addTrackToPlaylist(trackToRequest);
     }
   };
 
@@ -221,6 +280,15 @@ function SearchMusic() {
         title={notificationTitle}
         message={notificationMessage}
         type={notificationType}
+      />
+      
+      {/* Request Confirmation Modal */}
+      <RequestConfirmModal
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={handleConfirmRequest}
+        requestedTrack={trackToRequest || {}}
+        currentTrack={currentTrackPlaying}
       />
     </div>
   );

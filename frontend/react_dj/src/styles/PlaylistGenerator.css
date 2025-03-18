@@ -31,14 +31,14 @@
   }
   
   .prompt-input:focus {
-    border-color: #bb86fc;
+    border-color: #2CBDFB;
     outline: none;
   }
   
   .advanced-toggle {
     background: none;
     border: none;
-    color: #bb86fc;
+    color: #2CBDFB;
     padding: 8px 16px;
     cursor: pointer;
     display: flex;
@@ -68,7 +68,7 @@
   
   .option-label {
     display: block;
-    color: #bb86fc;
+    color: #2CBDFB;
     margin-bottom: 8px;
     font-weight: 500;
   }
@@ -101,7 +101,7 @@
   .generate-button {
     width: 100%;
     padding: 16px;
-    background-color: #bb86fc;
+    background-color: #2CBDFB;
     color: #121212;
     border: none;
     border-radius: 8px;
@@ -112,7 +112,7 @@
   }
   
   .generate-button:hover {
-    background-color: #a66ffe;
+    background-color: #0f9cd8;
   }
   
   /* Generated Playlist Styles */
@@ -220,7 +220,7 @@
     height: 50px;
     border: 3px solid #2c2c2c;
     border-radius: 50%;
-    border-top-color: #bb86fc;
+    border-top-color: #2CBDFB;
     animation: spinner 1s linear infinite;
     margin: 0 auto 20px;
   }
@@ -232,7 +232,7 @@
   }
   
   .loading-text {
-    color: #bb86fc;
+    color: #2CBDFB;
     font-size: 18px;
     margin: 0;
   }
@@ -334,9 +334,9 @@
 }
 
 .song-count-option.selected {
-  background-color: #bb86fc;
+  background-color: #2CBDFB;
   color: #121212;
-  border-color: #bb86fc;
+  border-color: #2CBDFB;
   font-weight: 500;
 }
 
@@ -355,7 +355,7 @@
 
 .form-label .icon {
   margin-right: 8px;
-  color: #bb86fc;
+  color: #2CBDFB;
 }
 
 /* Responsive adjustments */
@@ -433,7 +433,7 @@
   
   /* Make the song count section stand out */
   .form-label {
-    color: #bb86fc;
+    color: #2CBDFB;
   }
   
   /* Ensure text is readable on mobile */

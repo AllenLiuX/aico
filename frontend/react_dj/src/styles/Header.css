@@ -29,7 +29,7 @@
   }
   
   .nav-link {
-    color: #bb86fc;
+    color: #2CBDFB;
     text-decoration: none;
     font-size: 16px;
     transition: color 0.2s ease;
@@ -37,7 +37,7 @@
   }
   
   .nav-link:hover {
-    color: #a66ffe;
+    color: #0f9cd8;
   }
   
   .user-section {
@@ -53,8 +53,8 @@
     gap: 8px;
     padding: 8px 16px;
     background: transparent;
-    border: 1px solid #bb86fc;
-    color: #bb86fc;
+    border: 1px solid #2CBDFB;
+    color: #2CBDFB;
     border-radius: 20px;
     transition: all 0.2s ease;
   }
@@ -85,7 +85,7 @@
   }
   
   .profile-name {
-    color: #bb86fc;
+    color: #2CBDFB;
     font-size: 14px;
   }
   
