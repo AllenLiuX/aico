@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Music, Plus, MapPin, Calendar, Edit2, Users, Star, UserPlus, UserMinus } from 'lucide-react';
 import AvatarUpload from './AvatarUpload';
+import Avatar from './common/Avatar';
 import '../styles/Profile.css';
 import { API_URL } from '../config';
 
@@ -72,8 +73,8 @@ const RoomCard = ({ room }) => {
         <h3>{room.name}</h3>
         <p>{room.introduction}</p>
         <div className="room-tags">
-          {room.genre && <span className="tag genre-tag">{room.genre}</span>}
-          {room.occasion && <span className="tag occasion-tag">{room.occasion}</span>}
+          {room.genre && <span className="tag">{room.genre}</span>}
+          {room.occasion && <span className="tag">{room.occasion}</span>}
         </div>
       </div>
     </div>
@@ -335,17 +336,27 @@ function Profile() {
     <div className="profile-container">
       <div className="profile-header">
         <div className="profile-main">
-          <div className="avatar-container" onClick={() => setShowAvatarUpload(!showAvatarUpload)}>
-            <img
-              src={getFullAvatarUrl(user.avatar) || `/api/avatar/${user.username}`}
-              alt="Profile"
-              className="avatar"
-            />
-            <AvatarUpload
-              show={showAvatarUpload}
-              onClose={() => setShowAvatarUpload(false)}
-              onUpload={handleAvatarUpload}
-            />
+          <div className="avatar-section">
+            <div className="avatar-wrapper">
+              <Avatar 
+                src={user.avatar}
+                username={user.username}
+                size={120}
+              />
+              <button 
+                className="edit-avatar-btn" 
+                onClick={() => setShowAvatarUpload(true)}
+              >
+                <Edit2 size={16} />
+              </button>
+            </div>
+            {showAvatarUpload && (
+              <AvatarUpload 
+                show={showAvatarUpload}
+                onClose={() => setShowAvatarUpload(false)}
+                onUpload={handleAvatarUpload}
+              />
+            )}
           </div>
           <div className="profile-info">
             <div className="top-row">
@@ -358,7 +369,10 @@ function Profile() {
                   </div>
                 ))}
               </div>
-              <button className="edit-btn" onClick={isEditing ? handleSubmit : handleEdit}>
+              <button 
+                className="edit-btn" 
+                onClick={isEditing ? handleSubmit : handleEdit}
+              >
                 {isEditing ? 'Save Profile' : (
                   <>
                     <Edit2 size={16} />
@@ -416,7 +430,10 @@ function Profile() {
                   selectedTags={editForm.tags || []}
                   onTagSelect={handleTagSelect}
                 />
-                <button className="cancel-btn" onClick={handleCancel}>
+                <button 
+                  className="cancel-btn" 
+                  onClick={handleCancel}
+                >
                   Cancel
                 </button>
               </div>
@@ -464,7 +481,10 @@ function Profile() {
             {rooms.map(room => (
               <RoomCard key={room.name} room={room} />
             ))}
-            <div className="room-card create-card" onClick={() => navigate('/create_room')}>
+            <div 
+              className="room-card create-card"
+              onClick={() => navigate('/create_room')}
+            >
               <Plus size={32} />
             </div>
           </div>
@@ -530,7 +550,6 @@ function Profile() {
                 <UserCard 
                   key={user.username} 
                   user={user}
-                  isFollower={true}
                 />
               ))}
             </div>

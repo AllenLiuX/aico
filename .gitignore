@@ -12,3 +12,5 @@ keys.py
 
 frontend/react_dj/build/*
 frontend/react_dj/public/images
+
+frontend/react_dj/public/static
