@@ -1,9 +1,10 @@
-// PlayRoom.js with all fixes implemented
+// PlayRoom.js with socket integration
 import React, { useEffect, useState, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 // Hooks and Components
 import { usePlaylist, useYouTubePlayer, useNotifications } from '../hooks';
+import useSocketConnection from '../hooks/useSocketConnection'; // Import the new hook
 import { 
   RoomHeader, 
   PlayerControls, 
@@ -65,6 +66,8 @@ function PlayRoom() {
     introduction: ''
   });
   const [refreshing, setRefreshing] = useState(false);
+  const [connectedUsers, setConnectedUsers] = useState([]);
+  const [showConnectionError, setShowConnectionError] = useState(false);
   
   // Add a ref to preserve current line index when toggling lyrics
   const currentLineIndexRef = useRef(-1);
@@ -95,6 +98,21 @@ function PlayRoom() {
     setIsHost(isHostParam);
   }, [roomName, navigate, isHostParam]);
 
+  // Initialize socket connection
+  const { 
+    socket, 
+    connectionError, 
+    isConnected,
+    emitPlayerState 
+  } = useSocketConnection(roomName, isHost);
+
+  // Set connected users from socket data
+  useEffect(() => {
+    if (connectionError) {
+      setShowConnectionError(true);
+    }
+  }, [connectionError]);
+
   // Use our custom hooks
   const {
     playlist,
@@ -122,6 +140,9 @@ function PlayRoom() {
     }
   }, [settings]);
 
+// PlayRoom.js (continued)
+// Additional code for PlayRoom.js
+
   // Set initial editing state when introduction loads
   useEffect(() => {
     if (introduction) {
@@ -129,6 +150,7 @@ function PlayRoom() {
     }
   }, [introduction]);
 
+  // Use our modified YouTube player hook with socket integration
   const {
     currentTrack,
     isPlaying,
@@ -144,8 +166,9 @@ function PlayRoom() {
     handleProgressChange,
     playSpecificTrack,
     handlePinToTop: handlePinToTopPlayer,
-    stopProgressTracking
-  } = useYouTubePlayer(playlist);
+    stopProgressTracking,
+    isHost: playerIsHost // This should match the isHost state
+  } = useYouTubePlayer(playlist, socket, isHost, emitPlayerState);
 
   const {
     showNotification,
@@ -169,21 +192,27 @@ function PlayRoom() {
     console.log(`Setting up polling for room ${roomName}, isHost: ${isHost}`);
     
     // Fetch immediately when component mounts
-    fetchPendingRequests();
+    if (isHost) {
+      fetchPendingRequests();
+    }
     
     const pollInterval = setInterval(() => {
-      console.log("Polling for pending requests...");
-      fetchPendingRequests();
-    }, 30000); // Poll every 5 seconds
+      if (isHost) {
+        console.log("Polling for pending requests...");
+        fetchPendingRequests();
+      }
+    }, 30000); // Poll every 30 seconds
     
     return () => {
       console.log("Cleaning up polling interval");
       clearInterval(pollInterval);
     };
-  }, [roomName, fetchPendingRequests]); // Removed isHost dependency
+  }, [roomName, fetchPendingRequests, isHost]);
 
   // Manual fetch function for pending requests
   const manualFetchPendingRequests = async () => {
+    if (!isHost) return;
+    
     setRefreshing(true);
     console.log(`Manually fetching pending requests for room ${roomName}`);
     
@@ -191,12 +220,15 @@ function PlayRoom() {
       await fetchPendingRequests();
     } finally {
       // Add a slight delay so the spinner is visible
-      setTimeout(() => setRefreshing(false), 5000);
+      setTimeout(() => setRefreshing(false), 500);
     }
   };
 
   // Handle pin to top action (requires updating playlist state)
   const handlePinTrack = async (selectedIndex, currentPlayingIndex) => {
+    // Only allow host to pin tracks
+    if (!isHost) return;
+    
     // Convert page-relative index to absolute index in the full playlist
     const actualIndex = (currentPage - 1) * SONGS_PER_PAGE + selectedIndex;
     
@@ -215,6 +247,9 @@ function PlayRoom() {
 
   // Toggle moderation setting
   const toggleModeration = async () => {
+    // Only allow host to change moderation settings
+    if (!isHost) return;
+    
     const newModerationState = !moderationEnabled;
     
     try {
@@ -268,16 +303,25 @@ function PlayRoom() {
 
   // Fix for track selection - map index back to full playlist index
   const handlePlaySpecificTrack = (index) => {
+    // Only allow host to select tracks
+    if (!isHost) return;
+    
     const actualIndex = (currentPage - 1) * SONGS_PER_PAGE + index;
     playSpecificTrack(actualIndex);
   };
 
   // Edit playlist info handlers
   const handleEditInfo = () => {
+    // Only allow host to edit
+    if (!isHost) return;
+    
     setShowEditInfo(true);
   };
   
   const handleSaveInfo = async () => {
+    // Only allow host to save changes
+    if (!isHost) return;
+    
     try {
       if (updatePlaylistInfo) {
         await updatePlaylistInfo(roomName, infoEditing.introduction);
@@ -339,6 +383,26 @@ function PlayRoom() {
           roomInfo={settings}
         />
         
+        {/* Show connection status */}
+        {connectionError && showConnectionError && (
+          <div className="connection-error">
+            <p>{connectionError}</p>
+            <button onClick={() => setShowConnectionError(false)}>Dismiss</button>
+          </div>
+        )}
+        
+        {/* Show connected users for host */}
+        {isHost && connectedUsers.length > 0 && (
+          <div className="connected-users">
+            <h4>Connected Users: {connectedUsers.length}</h4>
+            <ul>
+              {connectedUsers.map((user, index) => (
+                <li key={index}>{user.username} {user.is_host ? '(Host)' : ''}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        
         <div className="main-content">
           <div className="player-playlist-grid">
             {/* Left Column: Player and Moderation */}
@@ -374,6 +438,7 @@ function PlayRoom() {
                   playPrevious={playPrevious}
                   showLyrics={showLyrics}
                   onToggleLyrics={handleToggleLyrics}
+                  isHost={isHost} // Pass isHost to control component
                 />
                 
                 {/* Integrated lyrics section within player */}
@@ -393,7 +458,7 @@ function PlayRoom() {
                 <div ref={playerContainerRef} id="youtube-player" style={{ display: 'none' }}></div>
               </div>
               
-              {/* Moderation Section - with improved controls */}
+              {/* Moderation Section - with improved controls - only visible to host */}
               {isHost && (
                 <div className="moderation-section">
                   <div className="moderation-header">

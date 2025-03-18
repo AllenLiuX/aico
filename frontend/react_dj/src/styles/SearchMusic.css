@@ -14,7 +14,7 @@
 
 .search-header h1 {
   font-size: 32px;
-  color: #bb86fc;
+  color: #2CBDFB;
   margin: 0;
 }
 
@@ -54,13 +54,13 @@
 }
 
 .search-input:focus {
-  border-color: #bb86fc;
+  border-color: #2CBDFB;
   outline: none;
 }
 
 .search-button {
   padding: 0 24px;
-  background-color: #bb86fc;
+  background-color: #2CBDFB;
   color: #121212;
   border: none;
   border-radius: 8px;
@@ -70,7 +70,7 @@
 }
 
 .search-button:hover:not(:disabled) {
-  background-color: #a66ffe;
+  background-color: #0f9cd8;
 }
 
 .search-button:disabled {
@@ -100,13 +100,13 @@
 }
 
 .toggle-option:hover {
-  border-color: #bb86fc;
-  color: #bb86fc;
+  border-color: #2CBDFB;
+  color: #2CBDFB;
 }
 
 .toggle-option.active {
-  background-color: #bb86fc;
-  border-color: #bb86fc;
+  background-color: #2CBDFB;
+  border-color: #2CBDFB;
   color: #121212;
 }
 
@@ -193,13 +193,14 @@
 }
 
 .listen-button {
-  background-color: #1DB954;
+  background-color: #2CBDFB;
   color: white;
   border: none;
 }
 
 .listen-button:hover {
-  background-color: #1ed760;
+  background-color: #2CBDFB;
+  color: white;
 }
 
 .add-button {
@@ -210,8 +211,8 @@
 
 .add-button:hover {
   background-color: #363636;
-  border-color: #bb86fc;
-  color: #bb86fc;
+  border-color: #2CBDFB;
+  color: #2CBDFB;
 }
 
 /* UPDATED BACK BUTTON STYLES - Key fixes for mobile visibility */
@@ -223,7 +224,7 @@
   top: 16px;
   left: 16px;
   padding: 10px 16px;
-  background-color: #bb86fc;
+  background-color: #2CBDFB;
   color: #121212;
   border: none;
   border-radius: 20px;
@@ -237,7 +238,7 @@
 }
 
 .back-button:hover, .back-button:active {
-  background-color: #a76bfa;
+  background-color: #0f9cd8;
   transform: translateY(-2px);
 }
 
@@ -378,7 +379,7 @@
   top: 64px; /* Position below the navigation bar */
   left: 16px;
   padding: 10px 16px;
-  background-color: #bb86fc;
+  background-color: #2CBDFB;
   color: #121212;
   border: none;
   border-radius: 20px;
@@ -395,7 +396,7 @@
 }
 
 .back-button:hover, .back-button:active {
-  background-color: #a76bfa;
+  background-color: #0f9cd8;
   transform: translateY(-2px);
 }
 

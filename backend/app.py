@@ -34,6 +34,8 @@ from PIL import Image
 import io
 import uuid
 from datetime import datetime
+from flask_socketio import SocketIO, emit, join_room, leave_room
+import eventlet
 
 log_path = Path(__file__).parent.parent / "logs" / "backend.online.log"
 logger_setup(log_path=log_path, debug=True)
@@ -70,6 +72,89 @@ AVATARS_DIR = STATIC_DIR / 'avatars'
 AVATARS_DIR.mkdir(parents=True, exist_ok=True)
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+# Initialize SocketIO with Flask app
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
+
+# Store room player state
+# Store room player state
+room_player_states = {}
+
+@socketio.on('connect')
+def handle_connect():
+    logger.info(f"Client connected: {request.sid}")
+    
+@socketio.on('disconnect')
+def handle_disconnect():
+    logger.info(f"Client disconnected: {request.sid}")
+
+@socketio.on('join_room')
+def handle_join_room(data):
+    room_name = data.get('room_name')
+    is_host = data.get('is_host', False)
+    username = data.get('username', 'Guest')
+    
+    logger.info(f"User {username} joining room {room_name}, is_host: {is_host}")
+    
+    # Join the socket room
+    join_room(room_name)
+    
+    # Let the room know someone joined
+    emit('user_joined', {
+        'username': username,
+        'is_host': is_host,
+        'message': f"{username} joined the room"
+    }, room=room_name)
+    
+    # Send current player state to the joining client if exists
+    if room_name in room_player_states:
+        emit('player_state_update', room_player_states[room_name])
+
+@socketio.on('leave_room')
+def handle_leave_room(data):
+    room_name = data.get('room_name')
+    username = data.get('username', 'Guest')
+    logger.info(f"User {username} leaving room {room_name}")
+    
+    leave_room(room_name)
+    emit('user_left', {
+        'username': username,
+        'message': f"{username} left the room"
+    }, room=room_name)
+
+@socketio.on('player_state_change')
+def handle_player_state_change(data):
+    room_name = data.get('room_name')
+    is_host = data.get('is_host', False)
+    player_state = data.get('player_state', {})
+    
+    # Only hosts can update player state
+    if not is_host:
+        return
+    
+    # Add a server timestamp to the state
+    player_state['server_timestamp'] = time.time()
+    
+    logger.info(f"Host updated player state in room {room_name}: {player_state}")
+    
+    # Store the current state
+    if room_name not in room_player_states:
+        room_player_states[room_name] = {}
+    
+    # Update only the fields provided in the new state
+    # This ensures we don't lose other state information
+    room_player_states[room_name].update(player_state)
+    
+    # Broadcast to all clients in the room
+    emit('player_state_update', room_player_states[room_name], room=room_name)
+
+# Add API endpoint to get current player state
+@app.route('/api/room/player-state', methods=['GET'])
+def get_player_state():
+    room_name = request.args.get('room_name')
+    if not room_name or room_name not in room_player_states:
+        return jsonify({"error": "Room not found or no player state available"}), 404
+        
+    return jsonify(room_player_states[room_name])
 
 # if not os.path.exists(UPLOAD_FOLDER):
 #     os.makedirs(UPLOAD_FOLDER)
@@ -1724,5 +1809,5 @@ def pin_track():
 
 if __name__ == '__main__':
     # app.run(port=3000, host='10.72.252.213', debug=True)
-    app.run(port=5000, host='0.0.0.0', debug=True)
+     socketio.run(app, port=5000, host='0.0.0.0', debug=True)
     # http://13.56.253.58/

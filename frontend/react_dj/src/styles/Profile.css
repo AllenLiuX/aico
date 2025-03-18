@@ -23,7 +23,7 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: #bb86fc;
+  background: #2CBDFB;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -42,7 +42,7 @@
 
 .top-row h1 {
   font-size: 20px;
-  color: #bb86fc;
+  color: #2CBDFB;
   margin: 0;
 }
 
@@ -62,7 +62,7 @@
 
 .stat-item .value {
   font-weight: 500;
-  color: #bb86fc;
+  color: #2CBDFB;
 }
 
 .stat-item .label {
@@ -74,7 +74,7 @@
 .edit-btn {
   margin-left: auto;
   padding: 8px 16px;
-  background-color: #bb86fc;
+  background-color: #2CBDFB;
   color: #121212;
   border: none;
   border-radius: 20px;
@@ -87,7 +87,7 @@
 }
 
 .edit-btn:hover {
-  background-color: #a66ffe;
+  background-color: #0f9cd8;
 }
 
 /* User Meta Info */
@@ -123,7 +123,7 @@
   border-radius: 12px;
   font-size: 12px;
   background-color: rgba(187, 134, 252, 0.1);
-  color: #bb86fc;
+  color: #2CBDFB;
 }
 
 /* Edit Form */
@@ -150,7 +150,7 @@
 
 .edit-form input:focus,
 .edit-form textarea:focus {
-  border-color: #bb86fc;
+  border-color: #2CBDFB;
   outline: none;
 }
 
@@ -183,8 +183,8 @@
 }
 
 .category-btn.active {
-  background: #bb86fc;
-  border-color: #bb86fc;
+  background: #2CBDFB;
+  border-color: #2CBDFB;
   color: #121212;
 }
 
@@ -206,8 +206,8 @@
 }
 
 .tag-btn.selected {
-  background: #bb86fc;
-  border-color: #bb86fc;
+  background: #2CBDFB;
+  border-color: #2CBDFB;
   color: #121212;
 }
 
@@ -240,7 +240,7 @@
 }
 
 .rooms-section h2 svg {
-  color: #bb86fc;
+  color: #2CBDFB;
 }
 
 .rooms-section .count {
@@ -337,12 +337,12 @@
 }
 
 .create-card:hover {
-  border-color: #bb86fc;
+  border-color: #2CBDFB;
   background: rgba(187, 134, 252, 0.05);
 }
 
 .create-card svg {
-  color: #bb86fc;
+  color: #2CBDFB;
   opacity: 0.8;
   transition: all 0.2s;
 }
@@ -408,7 +408,7 @@
 
 .genre-tag {
   background-color: rgba(187, 134, 252, 0.1);
-  color: #bb86fc;
+  color: #2CBDFB;
 }
 
 .occasion-tag {
@@ -456,12 +456,12 @@
 }
 
 .tab-button:hover {
-  color: #bb86fc;
+  color: #2CBDFB;
 }
 
 .tab-button.active {
-  color: #bb86fc;
-  border-bottom-color: #bb86fc;
+  color: #2CBDFB;
+  border-bottom-color: #2CBDFB;
 }
 
 /* Section Headers */
@@ -477,7 +477,7 @@
 
 .rooms-section h2 svg,
 .users-section h2 svg {
-  color: #bb86fc;
+  color: #2CBDFB;
 }
 
 .count {

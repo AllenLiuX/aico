@@ -57,7 +57,7 @@
     padding: 12px;
     border: none;
     border-radius: 6px;
-    background-color: #bb86fc;
+    background-color: #2CBDFB;
     color: #121212;
     font-weight: 600;
     cursor: pointer;
@@ -65,7 +65,7 @@
   }
   
   .confirm-button:hover {
-    background-color: #a66ffe;
+    background-color: #0f9cd8;
   }
   
   /* Style variants */

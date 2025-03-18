@@ -17,7 +17,7 @@
   .hero-title {
     font-size: 48px;
     margin: 0 0 16px 0;
-    background: linear-gradient(45deg, #bb86fc, #03dac6);
+    background: linear-gradient(45deg, #2CBDFB, #03dac6);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -51,18 +51,19 @@
   }
   
   .create-button {
-    background-color: #bb86fc;
+    background-color: #2CBDFB;
     color: #121212;
   }
   
   .create-button:hover {
-    background-color: #a66ffe;
+    background-color: #0f9cd8;
+    color: #121212;
   }
   
   .join-button {
     background-color: transparent;
-    color: #bb86fc;
-    border: 2px solid #bb86fc;
+    color: #2CBDFB;
+    border: 2px solid #2CBDFB;
   }
   
   .join-button:hover {
@@ -94,7 +95,7 @@
     width: 48px;
     height: 48px;
     margin-bottom: 16px;
-    color: #bb86fc;
+    color: #2CBDFB;
   }
   
   .feature-title {

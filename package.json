@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "socket.io-client": "^4.7.2",
+    "eventlet": "^0.33.3",
+    "flask-socketio": "^5.3.6"
+  }
+}

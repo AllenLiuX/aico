@@ -12,7 +12,7 @@
   
   .explore-header h1 {
     font-size: 32px;
-    color: #bb86fc;
+    color: #2CBDFB;
     margin: 0 0 8px 0;
   }
   
@@ -111,7 +111,7 @@
   
   .genre-tag {
     background-color: rgba(187, 134, 252, 0.1);
-    color: #bb86fc;
+    color: #2CBDFB;
   }
   
   .occasion-tag {
@@ -151,7 +151,7 @@
     height: 40px;
     border: 3px solid #2c2c2c;
     border-radius: 50%;
-    border-top-color: #bb86fc;
+    border-top-color: #2CBDFB;
     animation: spin 1s linear infinite;
     margin: 0 auto 16px;
   }

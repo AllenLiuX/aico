@@ -29,7 +29,7 @@
 
 .lyrics-header .icon {
   margin-right: 8px;
-  color: #bb86fc; /* Purple accent color */
+  color: #2CBDFB; /* Purple accent color */
 }
 
 .lyrics-source {
@@ -88,7 +88,7 @@
 
 .lyric-line.active {
   background-color: rgba(187, 134, 252, 0.1); /* Purple tint background */
-  color: #bb86fc; /* Purple text for active line */
+  color: #2CBDFB; /* Purple text for active line */
   font-weight: bold;
   opacity: 1;
   
@@ -169,7 +169,7 @@
 
 /* Make sure the current line is always visible */
 .integrated-lyrics .lyric-line.active {
-  border-left: 2px solid #bb86fc;
+  border-left: 2px solid #2CBDFB;
   padding-left: 14px; /* 16px - 2px border */
 }
 
