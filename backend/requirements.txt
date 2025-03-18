@@ -17,3 +17,5 @@ Pillow
 qrcode
 ytmusicapi
 Crypto
+flask_socketio
+eventlet

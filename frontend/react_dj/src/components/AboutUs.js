@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Music, Users, Brain, Sparkles, ArrowRight, 
   Mic, Share, Calendar, Zap, MessageCircle, Shield
@@ -177,6 +178,19 @@ const content = {
 function AboutUs() {
   const [language, setLanguage] = useState('zh');
   const t = content[language];
+  const navigate = useNavigate();
+
+  const handleStartExperience = () => {
+    // Check if user is logged in
+    const token = localStorage.getItem('token');
+    if (token) {
+      // If logged in, go to profile
+      navigate('/profile');
+    } else {
+      // If not logged in, go to login page
+      navigate('/login');
+    }
+  };
 
   return (
     <div className={styles.aboutContainer}>
@@ -256,7 +270,7 @@ function AboutUs() {
       </section>
 
       <div className={styles.cta}>
-        <button className={styles.ctaButton}>
+        <button className={styles.ctaButton} onClick={handleStartExperience}>
           {t.cta} <ArrowRight size={20} />
         </button>
       </div>
