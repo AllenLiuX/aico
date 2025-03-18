@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Music } from 'lucide-react';
+import Avatar from './common/Avatar';
 import '../styles/Explore.css';
 import { API_URL } from '../config';
 
@@ -46,14 +47,10 @@ const RoomCard = ({ room }) => {
         </div>
         {room.host && (
           <div className="host-info">
-            <img 
-              src={room.host.avatar} 
-              alt={room.host.username}
-              className="host-avatar"
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = '/api/placeholder/24/24';
-              }}
+            <Avatar 
+              src={room.host.avatar}
+              username={room.host.username}
+              size={24}
             />
             <span>{room.host.username}</span>
           </div>

@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Share2, QrCode } from 'lucide-react';
 import SocialActionButtons from './SocialActionButtons';
+import Avatar from '../common/Avatar';
 
 const RoomHeader = ({ roomName, hostData, showQRCode, setShowQRCode, roomInfo }) => {
   const [showTooltip, setShowTooltip] = useState(false);
@@ -80,14 +81,10 @@ const RoomHeader = ({ roomName, hostData, showQRCode, setShowQRCode, roomInfo })
         {hostData && (
           <div className="host-container">
             <div className="host-info">
-              <img 
-                src={hostData.avatar} 
-                alt={`${hostData.username}'s avatar`}
-                className="host-avatar"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = '/api/placeholder/24/24';
-                }}
+              <Avatar 
+                src={hostData.avatar}
+                username={hostData.username}
+                size={24}
               />
               <span>Created by {hostData.username}</span>
             </div>
