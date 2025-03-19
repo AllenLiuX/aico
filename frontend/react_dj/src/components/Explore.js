@@ -1,7 +1,7 @@
 // Explore.js
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Music } from 'lucide-react';
+import { Music, Calendar } from 'lucide-react';
 import Avatar from './common/Avatar';
 import '../styles/Explore.css';
 import { API_URL } from '../config';
@@ -12,6 +12,25 @@ const RoomCard = ({ room }) => {
   const handleRoomClick = () => {
     navigate(`/playroom?room_name=${room.name}&is_host=False`);
   };
+
+  // Format the created_at date if available
+  const formatCreationDate = (dateString) => {
+    if (!dateString) return null;
+    
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString(undefined, { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
+      });
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return null;
+    }
+  };
+
+  const creationDate = room.host?.created_at ? formatCreationDate(room.host.created_at) : null;
 
   return (
     <div className="room-card" onClick={handleRoomClick}>
@@ -53,6 +72,14 @@ const RoomCard = ({ room }) => {
               size={24}
             />
             <span>{room.host.username}</span>
+            
+            {/* Display creation date if available */}
+            {creationDate && (
+              <div className="room-creation-date">
+                <Calendar size={12} />
+                <span>{creationDate}</span>
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -1080,6 +1080,26 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
+}
+
+.host-info span {
+  color: #999;
+  font-size: 14px;
+}
+
+/* Creation date styling */
+.creation-date {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #999;
+  font-size: 13px;
+  margin-left: 8px;
+}
+
+.creation-date svg {
+  color: #777;
 }
 
 .host-avatar {

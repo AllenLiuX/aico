@@ -1,6 +1,6 @@
 // Updated RoomHeader.js with improved host info and social buttons display
 import React, { useState } from 'react';
-import { Share2, QrCode } from 'lucide-react';
+import { Share2, QrCode, Calendar } from 'lucide-react';
 import SocialActionButtons from './SocialActionButtons';
 import Avatar from '../common/Avatar';
 
@@ -72,6 +72,25 @@ const RoomHeader = ({ roomName, hostData, showQRCode, setShowQRCode, roomInfo })
     setTimeout(() => setShowTooltip(false), 2000);
   };
 
+  // Format the created_at date if available
+  const formatCreationDate = (dateString) => {
+    if (!dateString) return null;
+    
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString(undefined, { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
+      });
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return null;
+    }
+  };
+
+  const creationDate = hostData?.created_at ? formatCreationDate(hostData.created_at) : null;
+
   return (
     <div className="room-header">
       <div className="room-info">
@@ -87,6 +106,14 @@ const RoomHeader = ({ roomName, hostData, showQRCode, setShowQRCode, roomInfo })
                 size={24}
               />
               <span>Created by {hostData.username}</span>
+              
+              {/* Display creation date if available */}
+              {creationDate && (
+                <div className="creation-date">
+                  <Calendar size={14} />
+                  <span>Created on {creationDate}</span>
+                </div>
+              )}
             </div>
             
             {/* Social Action Buttons - moved outside of host-info for better spacing */}

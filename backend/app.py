@@ -669,9 +669,7 @@ def get_user_rooms_helper(username):
         settings = json.loads(settings_json) if settings_json else {}
         
         # Get first song's cover image as room cover
-        cover_image = (playlist[0].get('cover_img_url', '') 
-                     if playlist and len(playlist) > 0 
-                     else '')
+        cover_image = playlist[0].get('cover_img_url', '') if playlist and len(playlist) > 0 else ''
         
         rooms_data.append({
             "name": room_name,
@@ -769,7 +767,9 @@ def favorite_room():
         # Update Redis
         write_hash(f"user_favorites{redis_version}", username, json.dumps(favorites))
 
-        return jsonify({"message": f"Successfully {action}ed room to favorites"})
+        return jsonify({
+            "message": f"Successfully {action}ed room to favorites"
+        })
 
     except Exception as e:
         logger.error(f"Error in favorite operation: {str(e)}")
@@ -818,9 +818,7 @@ def get_user_profile(username=None):
             settings = json.loads(settings_json) if settings_json else {}
             
             # Get first song's cover image as room cover
-            cover_image = (playlist[0].get('cover_img_url', '') 
-                        if playlist and len(playlist) > 0 
-                        else '')
+            cover_image = playlist[0].get('cover_img_url', '') if playlist and len(playlist) > 0 else ''
             
             rooms_data.append({
                 "name": room_name,
@@ -849,9 +847,7 @@ def get_user_profile(username=None):
                     playlist = json.loads(playlist_json)
                     settings = json.loads(settings_json) if settings_json else {}
                     
-                    cover_image = (playlist[0].get('cover_img_url', '')
-                                if playlist and len(playlist) > 0
-                                else '')
+                    cover_image = playlist[0].get('cover_img_url', '') if playlist and len(playlist) > 0 else ''
                     
                     favorites_data.append({
                         "name": room_name,
@@ -992,7 +988,7 @@ def get_tag_suggestions():
 
 @app.route('/api/explore/rooms', methods=['GET'])
 def get_explore_rooms():
-    """Get paginated list of all rooms"""
+    """Get paginated list of all rooms, sorted by created_at timestamp (newest first)"""
     try:
         page = int(request.args.get('page', 1))
         limit = int(request.args.get('limit', 12))
@@ -1005,11 +1001,9 @@ def get_explore_rooms():
         logger.info(f"all_room_names:{all_room_names}")
         total_rooms = len(all_room_names)
 
-        # Get paginated room names
-        paginated_room_names = all_room_names[offset:offset + limit]
-        rooms = []
-
-        for room_name in paginated_room_names:
+        # Collect all room data with their creation timestamps
+        room_data_list = []
+        for room_name in all_room_names:
             try:
                 # Get playlist data
                 playlist = json.loads(all_rooms[room_name])
@@ -1022,9 +1016,15 @@ def get_explore_rooms():
                 settings = json.loads(settings_json) if settings_json else {}
                 
                 # Get first song's cover image as room cover
-                cover_image = (playlist[0].get('cover_img_url', '')
-                             if playlist and len(playlist) > 0
-                             else '')
+                cover_image = playlist[0].get('cover_img_url', '') if playlist and len(playlist) > 0 else ''
+                
+                # Get created_at timestamp (default to oldest possible date if not available)
+                created_at = None
+                if host_data and 'created_at' in host_data:
+                    created_at = host_data['created_at']
+                else:
+                    # Use a very old date as default for sorting
+                    created_at = "1970-01-01T00:00:00"
 
                 room_data = {
                     "name": room_name,
@@ -1033,34 +1033,39 @@ def get_explore_rooms():
                     "song_count": len(playlist),
                     "genre": settings.get('genre', ''),
                     "occasion": settings.get('occasion', ''),
-                    "host": host_data
+                    "host": host_data,
+                    "created_at": created_at  # Add created_at for sorting
                 }
-                rooms.append(room_data)
+                room_data_list.append(room_data)
             except Exception as e:
                 logger.error(f"Error processing room {room_name}: {str(e)}")
                 continue
 
+        # Sort rooms by created_at (newest first)
+        sorted_rooms = sorted(room_data_list, key=lambda x: x['created_at'], reverse=True)
+        
+        # Apply pagination after sorting
+        paginated_rooms = sorted_rooms[offset:offset + limit]
+        
+        # Remove the created_at field from the response (it's already in host data)
+        for room in paginated_rooms:
+            if 'created_at' in room:
+                del room['created_at']
+
         res = {
-            "rooms": rooms,
+            "rooms": paginated_rooms,
             "total": total_rooms,
             "hasMore": offset + limit < total_rooms
         }
         logger.info(str(res))
         return jsonify({
-            "rooms": rooms,
+            "rooms": paginated_rooms,
             "total": total_rooms,
             "hasMore": offset + limit < total_rooms
         })
-
     except Exception as e:
         logger.error(f"Error fetching explore rooms: {str(e)}")
         return jsonify({"error": "Failed to fetch rooms"}), 500
-
-
-def allowed_file(filename):
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
 
 @app.route('/api/user/avatar', methods=['POST'])
 def upload_avatar():
@@ -1125,6 +1130,10 @@ def upload_avatar():
     except Exception as e:
         logger.error(f"Error uploading avatar: {str(e)}")
         return jsonify({"error": "Failed to process image"}), 500
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # Add route to serve static files (if needed)
 @app.route('/api/avatars/<path:filename>')
@@ -1704,9 +1713,7 @@ def get_favorites():
                     settings = json.loads(settings_json) if settings_json else {}
                     
                     # Get first song's cover image as room cover
-                    cover_image = (playlist[0].get('cover_img_url', '') 
-                                 if playlist and len(playlist) > 0 
-                                 else '')
+                    cover_image = playlist[0].get('cover_img_url', '') if playlist and len(playlist) > 0 else ''
                     
                     rooms_data.append({
                         "name": room_name,

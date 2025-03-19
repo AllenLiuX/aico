@@ -21,8 +21,8 @@ logger = logging.getLogger(__name__)
 
 # Connect to Redis for caching
 redis_client = redis.Redis(host='localhost', port=6379, db=0)
-# Set cache expiration time (1 week)
-CACHE_EXPIRATION = 60 * 60 * 24 * 7
+# Set cache expiration time (12 weeks)
+CACHE_EXPIRATION = 60 * 60 * 24 * 7 * 12
 
 # List of user agents to rotate
 USER_AGENTS = [
