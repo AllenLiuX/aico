@@ -1,6 +1,6 @@
 // Header.js
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { UserCircle } from 'lucide-react';
 import AuthModal from './AuthModal';
 import ProfileDropdown from './ProfileDropdown';
@@ -11,10 +11,26 @@ function Header() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [user, setUser] = useState(null);
+  const [isIOS, setIsIOS] = useState(false);
   const dropdownRef = useRef(null);
   const buttonRef = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
+    // Check if running in Capacitor iOS environment
+    const checkPlatform = async () => {
+      try {
+        // This will only work in a Capacitor environment
+        if (window.Capacitor && window.Capacitor.getPlatform() === 'ios') {
+          setIsIOS(true);
+        }
+      } catch (e) {
+        // Not in a Capacitor environment, do nothing
+      }
+    };
+    
+    checkPlatform();
+    
     const userData = localStorage.getItem('user');
     if (userData) {
       setUser(JSON.parse(userData));
@@ -30,8 +46,17 @@ function Header() {
     };
 
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    if (isIOS) {
+      document.addEventListener('touchend', handleClickOutside);
+    }
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      if (isIOS) {
+        document.removeEventListener('touchend', handleClickOutside);
+      }
+    };
+  }, [isIOS]);
 
   const handleLogout = () => {
     localStorage.removeItem('user');
@@ -46,14 +71,47 @@ function Header() {
     return `${API_URL}${avatarPath}`;
   };
   
+  // Navigation handlers for iOS
+  const navigateTo = (path) => {
+    navigate(path);
+  };
+  
+  // Conditionally render links based on platform
+  const renderNavLink = (to, text) => {
+    if (isIOS) {
+      return (
+        <Link 
+          to={to} 
+          className="nav-link"
+          onClick={(e) => {
+            e.preventDefault();
+            navigateTo(to);
+          }}
+          onTouchEnd={(e) => {
+            e.preventDefault();
+            navigateTo(to);
+          }}
+        >
+          {text}
+        </Link>
+      );
+    } else {
+      return (
+        <Link to={to} className="nav-link">
+          {text}
+        </Link>
+      );
+    }
+  };
+  
   return (
-    <header className="main-header">
+    <header className={`main-header ${isIOS ? 'ios-device' : ''}`}>
       <div className="header-container">
         <nav>
           <ul className="nav-list">
-            <li><Link to="/" className="nav-link">Home</Link></li>
-            <li><Link to="/explore" className="nav-link">Explore</Link></li>
-            <li><Link to="/about" className="nav-link">About Us</Link></li>
+            <li>{renderNavLink("/", "Home")}</li>
+            <li>{renderNavLink("/explore", "Explore")}</li>
+            <li>{renderNavLink("/about", "About Us")}</li>
           </ul>
         </nav>
 
@@ -63,13 +121,12 @@ function Header() {
               <button
                 ref={buttonRef}
                 onClick={() => setShowDropdown(!showDropdown)}
+                onTouchEnd={isIOS ? (e) => {
+                  e.preventDefault();
+                  setShowDropdown(!showDropdown);
+                } : undefined}
                 className="profile-button"
               >
-                {/* <img
-                  src={user.avatar}
-                  alt="Profile"
-                  className="profile-avatar"
-                /> */}
                 <img
                   src={getFullAvatarUrl(user.avatar) || `/api/avatar/${user.username}`}
                   alt="Profile"
@@ -86,6 +143,10 @@ function Header() {
           ) : (
             <button
               onClick={() => setShowAuthModal(true)}
+              onTouchEnd={isIOS ? (e) => {
+                e.preventDefault();
+                setShowAuthModal(true);
+              } : undefined}
               className="login-button"
             >
               <UserCircle size={24} />
