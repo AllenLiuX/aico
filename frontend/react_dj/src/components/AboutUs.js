@@ -176,7 +176,7 @@ const content = {
 };
 
 function AboutUs() {
-  const [language, setLanguage] = useState('zh');
+  const [language, setLanguage] = useState('en');
   const t = content[language];
   const navigate = useNavigate();
 
@@ -185,10 +185,10 @@ function AboutUs() {
     const token = localStorage.getItem('token');
     if (token) {
       // If logged in, go to profile
-      navigate('/profile');
+      navigate('/homepage');
     } else {
       // If not logged in, go to login page
-      navigate('/login');
+      navigate('/homepage');
     }
   };
 

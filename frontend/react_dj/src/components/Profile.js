@@ -1,6 +1,6 @@
 // Profile.js
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Music, Plus, MapPin, Calendar, Edit2, Users, Star, UserPlus, UserMinus } from 'lucide-react';
 import AvatarUpload from './AvatarUpload';
 import Avatar from './common/Avatar';
@@ -86,9 +86,7 @@ const UserCard = ({ user, onUnfollow, isFollower = false }) => {
   const navigate = useNavigate();
 
   const handleProfileClick = () => {
-    // We would navigate to the user's profile if that feature exists
-    // For now, just log the action
-    console.log(`View profile of ${user.username}`);
+    navigate(`/profile/${user.username}`);
   };
 
   return (
@@ -124,6 +122,8 @@ const UserCard = ({ user, onUnfollow, isFollower = false }) => {
 };
 
 function Profile() {
+  const { username: profileUsername } = useParams(); // Get username from URL
+  const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [user, setUser] = useState({
     username: '',
     email: '',
@@ -157,59 +157,55 @@ function Profile() {
   useEffect(() => {
     const fetchUserData = async () => {
       const token = localStorage.getItem('token');
-      if (!token) return;
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      
+      // Check if this is the user's own profile
+      const isOwn = currentUser.username === profileUsername;
+      setIsOwnProfile(isOwn);
 
       try {
-        // Fetch all user data in parallel
-        const [profileRes, roomsRes, favoritesRes, followingRes, followersRes] = await Promise.all([
-          fetch(`${API_URL}/api/user/profile`, {
+        let profileData;
+        
+        if (isOwn && token) {
+          // Fetch authenticated user data
+          const profileRes = await fetch(`${API_URL}/api/user/profile`, {
             headers: { 'Authorization': token }
-          }),
-          fetch(`${API_URL}/api/user/rooms`, {
-            headers: { 'Authorization': token }
-          }),
-          fetch(`${API_URL}/api/user/favorites?detailed=true`, {
-            headers: { 'Authorization': token }
-          }),
-          fetch(`${API_URL}/api/user/following?detailed=true`, {
-            headers: { 'Authorization': token }
-          }),
-          fetch(`${API_URL}/api/user/followers?detailed=true`, {
-            headers: { 'Authorization': token }
-          })
-        ]);
+          });
 
-        if (!profileRes.ok || !roomsRes.ok) throw new Error('Failed to fetch data');
+          if (!profileRes.ok) throw new Error('Failed to fetch data');
+          profileData = await profileRes.json();
+        } else {
+          // Fetch public profile data
+          const profileRes = await fetch(`${API_URL}/api/user/profile/${profileUsername}`);
+          if (!profileRes.ok) throw new Error('Failed to fetch profile data');
+          profileData = await profileRes.json();
+        }
 
-        const profileData = await profileRes.json();
-        const roomsData = await roomsRes.json();
-
+        // Update all state with profile data
         setUser(profileData);
-        setRooms(roomsData.rooms || []);
+        setRooms(profileData.rooms || []);
+        setFavoriteRooms(profileData.favorites || []);
+        setFollowingUsers(profileData.following || []);
+        setFollowerUsers(profileData.followers || []);
         setEditForm(profileData);
-        
-        // Handle social data responses
-        if (favoritesRes.ok) {
-          const favoritesData = await favoritesRes.json();
-          setFavoriteRooms(favoritesData.rooms || []);
-        }
-        
-        if (followingRes.ok) {
-          const followingData = await followingRes.json();
-          setFollowingUsers(followingData.users || []);
-        }
-        
-        if (followersRes.ok) {
-          const followersData = await followersRes.json();
-          setFollowerUsers(followersData.users || []);
-        }
       } catch (error) {
-        console.error('Error fetching data:', error);
+        console.error('Error fetching user data:', error);
+        // Handle error appropriately
       }
     };
 
-    fetchUserData();
-  }, []);
+    if (profileUsername) {
+      fetchUserData();
+    } else {
+      // If no username provided, redirect to the current user's profile
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      if (currentUser.username) {
+        navigate(`/profile/${currentUser.username}`);
+      } else {
+        navigate('/');
+      }
+    }
+  }, [profileUsername, navigate]);
 
   const handleEdit = () => {
     setIsEditing(true);
@@ -337,18 +333,18 @@ function Profile() {
       <div className="profile-header">
         <div className="profile-main">
           <div className="avatar-section">
-            <div className="avatar-wrapper">
-              <Avatar 
-                src={user.avatar}
-                username={user.username}
-                size={120}
+            <div className="avatar-container">
+              <Avatar
+                src={user.avatar || `/api/avatar/${user.username}`}
+                size={140}
+                onClick={() => isOwnProfile && setShowAvatarUpload(true)}
+                className={isOwnProfile ? "clickable" : ""}
               />
-              <button 
-                className="edit-avatar-btn" 
-                onClick={() => setShowAvatarUpload(true)}
-              >
-                <Edit2 size={16} />
-              </button>
+              {isOwnProfile && (
+                <button className="edit-avatar-btn" onClick={() => setShowAvatarUpload(true)}>
+                  <Edit2 size={16} />
+                </button>
+              )}
             </div>
             {showAvatarUpload && (
               <AvatarUpload 
@@ -358,88 +354,101 @@ function Profile() {
               />
             )}
           </div>
+
           <div className="profile-info">
-            <div className="top-row">
-              <h1>{user.username}</h1>
-              <div className="stats">
-                {stats.map(stat => (
-                  <div key={stat.label} className="stat-item">
-                    <span className="value">{stat.value}</span>
-                    <span className="label">{stat.label}</span>
-                  </div>
-                ))}
-              </div>
-              <button 
-                className="edit-btn" 
-                onClick={isEditing ? handleSubmit : handleEdit}
-              >
-                {isEditing ? 'Save Profile' : (
-                  <>
+            <div className="info-header">
+              <div className="username-section">
+                <h2>{user.username}</h2>
+                {isOwnProfile && (
+                  <button className="edit-profile-btn" onClick={() => setIsEditing(true)}>
                     <Edit2 size={16} />
                     Edit Profile
-                  </>
+                  </button>
                 )}
-              </button>
-            </div>
+              </div>
 
-            {!isEditing ? (
-              <>
-                <div className="user-meta">
-                  <MapPin size={14} />
-                  <span>{user.country}</span>
-                  {user.age >= 21 && (
-                    <>
-                      <Calendar size={14} />
-                      <span>{user.age} years old</span>
-                    </>
-                  )}
-                </div>
-                <p className="bio">{user.bio}</p>
-                {user.tags?.length > 0 && (
-                  <div className="user-tags">
+              <div className="stats">
+                <span className="stat-item">
+                  <span className="value">{user.stats.rooms || 0}</span>
+                  <span className="label">Rooms</span>
+                </span>
+                <span className="stat-item">
+                  <span className="value">{user.stats.favorites || 0}</span>
+                  <span className="label">Favorites</span>
+                </span>
+                <span className="stat-item">
+                  <span className="value">{user.stats.following || 0}</span>
+                  <span className="label">Following</span>
+                </span>
+                <span className="stat-item">
+                  <span className="value">{user.stats.followers || 0}</span>
+                  <span className="label">Followers</span>
+                </span>
+              </div>
+
+              <div className="user-details">
+                {user.country && (
+                  <div className="detail-item">
+                    <MapPin size={16} />
+                    <span>{user.country}</span>
+                  </div>
+                )}
+                {user.age && (
+                  <div className="detail-item">
+                    <Calendar size={16} />
+                    <span>{user.age} years old</span>
+                  </div>
+                )}
+                {user.bio && <p className="bio">{user.bio}</p>}
+                {user.tags && user.tags.length > 0 && (
+                  <div className="tags">
                     {user.tags.map(tag => (
                       <span key={tag} className="tag">{tag}</span>
                     ))}
                   </div>
                 )}
-              </>
-            ) : (
-              <div className="edit-form">
-                <input
-                  type="text"
-                  name="country"
-                  placeholder="Country"
-                  value={editForm.country || ''}
-                  onChange={handleChange}
-                />
-                <input
-                  type="number"
-                  name="age"
-                  placeholder="Age"
-                  value={editForm.age || ''}
-                  onChange={handleChange}
-                />
-                <textarea
-                  name="bio"
-                  placeholder="Bio"
-                  value={editForm.bio || ''}
-                  onChange={handleChange}
-                  rows={2}
-                />
-                <TagSelector
-                  selectedTags={editForm.tags || []}
-                  onTagSelect={handleTagSelect}
-                />
-                <button 
-                  className="cancel-btn" 
-                  onClick={handleCancel}
-                >
-                  Cancel
-                </button>
               </div>
-            )}
+            </div>
           </div>
         </div>
+
+        {isEditing && (
+          <div className="edit-form">
+            <input
+              type="text"
+              name="country"
+              placeholder="Country"
+              value={editForm.country || ''}
+              onChange={handleChange}
+            />
+            <input
+              type="number"
+              name="age"
+              placeholder="Age"
+              value={editForm.age || ''}
+              onChange={handleChange}
+            />
+            <textarea
+              name="bio"
+              placeholder="Bio"
+              value={editForm.bio || ''}
+              onChange={handleChange}
+              rows={2}
+            />
+            <TagSelector
+              selectedTags={editForm.tags || []}
+              onTagSelect={handleTagSelect}
+            />
+            <div className="edit-form-buttons">
+              <button className="cancel-btn" onClick={handleCancel}>
+                Cancel
+              </button>
+              <button className="save-btn" onClick={handleSubmit}>
+                Save Profile
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Tab Navigation */}
@@ -481,12 +490,14 @@ function Profile() {
             {rooms.map(room => (
               <RoomCard key={room.name} room={room} />
             ))}
-            <div 
-              className="room-card create-card"
-              onClick={() => navigate('/create_room')}
-            >
-              <Plus size={32} />
-            </div>
+            {isOwnProfile && (
+              <div 
+                className="room-card create-card"
+                onClick={() => navigate('/create_room')}
+              >
+                <Plus size={32} />
+              </div>
+            )}
           </div>
         </div>
       )}

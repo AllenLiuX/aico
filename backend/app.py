@@ -707,52 +707,132 @@ def favorite_room():
 
 # Add to your app.py
 
-def format_user_profile(username, profile_data=None):
-    """Helper function to format user profile data with defaults"""
-    if not profile_data:
-        profile_data = {}
-    
-    return {
-        "username": username,
-        "age": profile_data.get('age'),
-        "country": profile_data.get('country', ''),
-        "sex": profile_data.get('sex', ''),
-        "bio": profile_data.get('bio', ''),
-        "email": profile_data.get('email', ''),
-        "avatar": profile_data.get('avatar', f"/api/avatars/{username}"),
-        "tags": profile_data.get('tags', []),
-        "created_at": profile_data.get('created_at', datetime.now().isoformat()),
-        "stats": {
-            "favoritesCount": 0,
-            "followingCount": 0,
-            "followersCount": 0
-        }
-    }
-
 @app.route('/api/user/profile', methods=['GET'])
-def get_user_profile():
+@app.route('/api/user/profile/<username>', methods=['GET'])
+def get_user_profile(username=None):
     """Get user profile data including stats and tags"""
-    auth_token = request.headers.get('Authorization')
-    if not auth_token:
-        return jsonify({"error": "Authentication required"}), 401
-
-    username = get_hash(f"sessions{redis_version}", auth_token)
+    # If username is provided, get public profile
+    # If not, verify auth and get private profile
     if not username:
-        return jsonify({"error": "Invalid session"}), 401
+        auth_token = request.headers.get('Authorization')
+        if not auth_token:
+            return jsonify({"error": "Authentication required"}), 401
+
+        username = get_hash(f"sessions{redis_version}", auth_token)
+        if not username:
+            return jsonify({"error": "Invalid session"}), 401
 
     try:
         # Get basic profile data
         profile_json = get_hash(f"user_profiles{redis_version}", username)
-        profile = json.loads(profile_json) if profile_json else format_user_profile(username)
+        if not profile_json:
+            if username:  # For public profile requests
+                return jsonify({"error": "User not found"}), 404
+            # For authenticated requests, create default profile
+            profile = format_user_profile(username)
+        else:
+            profile = json.loads(profile_json)
+
+        # Get user rooms with details
+        rooms_data = []
+        created_rooms = profile.get('created_rooms', [])
+        for room_name in created_rooms:
+            # Get room data
+            playlist_json = get_hash(f"room_playlists{redis_version}", room_name)
+            settings_json = get_hash(f"settings{redis_version}", room_name)
+            intro = get_hash(f"intro{redis_version}", room_name)
+            
+            if not playlist_json:
+                continue  # Skip if room no longer exists
+                
+            playlist = json.loads(playlist_json)
+            settings = json.loads(settings_json) if settings_json else {}
+            
+            # Get first song's cover image as room cover
+            cover_image = (playlist[0].get('cover_img_url', '') 
+                        if playlist and len(playlist) > 0 
+                        else '')
+            
+            rooms_data.append({
+                "name": room_name,
+                "cover_image": cover_image,
+                "introduction": intro[:100] + '...' if intro and len(intro) > 100 else intro,
+                "song_count": len(playlist),
+                "genre": settings.get('genre', ''),
+                "occasion": settings.get('occasion', ''),
+                "created_at": profile.get('created_at', '')
+            })
         
-        # Get follower counts
-        followers = get_hash(f"user_followers{redis_version}", username)
-        following = get_hash(f"user_following{redis_version}", username)
-        favorites = get_hash(f"user_favorites{redis_version}", username)
+        # Get favorites with details
+        favorites_data = []
+        favorites_json = get_hash(f"user_favorites{redis_version}", username)
+        if favorites_json:
+            favorites = json.loads(favorites_json)
+            for room_name in favorites:
+                try:
+                    playlist_json = get_hash(f"room_playlists{redis_version}", room_name)
+                    settings_json = get_hash(f"settings{redis_version}", room_name)
+                    intro = get_hash(f"intro{redis_version}", room_name)
+                    
+                    if not playlist_json:
+                        continue
+                        
+                    playlist = json.loads(playlist_json)
+                    settings = json.loads(settings_json) if settings_json else {}
+                    
+                    cover_image = (playlist[0].get('cover_img_url', '') 
+                                if playlist and len(playlist) > 0 
+                                else '')
+                    
+                    favorites_data.append({
+                        "name": room_name,
+                        "cover_image": cover_image,
+                        "introduction": intro[:100] + '...' if intro and len(intro) > 100 else intro,
+                        "song_count": len(playlist),
+                        "genre": settings.get('genre', ''),
+                        "occasion": settings.get('occasion', '')
+                    })
+                except:
+                    continue
+
+        # Get following/followers with details
+        following_data = []
+        followers_data = []
         
-        followers_count = len(json.loads(followers)) if followers else 0
-        following_count = len(json.loads(following)) if following else 0
-        favorites_count = len(json.loads(favorites)) if favorites else 0
+        following_json = get_hash(f"user_following{redis_version}", username)
+        followers_json = get_hash(f"user_followers{redis_version}", username)
+        
+        if following_json:
+            following_usernames = json.loads(following_json)
+            for follow_username in following_usernames:
+                try:
+                    follow_profile_json = get_hash(f"user_profiles{redis_version}", follow_username)
+                    if follow_profile_json:
+                        follow_profile = json.loads(follow_profile_json)
+                        following_data.append({
+                            "username": follow_username,
+                            "avatar": follow_profile.get('avatar', f"/api/avatars/{follow_username}"),
+                            "bio": follow_profile.get('bio', ''),
+                            "country": follow_profile.get('country', '')
+                        })
+                except:
+                    continue
+        
+        if followers_json:
+            follower_usernames = json.loads(followers_json)
+            for follower_username in follower_usernames:
+                try:
+                    follower_profile_json = get_hash(f"user_profiles{redis_version}", follower_username)
+                    if follower_profile_json:
+                        follower_profile = json.loads(follower_profile_json)
+                        followers_data.append({
+                            "username": follower_username,
+                            "avatar": follower_profile.get('avatar', f"/api/avatars/{follower_username}"),
+                            "bio": follower_profile.get('bio', ''),
+                            "country": follower_profile.get('country', '')
+                        })
+                except:
+                    continue
 
         # Get user tags
         user_tags_json = get_hash(f"user_tags{redis_version}", username)
@@ -761,15 +841,22 @@ def get_user_profile():
 
         # Update stats
         profile["stats"] = {
-            "favoritesCount": favorites_count,
-            "followingCount": following_count,
-            "followersCount": followers_count
+            "rooms": len(rooms_data),
+            "favorites": len(favorites_data),
+            "following": len(following_data),
+            "followers": len(followers_data)
         }
+
+        # Include full data lists
+        profile["rooms"] = rooms_data
+        profile["favorites"] = favorites_data
+        profile["following"] = following_data
+        profile["followers"] = followers_data
 
         return jsonify(profile)
 
     except Exception as e:
-        logger.error(f"Error fetching user profile: {str(e)}")
+        logger.error(f"Error fetching user profile for {username}: {str(e)}")
         return jsonify({"error": "Failed to fetch profile"}), 500
 
 @app.route('/api/user/profile', methods=['POST'])
@@ -805,7 +892,10 @@ def update_user_profile():
         # Save updated profile
         write_hash(f"user_profiles{redis_version}", username, json.dumps(profile))
         
-        return jsonify({"message": "Profile updated successfully", "profile": profile})
+        return jsonify({
+            "message": "Profile updated successfully",
+            "profile": profile
+        })
 
     except Exception as e:
         logger.error(f"Error updating user profile: {str(e)}")
@@ -1584,7 +1674,7 @@ def get_following():
         # Get following list
         following_json = get_hash(f"user_following{redis_version}", username)
         following = json.loads(following_json) if following_json else []
-        
+
         # Get details for each followed user if requested
         detailed = request.args.get('detailed', 'false').lower() == 'true'
         
@@ -1597,7 +1687,9 @@ def get_following():
                         profile = json.loads(profile_json)
                         users_data.append({
                             "username": followed_username,
-                            "avatar": profile.get('avatar', f"/api/avatars/{followed_username}")
+                            "avatar": profile.get('avatar', f"/api/avatars/{followed_username}"),
+                            "bio": profile.get('bio', ''),
+                            "country": profile.get('country', '')
                         })
                 except Exception as e:
                     logger.error(f"Error getting followed user details: {e}")
@@ -1639,7 +1731,9 @@ def get_followers():
                         profile = json.loads(profile_json)
                         users_data.append({
                             "username": follower_username,
-                            "avatar": profile.get('avatar', f"/api/avatars/{follower_username}")
+                            "avatar": profile.get('avatar', f"/api/avatars/{follower_username}"),
+                            "bio": profile.get('bio', ''),
+                            "country": profile.get('country', '')
                         })
                 except Exception as e:
                     logger.error(f"Error getting follower details: {e}")
@@ -1836,6 +1930,7 @@ def verify_room_host():
         "host_avatar": host_data.get('avatar'),
         "allow_anyone_host": False
     })
+
 
 if __name__ == '__main__':
     # app.run(port=3000, host='10.72.252.213', debug=True)

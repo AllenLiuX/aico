@@ -27,15 +27,15 @@ function App() {
             <Header />
             <main className="pt-16"> {/* Added padding-top to account for fixed header */}
               <Routes>
-                <Route exact path="/" element={<Navigate to="/about" />} />
-                <Route path="/homepage" element={<Homepage />} />
+                <Route path="/" element={<Homepage />} />
+                <Route path="/playroom" element={<PlayRoom />} />
                 <Route path="/create_room" element={<CreateRoom />} />
+                <Route path="/profile/:username" element={<Profile />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/about" element={<AboutUs />} />
                 <Route path="/join_room" element={<JoinRoom />} />
                 <Route path="/playlist" element={<PlaylistGenerator />} />
-                <Route path="/playroom" element={<PlayRoom />} />
-                <Route path="/about" element={<AboutUs />} />
                 <Route path="/search_music" element={<SearchMusic />} />
-                <Route path="/profile" element={<Profile />} />
                 <Route path="/explore" element={<Explore />} />
               </Routes>
             </main>

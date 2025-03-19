@@ -65,20 +65,22 @@ const LyricsSection = ({
     if (hasScrolledToCurrentLine.current && !force) return;
     
     // Calculate how far to scroll - center the active lyric in the container
-    const scrollTop = element.offsetTop - container.offsetTop - 
-                    (container.clientHeight / 2) + (element.clientHeight / 2);
+    // Add a small offset to ensure the active line is slightly above center for better readability
+    const scrollTop = element.offsetTop - 
+                    (container.clientHeight * 0.4) + // Position line at 40% from top instead of center
+                    (element.clientHeight / 2);
     
-    // Use requestAnimationFrame to ensure this happens after layout updates
+    // Use double requestAnimationFrame to ensure layout is fully updated
     requestAnimationFrame(() => {
-      // Scroll only within the container - this is the key fix
-      container.scrollTo({
-        top: scrollTop,
-        behavior: isFirstRender.current ? 'auto' : 'smooth' // First scroll is instant
+      requestAnimationFrame(() => {
+        container.scrollTo({
+          top: Math.max(0, scrollTop), // Prevent negative scroll
+          behavior: isFirstRender.current ? 'auto' : 'smooth'
+        });
+        
+        hasScrolledToCurrentLine.current = true;
+        isFirstRender.current = false;
       });
-      
-      // Mark that we've scrolled to the current line
-      hasScrolledToCurrentLine.current = true;
-      isFirstRender.current = false;
     });
   };
 
@@ -108,12 +110,14 @@ const LyricsSection = ({
       
       // Only scroll if we have proper references to the elements
       if (foundIndex >= 0 && lyricsRef.current) {
-        // We'll get the activeLine ref in the next render, so delay the scroll
+        // Increased delay to ensure DOM is ready
         setTimeout(() => {
           if (activeLine.current && lyricsRef.current) {
+            // Reset scroll flag to force scroll
+            hasScrolledToCurrentLine.current = false;
             scrollToActiveLine(activeLine.current, lyricsRef.current);
           }
-        }, 50);
+        }, 150); // Increased from 50ms to 150ms
       }
     }
   }, [currentTime, timedLyrics, currentLineIndex, onCurrentLineChange]);

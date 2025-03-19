@@ -18,6 +18,7 @@ import RequestNotificationModal from './RequestNotificationModal';
 import { ToggleLeft, ToggleRight, Edit, RefreshCw } from 'lucide-react';
 
 import '../styles/PlayRoom.css';
+import { API_URL } from '../config';
 
 // Mobile Wrapper Component
 const MobileResponsiveWrapper = ({ children }) => {
@@ -94,8 +95,56 @@ function PlayRoom() {
   useEffect(() => {
     if (!roomName) {
       navigate('/homepage');
+      return;
     }
-    setIsHost(isHostParam);
+
+    // Get current user data
+    const userDataStr = localStorage.getItem('user');
+    const userData = userDataStr ? JSON.parse(userDataStr) : null;
+    const token = localStorage.getItem('token');
+
+    // Verify host status with backend
+    const verifyHostStatus = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/room/host?room_name=${encodeURIComponent(roomName)}`, {
+          headers: {
+            'Authorization': token
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to verify host status');
+        }
+        
+        const data = await response.json();
+        
+        // Handle rooms without registered host
+        if (data.allow_anyone_host) {
+          setIsHost(true);
+          // Update URL to reflect host status
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.set('is_host', 'True');
+          navigate(newUrl.pathname + newUrl.search, { replace: true });
+          return;
+        }
+        
+        // For rooms with registered host, verify username
+        const actualIsHost = userData && data.host_username === userData.username;
+        setIsHost(actualIsHost);
+        
+        // If URL claims host but verification fails, redirect to non-host URL
+        if (isHostParam && !actualIsHost) {
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.set('is_host', 'False');
+          navigate(newUrl.pathname + newUrl.search, { replace: true });
+        }
+      } catch (error) {
+        console.error('Error verifying host status:', error);
+        setIsHost(false);
+      }
+    };
+
+    verifyHostStatus();
   }, [roomName, navigate, isHostParam]);
 
   // Initialize socket connection
