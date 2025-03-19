@@ -14,6 +14,8 @@ from placeholder import init_placeholder_routes
 from io import BytesIO
 import random
 
+# Import the example prompts
+from data.example_prompts import EXAMPLE_PROMPTS
 
 import hashlib
 import secrets
@@ -293,10 +295,10 @@ def generate_playlist():
         redis_api.write_hash(f"room_playlists{redis_version}", room_name, json.dumps(new_playlist))
         redis_api.write_hash(f"settings{redis_version}", room_name, json.dumps(settings))
         redis_api.write_hash(f"intro{redis_version}", room_name, introduction)
-
+        
         # Store host information if user is logged in
         if username and avatar:
-            set_room_host(room_name, username, avatar)
+            set_room_host(room_name, username, avatar, update_timestamp=False)
             add_room_to_user_profile(username, room_name)
 
         return jsonify({"playlist": new_playlist})
@@ -606,12 +608,35 @@ def get_room_host(room_name):
         return None
     return json.loads(host_data)
 
-def set_room_host(room_name, username, avatar):
-    """Set room host information."""
+def set_room_host(room_name, username, avatar, update_timestamp=True):
+    """Set or update the host information for a room.
+    
+    Args:
+        room_name: The name of the room
+        username: The username of the host
+        avatar: The avatar URL of the host
+        update_timestamp: Whether to update the created_at timestamp (default: True)
+    """
+    # Check if host data already exists
+    existing_host_data_json = get_hash(f"room_hosts{redis_version}", room_name)
+    
+    if not update_timestamp and existing_host_data_json:
+        # If we don't want to update the timestamp and host data exists,
+        # preserve the existing created_at timestamp
+        try:
+            existing_host_data = json.loads(existing_host_data_json)
+            created_at = existing_host_data.get('created_at', datetime.now().isoformat())
+        except:
+            # If there's an error parsing the existing data, use current time
+            created_at = datetime.now().isoformat()
+    else:
+        # Otherwise, use current time
+        created_at = datetime.now().isoformat()
+    
     host_data = json.dumps({
         "username": username,
         "avatar": avatar,
-        "created_at": datetime.now().isoformat()
+        "created_at": created_at
     })
     write_hash(f"room_hosts{redis_version}", room_name, host_data)
 
@@ -1121,7 +1146,7 @@ def upload_avatar():
         for room in rooms:
             host_data = get_room_host(room['name'])
             if host_data and host_data.get('username') == username:
-                set_room_host(room['name'], username, avatar_url)
+                set_room_host(room['name'], username, avatar_url, update_timestamp=False)
         
         return jsonify({
             "message": "Avatar uploaded successfully",
@@ -1285,8 +1310,6 @@ def request_track():
         })
     except Exception as e:
         logger.error(f"Error requesting track: {str(e)}")
-        import traceback
-        logger.error(traceback.format_exc())
         return jsonify({"error": "Failed to request track"}), 500
 
 
@@ -2007,6 +2030,17 @@ def verify_room_host():
         "allow_anyone_host": False
     })
 
+@app.route('/api/example-prompts', methods=['GET'])
+def get_example_prompts():
+    """Return example prompts for the playlist generator."""
+    try:
+        # You can add filtering or randomization logic here if needed
+        return jsonify({
+            "examples": EXAMPLE_PROMPTS
+        })
+    except Exception as e:
+        logger.error(f"Error fetching example prompts: {str(e)}")
+        return jsonify({"error": "Failed to fetch example prompts"}), 500
 
 if __name__ == '__main__':
     # app.run(port=3000, host='10.72.252.213', debug=True)

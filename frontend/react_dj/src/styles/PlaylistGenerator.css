@@ -550,3 +550,145 @@
       appearance: none;
     }
   }
+
+  /* Example prompts styles */
+  .example-prompts-toggle {
+    background: none;
+    border: none;
+    color: #2CBDFB;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 8px 0 0 0;
+    padding: 0;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+
+  .example-prompts-toggle:hover {
+    color: #5fd0ff;
+    text-decoration: underline;
+  }
+
+  .example-prompts-container {
+    background-color: #2c2c2c;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 16px;
+    border: 1px solid #3d3d3d;
+    animation: fadeIn 0.3s ease-in-out;
+  }
+
+  .example-prompts-container h3 {
+    color: #e0e0e0;
+    margin: 0 0 8px 0;
+    font-size: 18px;
+  }
+
+  .example-prompts-description {
+    color: #999;
+    font-size: 14px;
+    margin: 0 0 16px 0;
+  }
+
+  /* Category styles */
+  .example-prompts-category {
+    margin-bottom: 24px;
+  }
+
+  .example-prompts-category:last-child {
+    margin-bottom: 0;
+  }
+
+  .category-title {
+    color: #BB86FC;
+    font-size: 16px;
+    margin: 0 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #3d3d3d;
+  }
+
+  .example-prompts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 16px;
+  }
+
+  .example-prompt-card {
+    background-color: #1e1e1e;
+    border-radius: 8px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid #3d3d3d;
+  }
+
+  .example-prompt-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    border-color: #2CBDFB;
+  }
+
+  .example-prompt-card h4 {
+    color: #2CBDFB;
+    margin: 0 0 8px 0;
+    font-size: 16px;
+  }
+
+  .example-prompt-card p {
+    color: #e0e0e0;
+    font-size: 14px;
+    margin: 0 0 12px 0;
+    line-height: 1.4;
+  }
+
+  .example-prompt-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .example-tag {
+    font-size: 12px;
+    padding: 3px 8px;
+    border-radius: 12px;
+    display: inline-block;
+  }
+
+  .example-tag.genre-tag {
+    background-color: rgba(44, 189, 251, 0.15);
+    color: #2CBDFB;
+  }
+
+  .example-tag.occasion-tag {
+    background-color: rgba(187, 134, 252, 0.15);
+    color: #BB86FC;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Mobile styles for example prompts */
+  @media (max-width: 768px) {
+    .example-prompts-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .example-prompts-container {
+      padding: 16px;
+    }
+
+    .category-title {
+      font-size: 15px;
+      margin-bottom: 10px;
+    }
+  }

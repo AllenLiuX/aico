@@ -1,7 +1,7 @@
 // Updated PlaylistGenerator.js with mobile-friendly song count selection
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ChevronDown, ChevronUp, Music, Tag, Calendar, Hash } from 'lucide-react';
+import { ChevronDown, ChevronUp, Music, Tag, Calendar, Hash, Lightbulb } from 'lucide-react';
 import { API_URL } from '../config';
 import '../styles/PlaylistGenerator.css';
 
@@ -32,6 +32,9 @@ function PlaylistGenerator() {
   const [successMessage, setSuccessMessage] = useState('');
   const [combinedPlaylistLength, setCombinedPlaylistLength] = useState(0);
   const [duplicatesRemoved, setDuplicatesRemoved] = useState(0);
+  const [showExamplePrompts, setShowExamplePrompts] = useState(false);
+  const [examplePrompts, setExamplePrompts] = useState([]);
+  const [isLoadingExamples, setIsLoadingExamples] = useState(false);
   const [formData, setFormData] = useState({
     prompt: '',
     genre: '',
@@ -71,12 +74,58 @@ function PlaylistGenerator() {
     };
   }, [location]);
 
+  // Fetch example prompts from the backend
+  const fetchExamplePrompts = async () => {
+    if (examplePrompts.length > 0) {
+      // If we already have examples, just show them
+      setShowExamplePrompts(true);
+      return;
+    }
+
+    setIsLoadingExamples(true);
+    try {
+      const response = await fetch(`${API_URL}/api/example-prompts`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch example prompts');
+      }
+      
+      const data = await response.json();
+      setExamplePrompts(data.examples);
+      setShowExamplePrompts(true);
+    } catch (error) {
+      console.error('Error fetching example prompts:', error);
+      // If we can't fetch examples, still show the toggle but with an error message
+      setError('Could not load example prompts. Please try again later.');
+    } finally {
+      setIsLoadingExamples(false);
+    }
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
+  };
+
+  const handleExamplePromptClick = (example) => {
+    setFormData(prev => ({
+      ...prev,
+      prompt: example.prompt,
+      genre: example.genre,
+      occasion: example.occasion,
+      customGenre: example.genre === 'Other' ? 'Custom' : '',
+      customOccasion: example.occasion === 'Other' ? 'Custom' : ''
+    }));
+    
+    // Show advanced options if the example uses them
+    if (example.genre || example.occasion) {
+      setShowAdvanced(true);
+    }
+    
+    // Hide examples after selection
+    setShowExamplePrompts(false);
   };
 
   const handleSubmit = async (e) => {
@@ -166,6 +215,59 @@ function PlaylistGenerator() {
             placeholder="E.g., Upbeat pop songs for a summer road trip"
             required
           />
+          
+          {/* Example prompts toggle button */}
+          <button 
+            type="button" 
+            className="example-prompts-toggle"
+            onClick={fetchExamplePrompts}
+            disabled={isLoadingExamples}
+          >
+            <Lightbulb size={16} />
+            {isLoadingExamples 
+              ? 'Loading examples...' 
+              : showExamplePrompts 
+                ? 'Hide Examples' 
+                : 'Need ideas? See examples'}
+          </button>
+          
+          {/* Example prompts section */}
+          {showExamplePrompts && (
+            <div className="example-prompts-container">
+              <h3>Example Prompts</h3>
+              <p className="example-prompts-description">
+                Click on any example below to use it as a starting point for your playlist:
+              </p>
+              
+              {/* Group examples by category */}
+              {examplePrompts.length > 0 && 
+                [...new Set(examplePrompts.map(example => example.category))].map(category => (
+                  <div key={category} className="example-prompts-category">
+                    <h4 className="category-title">{category}</h4>
+                    <div className="example-prompts-grid">
+                      {examplePrompts
+                        .filter(example => example.category === category)
+                        .map((example, index) => (
+                          <div 
+                            key={index} 
+                            className="example-prompt-card"
+                            onClick={() => handleExamplePromptClick(example)}
+                          >
+                            <h4>{example.title}</h4>
+                            <p>{example.prompt}</p>
+                            <div className="example-prompt-tags">
+                              {example.genre && <span className="example-tag genre-tag">{example.genre}</span>}
+                              {example.occasion && example.occasion !== 'Other' && 
+                                <span className="example-tag occasion-tag">{example.occasion}</span>}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                ))
+              }
+            </div>
+          )}
         </div>
 
         {/* Song count selector - more visible on mobile */}
