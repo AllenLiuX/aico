@@ -51,7 +51,7 @@ function Header() {
       <div className="header-container">
         <nav>
           <ul className="nav-list">
-            <li><Link to="/homepage" className="nav-link">Home</Link></li>
+            <li><Link to="/" className="nav-link">Home</Link></li>
             <li><Link to="/explore" className="nav-link">Explore</Link></li>
             <li><Link to="/about" className="nav-link">About Us</Link></li>
           </ul>

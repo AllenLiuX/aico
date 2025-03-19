@@ -15,7 +15,7 @@ import {
   LyricsSection
 } from './playroom-components';
 import RequestNotificationModal from './RequestNotificationModal';
-import { ToggleLeft, ToggleRight, Edit, RefreshCw } from 'lucide-react';
+import { ToggleLeft, ToggleRight, Edit, RefreshCw, PlusCircle } from 'lucide-react';
 
 import '../styles/PlayRoom.css';
 import { API_URL } from '../config';
@@ -94,7 +94,7 @@ function PlayRoom() {
   // Check if we have a valid room name
   useEffect(() => {
     if (!roomName) {
-      navigate('/homepage');
+      navigate('/');
       return;
     }
 
@@ -293,6 +293,11 @@ function PlayRoom() {
   const handleSearchMusic = () => {
     navigate(`/search_music?room=${roomName}&is_host=${isHost ? 'True' : 'False'}`);
   };
+  
+  // Handle navigation to playlist generator page
+  const handleGeneratePlaylist = () => {
+    navigate(`/playlist?room_name=${encodeURIComponent(roomName)}&moderation=${moderationEnabled ? 'True' : 'False'}&append=True&is_host=${isHost ? 'True' : 'False'}`);
+  };
 
   // Toggle moderation setting
   const toggleModeration = async () => {
@@ -411,7 +416,7 @@ function PlayRoom() {
       <div className="play-room error">
         <h2>Something went wrong</h2>
         <p>{error || playerError}</p>
-        <button onClick={() => navigate('/homepage')} className="back-button">
+        <button onClick={() => navigate('/')} className="back-button">
           Go Back
         </button>
       </div>
@@ -574,6 +579,7 @@ function PlayRoom() {
                 onPinToTop={handlePinTrack}
                 stopProgressTracking={stopProgressTracking}
                 onAddMusicClick={handleSearchMusic}
+                onGeneratePlaylistClick={handleGeneratePlaylist}
               />
               
               {/* Pagination Controls */}

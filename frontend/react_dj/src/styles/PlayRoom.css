@@ -150,6 +150,41 @@
   transform: scale(1.1);
 }
 
+/* Playlist actions container */
+.playlist-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.add-music-button,
+.generate-playlist-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #2a2a2a;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #e0e0e0;
+  transition: all 0.2s ease;
+}
+
+.add-music-button:hover,
+.generate-playlist-button:hover {
+  background-color: #333;
+  color: #2CBDFB;
+}
+
+.generate-playlist-button {
+  background-color: #2c2c4c;
+}
+
+.generate-playlist-button:hover {
+  background-color: #3a3a6a;
+}
+
 .play-button {
   width: 56px;
   height: 56px;
@@ -874,7 +909,6 @@
     overflow-y: auto;
   }
 }
-
 
 /* Add these styles to your PlayRoom.css or create a separate RoomHeader.css file */
 

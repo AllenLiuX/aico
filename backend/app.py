@@ -161,6 +161,51 @@ def get_player_state():
 
 # Update to the generate-playlist endpoint in app.py
 
+def deduplicate_playlist(existing_playlist, new_playlist):
+    """
+    Deduplicate songs when appending to an existing playlist.
+    
+    Args:
+        existing_playlist: List of existing song dictionaries
+        new_playlist: List of new song dictionaries to append
+        
+    Returns:
+        tuple: (deduplicated_new_playlist, combined_playlist)
+    """
+    # Create a set of existing song IDs for quick lookup
+    existing_ids = set()
+    for song in existing_playlist:
+        # Use song_id as the unique identifier if available
+        if 'song_id' in song:
+            existing_ids.add(song['song_id'])
+        # Fallback to title + artist if song_id is not available
+        elif 'title' in song and 'artist' in song:
+            existing_ids.add(f"{song['title']}:{song['artist']}")
+    
+    # Filter out duplicates from the new playlist
+    deduplicated_new_playlist = []
+    for song in new_playlist:
+        # Check if song is already in existing playlist
+        is_duplicate = False
+        if 'song_id' in song and song['song_id'] in existing_ids:
+            is_duplicate = True
+        elif 'title' in song and 'artist' in song and f"{song['title']}:{song['artist']}" in existing_ids:
+            is_duplicate = True
+        
+        # Add to deduplicated list if not a duplicate
+        if not is_duplicate:
+            deduplicated_new_playlist.append(song)
+            # Add to existing_ids to prevent duplicates within new_playlist
+            if 'song_id' in song:
+                existing_ids.add(song['song_id'])
+            elif 'title' in song and 'artist' in song:
+                existing_ids.add(f"{song['title']}:{song['artist']}")
+    
+    # Combine playlists
+    combined_playlist = existing_playlist + deduplicated_new_playlist
+    
+    return deduplicated_new_playlist, combined_playlist
+
 @app.route('/api/generate-playlist', methods=['POST'])
 def generate_playlist():
     data = request.json
@@ -169,6 +214,7 @@ def generate_playlist():
     occasion = data.get('occasion')
     room_name = data.get('room_name')
     song_count = data.get('song_count', 20)  # Default to 20 if not provided
+    append_to_room = data.get('append_to_room', False)  # New parameter to handle append mode
     
     # Validate song count
     if not isinstance(song_count, int) or song_count <= 0:
@@ -196,6 +242,7 @@ def generate_playlist():
         logger.info(str(occasion))
         logger.info(str(room_name))
         logger.info(f"Song count: {song_count}")
+        logger.info(f"Append mode: {append_to_room}")
 
         settings = {
             "prompt": prompt,
@@ -206,20 +253,44 @@ def generate_playlist():
 
         titles, artists, introduction, reply = llm.llm_generate_playlist(prompt, genre, occasion, song_count)
         
-        playlist = []
+        new_playlist = []
         
         for title, artist in zip(titles, artists):
             try:
                 logger.info(f'getting links for {title}...')
                 song_info = youtube_music.get_song_info(song_name=title, artist_name=artist)
-                playlist.append(song_info)
+                new_playlist.append(song_info)
 
             except Exception as e:
                 logger.info(f'----failed for {title}, {artist}', e)
         
-        logger.info(str(playlist))
+        logger.info(str(new_playlist))
 
-        redis_api.write_hash(f"room_playlists{redis_version}", room_name, json.dumps(playlist))
+        # If append mode is enabled and room exists, append to existing playlist
+        if append_to_room:
+            existing_playlist_json = redis_api.get_hash(f"room_playlists{redis_version}", room_name)
+            if existing_playlist_json:
+                try:
+                    existing_playlist = json.loads(existing_playlist_json)
+                    
+                    # Deduplicate the playlist
+                    deduplicated_new_playlist, combined_playlist = deduplicate_playlist(existing_playlist, new_playlist)
+                    
+                    # Update the playlist in Redis
+                    redis_api.write_hash(f"room_playlists{redis_version}", room_name, json.dumps(combined_playlist))
+                    
+                    # Return the deduplicated new playlist and combined length
+                    return jsonify({
+                        "playlist": deduplicated_new_playlist, 
+                        "combined_playlist_length": len(combined_playlist),
+                        "duplicates_removed": len(new_playlist) - len(deduplicated_new_playlist)
+                    })
+                except Exception as e:
+                    logger.error(f"Error appending to playlist: {str(e)}")
+                    # If there's an error, fall back to just returning the new playlist
+        
+        # If not in append mode or append failed, write the new playlist
+        redis_api.write_hash(f"room_playlists{redis_version}", room_name, json.dumps(new_playlist))
         redis_api.write_hash(f"settings{redis_version}", room_name, json.dumps(settings))
         redis_api.write_hash(f"intro{redis_version}", room_name, introduction)
 
@@ -228,7 +299,7 @@ def generate_playlist():
             set_room_host(room_name, username, avatar)
             add_room_to_user_profile(username, room_name)
 
-        return jsonify({"playlist": playlist})
+        return jsonify({"playlist": new_playlist})
     except Exception as e:
         logger.error(f"Error generating playlist: {str(e)}")
         return jsonify({"error": "Failed to generate playlist"}), 500
@@ -705,8 +776,6 @@ def favorite_room():
         return jsonify({"error": "Operation failed"}), 500
 
 
-# Add to your app.py
-
 @app.route('/api/user/profile', methods=['GET'])
 @app.route('/api/user/profile/<username>', methods=['GET'])
 def get_user_profile(username=None):
@@ -780,8 +849,8 @@ def get_user_profile(username=None):
                     playlist = json.loads(playlist_json)
                     settings = json.loads(settings_json) if settings_json else {}
                     
-                    cover_image = (playlist[0].get('cover_img_url', '') 
-                                if playlist and len(playlist) > 0 
+                    cover_image = (playlist[0].get('cover_img_url', '')
+                                if playlist and len(playlist) > 0
                                 else '')
                     
                     favorites_data.append({

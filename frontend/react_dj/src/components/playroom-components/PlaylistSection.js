@@ -1,6 +1,6 @@
 // Fixed PlaylistSection.js to properly handle track selection
 import React from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Sparkles } from 'lucide-react';
 import PlaylistTrack from '../PlaylistTrack';
 
 const PlaylistSection = ({
@@ -13,16 +13,23 @@ const PlaylistSection = ({
   onTrackDelete,
   onPinToTop,
   stopProgressTracking,
-  onAddMusicClick
+  onAddMusicClick,
+  onGeneratePlaylistClick
 }) => {
   return (
     <div className="playlist-section">
       <div className="playlist-header">
         <h3>Playlist ({fullPlaylistLength || playlist.length} songs)</h3>
-        <button onClick={onAddMusicClick} className="control-button add-music-button">
-          <Plus size={20} />
-          Add Music
-        </button>
+        <div className="playlist-actions">
+          <button onClick={onGeneratePlaylistClick} className="control-button generate-playlist-button">
+            <Sparkles size={18} />
+            Generate Playlist
+          </button>
+          <button onClick={onAddMusicClick} className="control-button add-music-button">
+            <Plus size={18} />
+            Add Music
+          </button>
+        </div>
       </div>
       <ul className="track-list">
         {playlist.length > 0 ? (

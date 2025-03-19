@@ -28,6 +28,7 @@ function App() {
             <main className="pt-16"> {/* Added padding-top to account for fixed header */}
               <Routes>
                 <Route path="/" element={<Homepage />} />
+                <Route path="/homepage" element={<Navigate to="/" replace />} />
                 <Route path="/playroom" element={<PlayRoom />} />
                 <Route path="/create_room" element={<CreateRoom />} />
                 <Route path="/profile/:username" element={<Profile />} />

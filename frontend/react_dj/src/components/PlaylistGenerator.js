@@ -27,6 +27,11 @@ function PlaylistGenerator() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState(null);
+  const [isAppendMode, setIsAppendMode] = useState(false);
+  const [isHost, setIsHost] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [combinedPlaylistLength, setCombinedPlaylistLength] = useState(0);
+  const [duplicatesRemoved, setDuplicatesRemoved] = useState(0);
   const [formData, setFormData] = useState({
     prompt: '',
     genre: '',
@@ -46,6 +51,8 @@ function PlaylistGenerator() {
     const params = new URLSearchParams(location.search);
     setRoomName(params.get('room_name') || '');
     setModeration(params.get('moderation') || 'no');
+    setIsAppendMode(params.get('append') === 'True');
+    setIsHost(params.get('is_host') === 'True');
     
     // Check if we're on mobile
     const checkMobile = () => {
@@ -75,6 +82,8 @@ function PlaylistGenerator() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(null);
+    setSuccessMessage('');
+    setDuplicatesRemoved(0);
     setIsGenerating(true);
     setPlaylist(null);
 
@@ -83,7 +92,6 @@ function PlaylistGenerator() {
       const token = localStorage.getItem('token');
       
       const response = await fetch(`${API_URL}/api/generate-playlist`, {
-
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -94,7 +102,8 @@ function PlaylistGenerator() {
           genre: formData.genre === 'Other' ? formData.customGenre : formData.genre,
           occasion: formData.occasion === 'Other' ? formData.customOccasion : formData.occasion,
           room_name: roomName,
-          song_count: parseInt(formData.songCount) // Add the song count to the request
+          song_count: parseInt(formData.songCount), // Add the song count to the request
+          append_to_room: isAppendMode // Add flag to indicate if we should append to existing room
         }),
       });
 
@@ -104,6 +113,20 @@ function PlaylistGenerator() {
 
       const data = await response.json();
       setPlaylist(data.playlist);
+      
+      // If we're in append mode and got combined playlist length, show success message
+      if (isAppendMode && data.combined_playlist_length) {
+        setCombinedPlaylistLength(data.combined_playlist_length);
+        setDuplicatesRemoved(data.duplicates_removed || 0);
+        
+        let message = `${data.playlist.length} songs will be added to your playlist, making a total of ${data.combined_playlist_length} songs.`;
+        
+        if (data.duplicates_removed && data.duplicates_removed > 0) {
+          message += ` ${data.duplicates_removed} duplicate ${data.duplicates_removed === 1 ? 'song was' : 'songs were'} automatically removed.`;
+        }
+        
+        setSuccessMessage(message);
+      }
     } catch (error) {
       setError('Error generating playlist. Please try again.');
       console.error('Error:', error);
@@ -113,13 +136,19 @@ function PlaylistGenerator() {
   };
 
   const createRoom = () => {
-    navigate(`/playroom?room_name=${encodeURIComponent(roomName)}&moderation=${moderation}&is_host=True`);
+    if (isAppendMode) {
+      // If in append mode, navigate back to the playroom
+      navigate(`/playroom?room_name=${encodeURIComponent(roomName)}&moderation=${moderation}&is_host=${isHost ? 'True' : 'False'}`);
+    } else {
+      // Create a new room
+      navigate(`/playroom?room_name=${encodeURIComponent(roomName)}&moderation=${moderation}&is_host=True`);
+    }
   };
 
   return (
     <div className="playlist-generator">
       <div className="generator-header">
-        <h1>{isMobile ? "Create Room" : "AICO Room: " + (roomName || 'Unnamed Room')}</h1>
+        <h1>{isMobile ? (isAppendMode ? "Add to Room" : "Create Room") : "AICO Room: " + (roomName || 'Unnamed Room')}</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="generator-form">
@@ -247,18 +276,26 @@ function PlaylistGenerator() {
           {error}
         </div>
       )}
+      
+      {successMessage && (
+        <div className="success-message">
+          {successMessage}
+        </div>
+      )}
 
       {playlist && !isGenerating && (
         <div className="playlist-container">
           <div className="playlist-header">
             <h2 className="playlist-title">Your Generated Playlist</h2>
             <p className="playlist-description">
-              Here's what we've created based on your preferences
+              {isAppendMode 
+                ? `Here are the new songs that will be added to your room's playlist` 
+                : `Here's what we've created based on your preferences`}
             </p>
           </div>
 
           <button onClick={createRoom} className="create-room-button">
-            Create Room with This Playlist
+            {isAppendMode ? 'Append to Playlist' : 'Create Room with This Playlist'}
           </button>
           
           <div className="playlist-tracks">

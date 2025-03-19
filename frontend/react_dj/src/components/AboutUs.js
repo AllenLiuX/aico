@@ -185,10 +185,10 @@ function AboutUs() {
     const token = localStorage.getItem('token');
     if (token) {
       // If logged in, go to profile
-      navigate('/homepage');
+      navigate('/');
     } else {
       // If not logged in, go to login page
-      navigate('/homepage');
+      navigate('/');
     }
   };
 
