@@ -1,8 +1,13 @@
 // API configuration
+export const host_by_https = true;
 // export const API_URL = "http://13.56.253.58:5000";
-export const API_URL = "http://3.101.133.162:5000";
+export const API_URL = host_by_https 
+  ? "https://aico-music.com" 
+  : "http://3.101.133.162:5000";
 // export const API_URL = "https://api.aico-remix.com";
-export const FRONTEND_URL = "http://aico-music.com";
+export const FRONTEND_URL = host_by_https 
+  ? "https://aico-music.com" 
+  : "http://aico-music.com";
 
 // Other configuration constants can be added here
 export const API_ENDPOINTS = {
