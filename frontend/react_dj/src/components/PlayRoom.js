@@ -548,14 +548,6 @@ function PlayRoom() {
                     </div>
                   </div>
                   
-                  {/* Pending Requests section with count badge */}
-                  <div className="pending-requests-header">
-                    <span>Pending Requests</span>
-                    {pendingRequests.length > 0 && (
-                      <span className="pending-count">{pendingRequests.length}</span>
-                    )}
-                  </div>
-                  
                   <PendingRequestsSection
                     pendingRequests={pendingRequests}
                     roomName={roomName}

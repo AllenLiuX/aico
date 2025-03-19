@@ -5,6 +5,7 @@ import { Music, Calendar } from 'lucide-react';
 import Avatar from './common/Avatar';
 import '../styles/Explore.css';
 import { API_URL } from '../config';
+import { formatRoomName } from '../utils/formatRoomName';
 
 const RoomCard = ({ room }) => {
   const navigate = useNavigate();
@@ -58,7 +59,7 @@ const RoomCard = ({ room }) => {
         </div>
       </div>
       <div className="room-content">
-        <h3>{room.name}</h3>
+        <h3>{formatRoomName(room.name)}</h3>
         <p>{room.introduction}</p>
         <div className="room-tags">
           {room.genre && <span className="tag genre-tag">{room.genre}</span>}

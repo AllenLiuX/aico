@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Share2, QrCode, Calendar } from 'lucide-react';
 import SocialActionButtons from './SocialActionButtons';
 import Avatar from '../common/Avatar';
+import { formatRoomName } from '../../utils/formatRoomName';
 
 const RoomHeader = ({ roomName, hostData, showQRCode, setShowQRCode, roomInfo }) => {
   const [showTooltip, setShowTooltip] = useState(false);
@@ -94,7 +95,7 @@ const RoomHeader = ({ roomName, hostData, showQRCode, setShowQRCode, roomInfo })
   return (
     <div className="room-header">
       <div className="room-info">
-        <h1>{roomName}</h1>
+        <h1>{formatRoomName(roomName)}</h1>
         
         {/* Host info with social buttons in a container for better layout */}
         {hostData && (

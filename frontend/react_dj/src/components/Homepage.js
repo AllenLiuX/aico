@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Music, Users, Zap, Heart } from 'lucide-react';
 import '../styles/Homepage.css';
+import { formatRoomName } from '../utils/formatRoomName';
 
 function Homepage() {
   const navigate = useNavigate();
@@ -38,7 +39,8 @@ function Homepage() {
   const handleFavoritesRoom = () => {
     if (isLoggedIn && username) {
       // Navigate to the user's favorites room
-      navigate(`/playroom?room_name=favorites_${username}&is_host=True`);
+      const favoritesRoomName = `favorites_${username}`;
+      navigate(`/playroom?room_name=${favoritesRoomName}&is_host=True`);
     } else {
       // If not logged in, redirect to login page
       navigate('/');

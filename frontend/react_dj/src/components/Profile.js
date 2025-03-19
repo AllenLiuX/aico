@@ -6,6 +6,7 @@ import AvatarUpload from './AvatarUpload';
 import Avatar from './common/Avatar';
 import '../styles/Profile.css';
 import { API_URL } from '../config';
+import { formatRoomName } from '../utils/formatRoomName';
 
 // Available tags for selection
 const AVAILABLE_TAGS = {
@@ -58,7 +59,7 @@ const RoomCard = ({ room }) => {
       <div className="room-image">
         <img
           src={room.cover_image || '/api/placeholder/300/200'}
-          alt={room.name}
+          alt={formatRoomName(room.name)}
           onError={(e) => {
             e.target.onerror = null;
             e.target.src = '/api/placeholder/300/200';
@@ -70,7 +71,7 @@ const RoomCard = ({ room }) => {
         </div>
       </div>
       <div className="room-content">
-        <h3>{room.name}</h3>
+        <h3>{formatRoomName(room.name)}</h3>
         <p>{room.introduction}</p>
         <div className="room-tags">
           {room.genre && <span className="tag">{room.genre}</span>}
