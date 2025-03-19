@@ -50,7 +50,8 @@
 
 /* Common styling for action buttons */
 .delete-button,
-.pin-button {
+.pin-button,
+.favorite-button {
   color: #2CBDFB;
   padding: 10px;
   background-color: transparent;
@@ -65,13 +66,15 @@
 }
 
 .delete-button:hover,
-.pin-button:hover {
+.pin-button:hover,
+.favorite-button:hover {
   color: black;
   background-color: #2CBDFB;
 }
 
 .delete-button:disabled,
-.pin-button:disabled {
+.pin-button:disabled,
+.favorite-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -83,6 +86,24 @@
 
 .pin-button:hover {
   background-color: #03dac6;
+}
+
+/* Favorite button specific styles */
+.favorite-button {
+  color: #ff4081; /* Use a pink/red color for the heart */
+}
+
+.favorite-button:hover {
+  background-color: #ff4081;
+}
+
+.favorite-button.favorited {
+  color: #ff4081;
+  background-color: rgba(255, 64, 129, 0.1);
+}
+
+.heart-icon.filled {
+  fill: #ff4081;
 }
 
 /* Adjust spacing when buttons are present */
@@ -98,7 +119,8 @@
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .delete-button,
-  .pin-button {
+  .pin-button,
+  .favorite-button {
     padding: 8px;
   }
   
@@ -109,7 +131,8 @@
 
 @media (max-width: 480px) {
   .delete-button,
-  .pin-button {
+  .pin-button,
+  .favorite-button {
     padding: 6px;
   }
 }

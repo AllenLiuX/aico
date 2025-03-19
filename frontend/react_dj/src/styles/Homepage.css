@@ -70,6 +70,16 @@
     background-color: rgba(187, 134, 252, 0.1);
   }
   
+  .favorites-button {
+    background-color: transparent;
+    color: #ff4081;
+    border: 2px solid #ff4081;
+  }
+  
+  .favorites-button:hover {
+    background-color: rgba(255, 64, 129, 0.1);
+  }
+  
   /* Features Section */
   .features-section {
     margin-top: 64px;

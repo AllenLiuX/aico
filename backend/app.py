@@ -1963,6 +1963,83 @@ def toggle_favorite_room():
         logger.error(f"Error in favorite operation: {str(e)}")
         return jsonify({"error": "Operation failed"}), 500
 
+@app.route('/api/favorite-song', methods=['POST'])
+def favorite_song():
+    """Add a song to user's favorites room"""
+    data = request.json
+    track = data.get('track')
+    auth_token = request.headers.get('Authorization')
+    
+    if not track:
+        return jsonify({"error": "Track data is required"}), 400
+    
+    # Verify user is logged in
+    if not auth_token:
+        return jsonify({"error": "Authentication required"}), 401
+    
+    username = get_hash(f"sessions{redis_version}", auth_token)
+    if not username:
+        return jsonify({"error": "Invalid authentication token"}), 401
+    
+    try:
+        # Create or get the user's favorites room
+        favorites_room_name = f"favorites_{username}"
+        
+        # Get existing playlist or create new one
+        existing_playlist_json = get_hash(f"room_playlists{redis_version}", favorites_room_name)
+        if existing_playlist_json:
+            existing_playlist = json.loads(existing_playlist_json)
+            
+            # Check if song already exists in favorites
+            for song in existing_playlist:
+                if song.get('song_id') == track.get('song_id'):
+                    return jsonify({
+                        "message": "Song already in favorites",
+                        "already_favorited": True
+                    })
+            
+            # Add the new song to favorites
+            existing_playlist.append(track)
+            playlist = existing_playlist
+        else:
+            # Create new favorites playlist with this song
+            playlist = [track]
+            
+            # Create default settings for the room
+            settings = {
+                "prompt": "My Favorite Songs",
+                "genre": "Mixed",
+                "occasion": "Personal",
+                "song_count": 0,
+                "moderation_enabled": False
+            }
+            
+            # Save settings
+            write_hash(f"settings{redis_version}", favorites_room_name, json.dumps(settings))
+            
+            # Set user as host of the room
+            profile_json = get_hash(f"user_profiles{redis_version}", username)
+            if profile_json:
+                profile = json.loads(profile_json)
+                avatar = profile.get('avatar')
+                set_room_host(favorites_room_name, username, avatar, update_timestamp=True)
+            
+            # Add room to user's rooms
+            add_room_to_user_profile(username, favorites_room_name)
+        
+        # Save updated playlist
+        write_hash(f"room_playlists{redis_version}", favorites_room_name, json.dumps(playlist))
+        
+        return jsonify({
+            "message": "Song added to favorites",
+            "favorites_room": favorites_room_name,
+            "playlist_length": len(playlist)
+        })
+        
+    except Exception as e:
+        logger.error(f"Error adding song to favorites: {str(e)}")
+        return jsonify({"error": "Failed to add song to favorites"}), 500
+
 @app.route('/api/pin-track', methods=['POST'])
 def pin_track():
     try:
@@ -2044,6 +2121,49 @@ def get_example_prompts():
     except Exception as e:
         logger.error(f"Error fetching example prompts: {str(e)}")
         return jsonify({"error": "Failed to fetch example prompts"}), 500
+
+@app.route('/api/check-favorite-song', methods=['POST'])
+def check_favorite_song():
+    """Check if a song is in user's favorites"""
+    data = request.json
+    song_id = data.get('song_id')
+    auth_token = request.headers.get('Authorization')
+    
+    if not song_id:
+        return jsonify({"error": "Song ID is required"}), 400
+    
+    # Verify user is logged in
+    if not auth_token:
+        return jsonify({"error": "Authentication required"}), 401
+    
+    username = get_hash(f"sessions{redis_version}", auth_token)
+    if not username:
+        return jsonify({"error": "Invalid authentication token"}), 401
+    
+    try:
+        # Get the user's favorites room
+        favorites_room_name = f"favorites_{username}"
+        
+        # Get existing playlist if it exists
+        existing_playlist_json = get_hash(f"room_playlists{redis_version}", favorites_room_name)
+        if existing_playlist_json:
+            existing_playlist = json.loads(existing_playlist_json)
+            
+            # Check if song exists in favorites
+            for song in existing_playlist:
+                if song.get('song_id') == song_id:
+                    return jsonify({
+                        "is_favorited": True
+                    })
+        
+        # If we get here, the song is not favorited
+        return jsonify({
+            "is_favorited": False
+        })
+        
+    except Exception as e:
+        logger.error(f"Error checking favorite song: {str(e)}")
+        return jsonify({"error": "Failed to check favorite status"}), 500
 
 if __name__ == '__main__':
     # app.run(port=3000, host='10.72.252.213', debug=True)

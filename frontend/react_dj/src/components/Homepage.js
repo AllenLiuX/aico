@@ -1,13 +1,31 @@
 // Homepage.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Music, Users, Zap } from 'lucide-react';
+import { Music, Users, Zap, Heart } from 'lucide-react';
 import '../styles/Homepage.css';
 
 function Homepage() {
   const navigate = useNavigate();
   const [roomName, setRoomName] = useState('');
   const [moderation, setModeration] = useState('no');
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [username, setUsername] = useState('');
+
+  // Check if user is logged in
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const userDataStr = localStorage.getItem('user');
+    
+    if (token && userDataStr) {
+      try {
+        const userData = JSON.parse(userDataStr);
+        setIsLoggedIn(true);
+        setUsername(userData.username || '');
+      } catch (e) {
+        console.error('Error parsing user data:', e);
+      }
+    }
+  }, []);
 
   const handleCreateRoom = () => {
     // Generate a default room name if not provided
@@ -15,6 +33,16 @@ function Homepage() {
     
     // Navigate directly to playlist generator with room parameters
     navigate(`/playlist?room_name=${encodeURIComponent(defaultRoomName)}&moderation=${moderation}`);
+  };
+
+  const handleFavoritesRoom = () => {
+    if (isLoggedIn && username) {
+      // Navigate to the user's favorites room
+      navigate(`/playroom?room_name=favorites_${username}&is_host=True`);
+    } else {
+      // If not logged in, redirect to login page
+      navigate('/');
+    }
   };
 
   return (
@@ -33,6 +61,12 @@ function Homepage() {
             <Users size={20} />
             Join Room
           </Link>
+          {isLoggedIn && (
+            <button onClick={handleFavoritesRoom} className="hero-button favorites-button">
+              <Heart size={20} />
+              My Favorites
+            </button>
+          )}
         </div>
       </section>
 
