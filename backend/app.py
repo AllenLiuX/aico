@@ -219,7 +219,7 @@ def generate_playlist():
         
         logger.info(str(playlist))
 
-        redis_api.write_hash(f"playlist{redis_version}", room_name, json.dumps(playlist))
+        redis_api.write_hash(f"room_playlists{redis_version}", room_name, json.dumps(playlist))
         redis_api.write_hash(f"settings{redis_version}", room_name, json.dumps(settings))
         redis_api.write_hash(f"intro{redis_version}", room_name, introduction)
 
@@ -253,7 +253,7 @@ def get_room_playlist():
 
     try:
         # Get existing playlist data
-        playlist = json.loads(get_hash(f"playlist{redis_version}", room_name))
+        playlist = json.loads(get_hash(f"room_playlists{redis_version}", room_name))
         settings = json.loads(get_hash(f"settings{redis_version}", room_name))
         introduction = get_hash(f"intro{redis_version}", room_name)
 
@@ -337,7 +337,7 @@ def add_to_playlist():
     # else:
     #     playlist = []
 
-    playlist = json.loads(redis_api.get_hash(f"playlist{redis_version}", room_name))
+    playlist = json.loads(redis_api.get_hash(f"room_playlists{redis_version}", room_name))
 
     # Add the new track to the playlist
     playlist.append(track)
@@ -347,7 +347,7 @@ def add_to_playlist():
     # Update the playlist in Redis
     # redis_client.set(f"playlist:{room_name}", json.dumps(playlist))
     
-    redis_api.write_hash(f"playlist{redis_version}", room_name, json.dumps(playlist))
+    redis_api.write_hash(f"room_playlists{redis_version}", room_name, json.dumps(playlist))
 
 
     return jsonify({"message": "Track added successfully"})
@@ -359,7 +359,7 @@ def remove_from_playlist():
     track_id = data.get('track_id')
 
     # Fetch the existing playlist for the given room_name
-    playlist = json.loads(redis_api.get_hash(f"playlist{redis_version}", room_name))
+    playlist = json.loads(redis_api.get_hash(f"room_playlists{redis_version}", room_name))
 
     # Find and remove the track with the matching song_id instead of id
     updated_playlist = [track for track in playlist if track.get('song_id') != track_id]
@@ -369,7 +369,7 @@ def remove_from_playlist():
     logger.info(f'new playlist:{updated_playlist}')
 
     # Update the playlist in Redis
-    redis_api.write_hash(f"playlist{redis_version}", room_name, json.dumps(updated_playlist))
+    redis_api.write_hash(f"room_playlists{redis_version}", room_name, json.dumps(updated_playlist))
 
     return jsonify({"message": "Track removed successfully", "playlist": updated_playlist})
 
@@ -587,7 +587,7 @@ def get_user_rooms_helper(username):
     rooms_data = []
     for room_name in created_rooms:
         # Get room data
-        playlist_json = get_hash(f"playlist{redis_version}", room_name)
+        playlist_json = get_hash(f"room_playlists{redis_version}", room_name)
         settings_json = get_hash(f"settings{redis_version}", room_name)
         intro = get_hash(f"intro{redis_version}", room_name)
         
@@ -840,7 +840,7 @@ def get_explore_rooms():
         offset = (page - 1) * limit
 
         # Get all rooms and their playlists
-        all_rooms = get_all_hash(f"playlist{redis_version}")
+        all_rooms = get_all_hash(f"room_playlists{redis_version}")
         
         all_room_names = list(all_rooms.keys())
         logger.info(f"all_room_names:{all_room_names}")
@@ -1041,7 +1041,7 @@ def request_track():
             logger.info(f"Moderation is off, adding track directly to playlist for {room_name}")
             
             # Get existing playlist
-            playlist_json = get_hash(f"playlist{redis_version}", room_name)
+            playlist_json = get_hash(f"room_playlists{redis_version}", room_name)
             if not playlist_json:
                 logger.warning(f"No playlist found for room {room_name}, creating new playlist")
                 playlist = []
@@ -1056,7 +1056,7 @@ def request_track():
             playlist.append(track)
             
             # Update the playlist in Redis
-            write_hash(f"playlist{redis_version}", room_name, json.dumps(playlist))
+            write_hash(f"room_playlists{redis_version}", room_name, json.dumps(playlist))
             
             logger.info(f"Track added directly to playlist for room {room_name} (moderation off)")
             
@@ -1244,9 +1244,9 @@ def approve_track_request():
         write_hash(f"track_requests{redis_version}", request_id, json.dumps(track))
         
         # Add the track to the room's playlist
-        playlist = json.loads(get_hash(f"playlist{redis_version}", room_name))
+        playlist = json.loads(get_hash(f"room_playlists{redis_version}", room_name))
         playlist.append(track)
-        write_hash(f"playlist{redis_version}", room_name, json.dumps(playlist))
+        write_hash(f"room_playlists{redis_version}", room_name, json.dumps(playlist))
         
         # Create notification for the requester
         if requester_id and requester_id != "Guest":
@@ -1534,7 +1534,7 @@ def get_favorites():
             for room_name in favorites:
                 try:
                     # Get room data
-                    playlist_json = get_hash(f"playlist{redis_version}", room_name)
+                    playlist_json = get_hash(f"room_playlists{redis_version}", room_name)
                     settings_json = get_hash(f"settings{redis_version}", room_name)
                     intro = get_hash(f"intro{redis_version}", room_name)
                     
@@ -1780,7 +1780,7 @@ def pin_track():
             return jsonify({"error": "Missing required parameters"}), 400
 
         # Get current playlist from Redis
-        playlist_json = get_hash(f"playlist{redis_version}", room_name)
+        playlist_json = get_hash(f"room_playlists{redis_version}", room_name)
         if not playlist_json:
             return jsonify({"error": "Playlist not found"}), 404
 
@@ -1796,7 +1796,7 @@ def pin_track():
         playlist.insert(insert_position, track_to_pin)
 
         # Update Redis with the new playlist order
-        redis_api.write_hash(f"playlist{redis_version}", room_name, json.dumps(playlist))
+        redis_api.write_hash(f"room_playlists{redis_version}", room_name, json.dumps(playlist))
 
         return jsonify({
             "message": "Track pinned successfully",
@@ -1806,6 +1806,36 @@ def pin_track():
     except Exception as e:
         logger.error(f"Error pinning track: {str(e)}")
         return jsonify({"error": "Failed to pin track"}), 500
+
+@app.route('/api/room/host', methods=['GET'])
+def verify_room_host():
+    room_name = request.args.get('room_name')
+    auth_token = request.headers.get('Authorization')
+    
+    if not room_name:
+        return jsonify({"error": "Room name is required"}), 400
+    
+    # Get host data
+    host_data = get_room_host(room_name)
+    
+    # If room exists but has no host, allow anyone to be host
+    if not host_data:
+        # Check if room exists in playlist
+        playlist_data = get_hash(f"room_playlists{redis_version}", room_name)
+        if playlist_data:  # Room exists but has no host
+            return jsonify({
+                "host_username": None,
+                "host_avatar": None,
+                "allow_anyone_host": True
+            })
+        return jsonify({"error": "Room not found"}), 404
+        
+    # Return host username for frontend verification
+    return jsonify({
+        "host_username": host_data.get('username'),
+        "host_avatar": host_data.get('avatar'),
+        "allow_anyone_host": False
+    })
 
 if __name__ == '__main__':
     # app.run(port=3000, host='10.72.252.213', debug=True)
