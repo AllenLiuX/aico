@@ -30,7 +30,7 @@ function App() {
                 <Route path="/" element={<Homepage />} />
                 <Route path="/homepage" element={<Navigate to="/" replace />} />
                 <Route path="/playroom" element={<PlayRoom />} />
-                <Route path="/create_room" element={<CreateRoom />} />
+                <Route path="/create_room" element={<Navigate to="/playlist" replace />} />
                 <Route path="/profile/:username" element={<Profile />} />
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/about" element={<AboutUs />} />

@@ -1,10 +1,22 @@
 // Homepage.js
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Music, Users, Zap } from 'lucide-react';
 import '../styles/Homepage.css';
 
 function Homepage() {
+  const navigate = useNavigate();
+  const [roomName, setRoomName] = useState('');
+  const [moderation, setModeration] = useState('no');
+
+  const handleCreateRoom = () => {
+    // Generate a default room name if not provided
+    const defaultRoomName = roomName || `Room-${Math.floor(Math.random() * 10000)}`;
+    
+    // Navigate directly to playlist generator with room parameters
+    navigate(`/playlist?room_name=${encodeURIComponent(defaultRoomName)}&moderation=${moderation}`);
+  };
+
   return (
     <div className="homepage">
       <section className="hero-section">
@@ -13,10 +25,10 @@ function Homepage() {
           Create and share AI-powered music playlists with friends in real-time
         </p>
         <div className="button-container">
-          <Link to="/create_room" className="hero-button create-button">
+          <button onClick={handleCreateRoom} className="hero-button create-button">
             <Zap size={20} />
             Create Room
-          </Link>
+          </button>
           <Link to="/join_room" className="hero-button join-button">
             <Users size={20} />
             Join Room

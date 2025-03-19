@@ -1,7 +1,7 @@
 // Updated PlaylistGenerator.js with mobile-friendly song count selection
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ChevronDown, ChevronUp, Music, Tag, Calendar, Hash, Lightbulb } from 'lucide-react';
+import { ChevronDown, ChevronUp, Music, Tag, Calendar, Hash, Lightbulb, Lock, Settings } from 'lucide-react';
 import { API_URL } from '../config';
 import '../styles/PlaylistGenerator.css';
 
@@ -52,8 +52,18 @@ function PlaylistGenerator() {
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    setRoomName(params.get('room_name') || '');
-    setModeration(params.get('moderation') || 'no');
+    const roomNameParam = params.get('room_name') || '';
+    const moderationParam = params.get('moderation') || 'no';
+    
+    setRoomName(roomNameParam);
+    
+    // Handle both 'yes'/'no' and 'True'/'False' formats for moderation
+    if (moderationParam === 'True' || moderationParam === 'yes') {
+      setModeration('yes');
+    } else {
+      setModeration('no');
+    }
+    
     setIsAppendMode(params.get('append') === 'True');
     setIsHost(params.get('is_host') === 'True');
     
@@ -65,14 +75,14 @@ function PlaylistGenerator() {
     // Initial check
     checkMobile();
     
-    // Add listener for window resize
+    // Add resize listener
     window.addEventListener('resize', checkMobile);
     
-    // Cleanup
+    // Clean up
     return () => {
       window.removeEventListener('resize', checkMobile);
     };
-  }, [location]);
+  }, [location.search]);
 
   // Fetch example prompts from the backend
   const fetchExamplePrompts = async () => {
@@ -102,11 +112,18 @@ function PlaylistGenerator() {
   };
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    const { name, value, type, checked } = e.target;
+    
+    if (name === 'roomName') {
+      setRoomName(value);
+    } else if (name === 'moderation') {
+      setModeration(checked ? 'yes' : 'no');
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   const handleExamplePromptClick = (example) => {
@@ -151,6 +168,7 @@ function PlaylistGenerator() {
           genre: formData.genre === 'Other' ? formData.customGenre : formData.genre,
           occasion: formData.occasion === 'Other' ? formData.customOccasion : formData.occasion,
           room_name: roomName,
+          moderation: moderation, // Include moderation setting
           song_count: parseInt(formData.songCount), // Add the song count to the request
           append_to_room: isAppendMode // Add flag to indicate if we should append to existing room
         }),
@@ -187,10 +205,10 @@ function PlaylistGenerator() {
   const createRoom = () => {
     if (isAppendMode) {
       // If in append mode, navigate back to the playroom
-      navigate(`/playroom?room_name=${encodeURIComponent(roomName)}&moderation=${moderation}&is_host=${isHost ? 'True' : 'False'}`);
+      navigate(`/playroom?room_name=${encodeURIComponent(roomName)}&moderation=${moderation === 'yes' ? 'True' : 'False'}&is_host=${isHost ? 'True' : 'False'}`);
     } else {
       // Create a new room
-      navigate(`/playroom?room_name=${encodeURIComponent(roomName)}&moderation=${moderation}&is_host=True`);
+      navigate(`/playroom?room_name=${encodeURIComponent(roomName)}&moderation=${moderation === 'yes' ? 'True' : 'False'}&is_host=True`);
     }
   };
 
@@ -201,6 +219,46 @@ function PlaylistGenerator() {
       </div>
 
       <form onSubmit={handleSubmit} className="generator-form">
+        {/* Room Settings Section */}
+        <div className="room-settings-section">
+          <div className="form-group">
+            <label htmlFor="roomName" className="form-label">
+              <Lock size={isMobile ? 16 : 18} className="icon" />
+              Room Name
+            </label>
+            <input
+              type="text"
+              id="roomName"
+              name="roomName"
+              value={roomName}
+              onChange={handleInputChange}
+              className="form-input"
+              placeholder="Enter a name for your room"
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">
+              <Settings size={isMobile ? 16 : 18} className="icon" />
+              Moderation
+            </label>
+            <div className="toggle-label">
+              <span>Enable moderation</span>
+              <label className="toggle-switch">
+                <input
+                  type="checkbox"
+                  name="moderation"
+                  className="toggle-input"
+                  checked={moderation === 'yes'}
+                  onChange={handleInputChange}
+                />
+                <span className="toggle-slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
         <div className="form-group">
           <label htmlFor="prompt" className="form-label">
             <Music size={isMobile ? 16 : 18} className="icon" />

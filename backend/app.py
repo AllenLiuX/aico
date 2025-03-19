@@ -217,6 +217,7 @@ def generate_playlist():
     room_name = data.get('room_name')
     song_count = data.get('song_count', 20)  # Default to 20 if not provided
     append_to_room = data.get('append_to_room', False)  # New parameter to handle append mode
+    moderation = data.get('moderation', 'no')  # Get moderation setting from request
     
     # Validate song count
     if not isinstance(song_count, int) or song_count <= 0:
@@ -245,12 +246,14 @@ def generate_playlist():
         logger.info(str(room_name))
         logger.info(f"Song count: {song_count}")
         logger.info(f"Append mode: {append_to_room}")
+        logger.info(f"Moderation: {moderation}")
 
         settings = {
             "prompt": prompt,
             "genre": genre,
             "occasion": occasion,
-            "song_count": song_count
+            "song_count": song_count,
+            "moderation_enabled": moderation == 'yes'  # Convert string to boolean
         }
 
         titles, artists, introduction, reply = llm.llm_generate_playlist(prompt, genre, occasion, song_count)

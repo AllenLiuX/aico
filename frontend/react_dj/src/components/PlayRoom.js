@@ -296,7 +296,7 @@ function PlayRoom() {
   
   // Handle navigation to playlist generator page
   const handleGeneratePlaylist = () => {
-    navigate(`/playlist?room_name=${encodeURIComponent(roomName)}&moderation=${moderationEnabled ? 'True' : 'False'}&append=True&is_host=${isHost ? 'True' : 'False'}`);
+    navigate(`/playlist?room_name=${encodeURIComponent(roomName)}&moderation=${moderationEnabled ? 'yes' : 'no'}&append=True&is_host=${isHost ? 'True' : 'False'}`);
   };
 
   // Toggle moderation setting
