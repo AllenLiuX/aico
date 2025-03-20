@@ -25,9 +25,13 @@
             border-radius: 4px;
             cursor: pointer;
             margin-bottom: 20px;
+            margin-right: 10px;
         }
         button:hover {
             background-color: #45a049;
+        }
+        #responseData {
+            margin-top: 20px;
         }
     </style>
 </head>
@@ -35,7 +39,7 @@
     <h1>Check Admin Status</h1>
     
     <button id="checkStorage">Check Local Storage</button>
-    <button id="forceAdmin">Force Admin Status</button>
+    <button id="checkAdminStatus">Check Admin API</button>
     <button id="clearStorage">Clear Local Storage</button>
     
     <h2>User Data:</h2>
@@ -43,6 +47,9 @@
     
     <h2>Token:</h2>
     <pre id="tokenData">No token found</pre>
+    
+    <h2>API Response:</h2>
+    <pre id="responseData">No API response yet</pre>
     
     <script>
         document.getElementById('checkStorage').addEventListener('click', function() {
@@ -53,32 +60,52 @@
             document.getElementById('tokenData').textContent = token || 'No token found';
         });
         
-        document.getElementById('forceAdmin').addEventListener('click', function() {
-            const userData = localStorage.getItem('user');
-            
-            if (userData) {
-                const user = JSON.parse(userData);
-                user.is_admin = true;
-                localStorage.setItem('user', JSON.stringify(user));
-                document.getElementById('userData').textContent = JSON.stringify(user, null, 2);
-                alert('Admin status set to true!');
-            } else {
-                alert('No user data found in local storage!');
-            }
-        });
-        
         document.getElementById('clearStorage').addEventListener('click', function() {
             localStorage.removeItem('user');
             localStorage.removeItem('token');
             document.getElementById('userData').textContent = 'No user data found';
             document.getElementById('tokenData').textContent = 'No token found';
-            alert('Local storage cleared!');
+            alert('Local storage cleared');
+        });
+        
+        document.getElementById('checkAdminStatus').addEventListener('click', async function() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                document.getElementById('responseData').textContent = 'No token found in local storage';
+                return;
+            }
+            
+            try {
+                // Call the user endpoint
+                const userResponse = await fetch('/api/auth/user', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const userData = await userResponse.json();
+                
+                // Call the admin endpoint
+                const adminResponse = await fetch('/api/user-activity/export/song-features', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                const adminData = await adminResponse.json();
+                
+                document.getElementById('responseData').textContent = 
+                    `User API Response (${userResponse.status}):\n${JSON.stringify(userData, null, 2)}\n\n` +
+                    `Admin API Response (${adminResponse.status}):\n${JSON.stringify(adminData, null, 2)}`;
+            } catch (error) {
+                document.getElementById('responseData').textContent = `Error: ${error.message}`;
+            }
         });
         
         // Check storage on page load
-        window.onload = function() {
+        window.addEventListener('load', function() {
             document.getElementById('checkStorage').click();
-        };
+        });
     </script>
 </body>
 </html>

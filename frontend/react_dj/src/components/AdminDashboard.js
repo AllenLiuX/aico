@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { UserContext } from '../contexts/UserContext';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
   Container, Typography, Box, Paper, Tabs, Tab, 
@@ -33,6 +34,7 @@ function TabPanel(props) {
 
 const AdminDashboard = () => {
   const { user } = useContext(UserContext);
+  const navigate = useNavigate();
   const [tabValue, setTabValue] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -48,10 +50,19 @@ const AdminDashboard = () => {
   });
 
   useEffect(() => {
-    // Load initial data without admin check
-    fetchSongFeatures();
-    fetchRoomFeatures();
-  }, [user]);
+    // Check if user is admin, if not redirect to home
+    if (user && !user.is_admin) {
+      console.log('Non-admin user attempting to access admin dashboard:', user);
+      navigate('/');
+      return;
+    }
+    
+    // Load initial data if user is admin
+    if (user && user.is_admin) {
+      fetchSongFeatures();
+      fetchRoomFeatures();
+    }
+  }, [user, navigate]);
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
@@ -73,8 +84,9 @@ const AdminDashboard = () => {
       setLoading(true);
       setError(null);
       
+      const token = localStorage.getItem('token');
       const response = await axios.get('/api/user-activity/export/song-interactions', {
-        headers: { Authorization: localStorage.getItem('token') }
+        headers: { Authorization: `Bearer ${token}` }
       });
       
       if (response.data.success) {
@@ -94,8 +106,9 @@ const AdminDashboard = () => {
       setLoading(true);
       setError(null);
       
+      const token = localStorage.getItem('token');
       const response = await axios.get('/api/user-activity/export/room-interactions', {
-        headers: { Authorization: localStorage.getItem('token') }
+        headers: { Authorization: `Bearer ${token}` }
       });
       
       if (response.data.success) {
@@ -115,25 +128,29 @@ const AdminDashboard = () => {
       setLoading(true);
       setError(null);
       
+      const token = localStorage.getItem('token');
       const response = await axios.get('/api/user-activity/export/song-features', {
-        headers: { Authorization: localStorage.getItem('token') }
+        headers: { Authorization: `Bearer ${token}` }
       });
       
+      console.log('Song features response:', response.data);
+      
       if (response.data.success) {
-        const features = response.data.data;
+        const features = response.data.data || [];
         setSongFeatures(features);
         
         // Update stats
         setStats(prev => ({
           ...prev,
           totalSongs: features.length,
-          totalInteractions: features.reduce((sum, song) => 
-            sum + song.play_count + song.favorite_count + song.add_count + song.remove_count, 0)
+          totalInteractions: Array.isArray(features) ? features.reduce((sum, song) => 
+            sum + (song.play_count || 0) + (song.favorite_count || 0) + (song.add_count || 0) + (song.remove_count || 0), 0) : 0
         }));
       } else {
         setError("Failed to load song features");
       }
     } catch (err) {
+      console.error('Error fetching song features:', err);
       setError(err.message || "Failed to load song features");
     } finally {
       setLoading(false);
@@ -145,24 +162,28 @@ const AdminDashboard = () => {
       setLoading(true);
       setError(null);
       
+      const token = localStorage.getItem('token');
       const response = await axios.get('/api/user-activity/export/room-features', {
-        headers: { Authorization: localStorage.getItem('token') }
+        headers: { Authorization: `Bearer ${token}` }
       });
       
+      console.log('Room features response:', response.data);
+      
       if (response.data.success) {
-        const features = response.data.data;
+        const features = response.data.data || [];
         setRoomFeatures(features);
         
         // Update stats
         setStats(prev => ({
           ...prev,
           totalRooms: features.length,
-          uniqueUsers: new Set(features.flatMap(room => room.users)).size
+          uniqueUsers: Array.isArray(features) ? [...new Set(features.map(room => room.created_by))].length : 0
         }));
       } else {
         setError("Failed to load room features");
       }
     } catch (err) {
+      console.error('Error fetching room features:', err);
       setError(err.message || "Failed to load room features");
     } finally {
       setLoading(false);
@@ -205,25 +226,29 @@ const AdminDashboard = () => {
   };
 
   // Prepare chart data
-  const topSongsData = songFeatures
-    .sort((a, b) => (b.play_count + b.favorite_count) - (a.play_count + a.favorite_count))
-    .slice(0, 10)
-    .map(song => ({
-      name: song.title.length > 20 ? song.title.substring(0, 20) + '...' : song.title,
-      plays: song.play_count,
-      favorites: song.favorite_count,
-      adds: song.add_count
-    }));
+  const topSongsData = Array.isArray(songFeatures) && songFeatures.length > 0 
+    ? [...songFeatures]
+      .sort((a, b) => (b.play_count || 0) - (a.play_count || 0))
+      .slice(0, 10)
+      .map(song => ({
+        name: song.title && song.title.length > 20 ? song.title.substring(0, 20) + '...' : (song.title || 'Unknown'),
+        plays: song.play_count || 0,
+        favorites: song.favorite_count || 0,
+        adds: song.add_count || 0
+      }))
+    : [];
 
-  const topRoomsData = roomFeatures
-    .sort((a, b) => b.join_count - a.join_count)
-    .slice(0, 10)
-    .map(room => ({
-      name: room.room_id.length > 20 ? room.room_id.substring(0, 20) + '...' : room.room_id,
-      joins: room.join_count,
-      favorites: room.favorite_count,
-      users: room.user_count
-    }));
+  const topRoomsData = Array.isArray(roomFeatures) && roomFeatures.length > 0
+    ? [...roomFeatures]
+      .sort((a, b) => (b.join_count || 0) - (a.join_count || 0))
+      .slice(0, 10)
+      .map(room => ({
+        name: room.room_id && room.room_id.length > 20 ? room.room_id.substring(0, 20) + '...' : (room.room_id || 'Unknown'),
+        joins: room.join_count || 0,
+        favorites: room.favorite_count || 0,
+        users: room.user_count || 0
+      }))
+    : [];
 
   // If not admin, show access denied
   if (!user || !user.is_admin) {

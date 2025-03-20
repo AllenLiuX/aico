@@ -16,14 +16,13 @@ export const UserProvider = ({ children }) => {
       
       // Ensure we have the latest user data, including admin status
       axios.get('/api/auth/user', {
-        headers: { Authorization: storedToken }
+        headers: { Authorization: `Bearer ${storedToken}` }
       })
       .then(response => {
         if (response.data.success) {
           const updatedUser = {
             ...userData,
-            ...response.data.user,
-            is_admin: true // Always set admin to true for testing
+            ...response.data.user
           };
           console.log('User data updated:', updatedUser);
           setUser(updatedUser);
@@ -38,9 +37,6 @@ export const UserProvider = ({ children }) => {
   }, []);
 
   const login = async (userData, token) => {
-    // Always set admin to true for testing
-    userData.is_admin = true;
-    
     console.log('Logging in with user data:', userData);
     setUser(userData);
     localStorage.setItem('user', JSON.stringify(userData));

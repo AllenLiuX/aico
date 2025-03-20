@@ -30,21 +30,30 @@ except ImportError:
 def verify_admin_access():
     """Verify if the current user has admin access"""
     # Get auth token from request
-    auth_token = request.headers.get('Authorization')
-    if not auth_token:
+    auth_header = request.headers.get('Authorization')
+    if not auth_header:
         return None, (jsonify({"error": "No token provided"}), 401)
+    
+    # Extract token from Authorization header (handle Bearer token format)
+    auth_token = auth_header
+    if auth_header.startswith('Bearer '):
+        auth_token = auth_header[7:]  # Remove 'Bearer ' prefix
+        logger.info(f"Admin API: Extracted token from Bearer format: {auth_token[:10]}...")
     
     # Get username from session
     # redis_version = os.environ.get('REDIS_VERSION', '')
     username = redis_api.get_hash(f"sessions{redis_version}", auth_token)
     if not username:
+        logger.warning(f"Admin API: Invalid or expired token: {auth_token[:10]}...")
         return None, (jsonify({"error": "Invalid or expired token"}), 401)
     
     # Check if user is admin
     user_data = redis_api.get_user_data(username)
     if not user_data.get('is_admin', False) and username not in ADMIN_USERS:
+        logger.warning(f"Admin API: Unauthorized access attempt by {username}")
         return None, (jsonify({"error": "Unauthorized access"}), 403)
     
+    logger.info(f"Admin API: Authorized access for admin user {username}")
     return username, None
 
 # API endpoints for user activity data export

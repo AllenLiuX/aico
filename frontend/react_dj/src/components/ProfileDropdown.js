@@ -17,11 +17,12 @@ const ProfileDropdown = ({ onLogout }) => {
         <span>Profile</span>
       </Link>
       
-      {/* Always show Admin Dashboard link for testing */}
-      <Link to="/admin" className="dropdown-item">
-        <BarChart2 size={18} />
-        <span>Admin Dashboard</span>
-      </Link>
+      {user && user.is_admin && (
+        <Link to="/admin" className="dropdown-item">
+          <BarChart2 size={18} />
+          <span>Admin Dashboard</span>
+        </Link>
+      )}
       
       <button onClick={onLogout} className="dropdown-item">
         <LogOut size={18} />
