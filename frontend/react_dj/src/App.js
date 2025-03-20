@@ -13,6 +13,7 @@ import AboutUs from './components/AboutUs';
 import SearchMusic from './components/SearchMusic';
 import Profile from './components/Profile';
 import Explore from './components/Explore';
+import AdminDashboard from './components/AdminDashboard';
 
 import './styles/App.css';
 
@@ -38,6 +39,7 @@ function App() {
                 <Route path="/playlist" element={<PlaylistGenerator />} />
                 <Route path="/search_music" element={<SearchMusic />} />
                 <Route path="/explore" element={<Explore />} />
+                <Route path="/admin" element={<AdminDashboard />} />
               </Routes>
             </main>
           </div>

@@ -12,7 +12,7 @@ echo ""
 # Set variables
 FRONTEND_DIR="/home/ec2-user/aico/frontend/react_dj"
 BUILD_DIR="$FRONTEND_DIR/build"
-NGINX_DIR="/home/ec2-user/aico/frontend/react_dj/build"
+NGINX_DIR="/usr/share/nginx/html"
 
 # Function to check if command succeeded
 check_status() {

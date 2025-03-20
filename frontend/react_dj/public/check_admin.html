@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Check Admin Status</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Check Admin Status</h1>
+    
+    <button id="checkStorage">Check Local Storage</button>
+    <button id="forceAdmin">Force Admin Status</button>
+    <button id="clearStorage">Clear Local Storage</button>
+    
+    <h2>User Data:</h2>
+    <pre id="userData">No user data found</pre>
+    
+    <h2>Token:</h2>
+    <pre id="tokenData">No token found</pre>
+    
+    <script>
+        document.getElementById('checkStorage').addEventListener('click', function() {
+            const userData = localStorage.getItem('user');
+            const token = localStorage.getItem('token');
+            
+            document.getElementById('userData').textContent = userData ? JSON.stringify(JSON.parse(userData), null, 2) : 'No user data found';
+            document.getElementById('tokenData').textContent = token || 'No token found';
+        });
+        
+        document.getElementById('forceAdmin').addEventListener('click', function() {
+            const userData = localStorage.getItem('user');
+            
+            if (userData) {
+                const user = JSON.parse(userData);
+                user.is_admin = true;
+                localStorage.setItem('user', JSON.stringify(user));
+                document.getElementById('userData').textContent = JSON.stringify(user, null, 2);
+                alert('Admin status set to true!');
+            } else {
+                alert('No user data found in local storage!');
+            }
+        });
+        
+        document.getElementById('clearStorage').addEventListener('click', function() {
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            document.getElementById('userData').textContent = 'No user data found';
+            document.getElementById('tokenData').textContent = 'No token found';
+            alert('Local storage cleared!');
+        });
+        
+        // Check storage on page load
+        window.onload = function() {
+            document.getElementById('checkStorage').click();
+        };
+    </script>
+</body>
+</html>

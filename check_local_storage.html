@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Check Local Storage</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        button {
+            padding: 10px;
+            margin: 10px 0;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Local Storage Contents</h1>
+    <button id="checkButton">Check Local Storage</button>
+    <button id="fixAdminButton">Fix Admin Status</button>
+    <button id="clearButton">Clear Local Storage</button>
+    <div id="output"></div>
+
+    <script>
+        document.getElementById('checkButton').addEventListener('click', function() {
+            const output = document.getElementById('output');
+            output.innerHTML = '<h2>Local Storage Items:</h2>';
+            
+            if (localStorage.length === 0) {
+                output.innerHTML += '<p>Local storage is empty</p>';
+                return;
+            }
+            
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                let value = localStorage.getItem(key);
+                
+                try {
+                    // Try to parse JSON values
+                    const parsed = JSON.parse(value);
+                    value = JSON.stringify(parsed, null, 2);
+                } catch (e) {
+                    // Not JSON, keep as is
+                }
+                
+                output.innerHTML += `<h3>${key}</h3><pre>${value}</pre>`;
+            }
+        });
+        
+        document.getElementById('fixAdminButton').addEventListener('click', function() {
+            const userStr = localStorage.getItem('user');
+            if (userStr) {
+                try {
+                    const userData = JSON.parse(userStr);
+                    if (userData.username === 'vincentliux') {
+                        userData.is_admin = true;
+                        localStorage.setItem('user', JSON.stringify(userData));
+                        alert('Admin status fixed for vincentliux!');
+                        document.getElementById('checkButton').click();
+                    } else {
+                        alert('Current user is not vincentliux');
+                    }
+                } catch (e) {
+                    alert('Error parsing user data: ' + e.message);
+                }
+            } else {
+                alert('No user data found in local storage');
+            }
+        });
+        
+        document.getElementById('clearButton').addEventListener('click', function() {
+            if (confirm('Are you sure you want to clear all local storage items?')) {
+                localStorage.clear();
+                alert('Local storage cleared');
+                document.getElementById('output').innerHTML = '';
+            }
+        });
+    </script>
+</body>
+</html>

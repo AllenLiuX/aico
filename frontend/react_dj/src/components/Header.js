@@ -1,25 +1,21 @@
 // Header.js
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { UserCircle } from 'lucide-react';
 import AuthModal from './AuthModal';
 import ProfileDropdown from './ProfileDropdown';
+import { UserContext } from '../contexts/UserContext';
 import '../styles/Header.css';
 import { API_URL } from '../config';
 
 function Header() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [user, setUser] = useState(null);
+  const { user, logout } = useContext(UserContext);
   const dropdownRef = useRef(null);
   const buttonRef = useRef(null);
 
   useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      setUser(JSON.parse(userData));
-    }
-
     const handleClickOutside = (event) => {
       if (dropdownRef.current && 
           buttonRef.current && 
@@ -34,9 +30,7 @@ function Header() {
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
-    setUser(null);
+    logout();
     setShowDropdown(false);
   };
 
@@ -65,11 +59,6 @@ function Header() {
                 onClick={() => setShowDropdown(!showDropdown)}
                 className="profile-button"
               >
-                {/* <img
-                  src={user.avatar}
-                  alt="Profile"
-                  className="profile-avatar"
-                /> */}
                 <img
                   src={getFullAvatarUrl(user.avatar) || `/api/avatar/${user.username}`}
                   alt="Profile"

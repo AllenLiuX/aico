@@ -3,46 +3,49 @@ from flask_cors import CORS
 import util.gpt as gpt 
 import util.llm_modules as llm
 from pathlib import Path
-import os
-import json
-import time
-import uuid
-import hashlib
-import secrets
-import logging
-from flask_socketio import SocketIO, emit, join_room, leave_room
-from flask import after_this_request
-from util import redis_api, user_logging
-import util.user_logging
 import socketio
 import eventlet
-import random
+import json
+import os
+import util.redis_api as redis_api
+from datetime import datetime
+from placeholder import init_placeholder_routes
+import util.user_logging
+from routes.activity_routes import activity_routes
+import time
+import logging
 import util.youtube_music as youtube_music
 from io import BytesIO
-from PIL import Image
-from datetime import datetime
-import util.redis_api as redis_api
-from util.redis_api import *
-import redis
-import util.all_utils as all_utils
-from util.all_utils import *
-from util.generation import *
-import util.lyrics as lyrics_api
-from util.lyrics import fetch_lyrics
-import werkzeug.utils
-from werkzeug.utils import secure_filename
-from routes.activity_routes import activity_routes
-from placeholder import init_placeholder_routes
+import random
 
 # Import the example prompts
 from data.example_prompts import EXAMPLE_PROMPTS
 
-# List of admin users
-ADMIN_USERS = ['vincentliux', 'Carter']
+import hashlib
+import secrets
+from util.redis_api import *
+
+import redis
+import json
+
+from util.generation import *
+from util.all_utils import *
+
+import util.lyrics as lyrics_api
+from util.lyrics import fetch_lyrics
+import os
+from werkzeug.utils import secure_filename
+from PIL import Image
+import io
+import uuid
+from datetime import datetime
+from flask_socketio import SocketIO, emit, join_room, leave_room
+import eventlet
 
 log_path = Path(__file__).parent.parent / "logs" / "backend.online.log"
 logger_setup(log_path=log_path, debug=True)
 logger = logging.getLogger(__name__)
+
 
 redis_client = redis.Redis(host='localhost', port=6379, db=0)
 
@@ -476,54 +479,42 @@ def add_to_playlist():
     username = None
     if auth_token:
         username = get_hash(f"sessions{redis_version}", auth_token)
+
+    # Fetch the existing playlist for the given room_name from Redis
+    # playlist_json = redis_client.get(f"playlist:{room_name}")
+
+    # if playlist_json:
+    #     playlist = json.loads(playlist_json.decode('utf-8'))
+    # else:
+    #     playlist = []
+
+    playlist = json.loads(redis_api.get_hash(f"room_playlists{redis_version}", room_name))
+
+    # Add the new track to the playlist
+    playlist.append(track)
+    logger.info(f'added track:{track} in room:{room_name}')
+    logger.info(f'new playlist:{playlist}')
+
+    # Update the playlist in Redis
+    # redis_client.set(f"playlist:{room_name}", json.dumps(playlist))
     
-    if not all([room_name, track]):
-        logger.error(f"Missing required fields: room_name={room_name}, track={'present' if track else 'missing'}")
-        return jsonify({"error": "Missing required fields"}), 400
-        
-    try:
-        logger.info(f"Processing track addition for room {room_name} by {username or 'Guest'}")
-        logger.info(f"Track info: {json.dumps(track)}")
-        
-        # Fetch the existing playlist for the given room_name from Redis
-        # playlist_json = redis_client.get(f"playlist:{room_name}")
+    redis_api.write_hash(f"room_playlists{redis_version}", room_name, json.dumps(playlist))
 
-        # if playlist_json:
-        #     playlist = json.loads(playlist_json.decode('utf-8'))
-        # else:
-        #     playlist = []
+    # Log user activity if logged in
+    if username:
+        user_logging.log_user_activity(
+            username=username,
+            action="add_song",
+            room_name=room_name,
+            song_id=track.get('song_id'),
+            details={
+                "title": track.get('title'),
+                "artist": track.get('artist'),
+                "source": "manual_add"
+            }
+        )
 
-        playlist = json.loads(redis_api.get_hash(f"room_playlists{redis_version}", room_name))
-
-        # Add the new track to the playlist
-        playlist.append(track)
-        logger.info(f'added track:{track} in room:{room_name}')
-        logger.info(f'new playlist:{playlist}')
-
-        # Update the playlist in Redis
-        # redis_client.set(f"playlist:{room_name}", json.dumps(playlist))
-        
-        redis_api.write_hash(f"room_playlists{redis_version}", room_name, json.dumps(playlist))
-
-        # Log user activity if logged in
-        if username:
-            user_logging.log_user_activity(
-                username=username,
-                action="add_song",
-                room_name=room_name,
-                song_id=track.get('song_id'),
-                details={
-                    "title": track.get('title'),
-                    "artist": track.get('artist'),
-                    "source": "manual_add"
-                }
-            )
-
-        return jsonify({"message": "Track added successfully"})
-
-    except Exception as e:
-        logger.error(f"Error adding track to playlist: {str(e)}")
-        return jsonify({"error": "Failed to add track to playlist"}), 500
+    return jsonify({"message": "Track added successfully"})
 
 @app.route('/api/remove-from-playlist', methods=['POST'])
 def remove_from_playlist():
@@ -634,67 +625,52 @@ def register():
 
 @app.route('/api/auth/login', methods=['POST'])
 def login():
-    try:
-        data = request.json
-        username = data.get('username')
-        password = data.get('password')
-        
-        logger.info(f"Login attempt for user: {username}")
-        
-        if not all([username, password]):
-            logger.warning(f"Login failed for {username}: Missing credentials")
-            return jsonify({"error": "Missing credentials"}), 400
-        
-        # Get stored password hash
-        stored_hash = get_hash(f"users{redis_version}", username)
-        logger.info(f"Login for {username}: Stored hash: {stored_hash}")
-        
-        if not stored_hash:
-            logger.warning(f"Login failed for {username}: User not found")
-            return jsonify({"error": "Invalid username or password"}), 401
-        
-        # Verify password
-        hashed_password = hash_password(password)
-        logger.info(f"Login for {username}: Input hash: {hashed_password}")
-        
-        if hashed_password != stored_hash:
-            logger.warning(f"Login failed for {username}: Password mismatch")
-            return jsonify({"error": "Invalid username or password"}), 401
-        
-        # Generate session token
-        session_token = secrets.token_urlsafe(32)
-        write_hash(f"sessions{redis_version}", session_token, username)
-        
-        # Get user profile or create default one
-        profile_json = get_hash(f"user_profiles{redis_version}", username)
-        if profile_json:
-            profile = json.loads(profile_json)
-        else:
-            # Create default profile with avatar
-            avatar_url = f"/api/avatars/{username}"
-            profile = {
-                "username": username,
-                "avatar": avatar_url
-            }
-            write_hash(f"user_profiles{redis_version}", username, json.dumps(profile))
-        
-        # Log user login activity
-        user_agent = request.headers.get('User-Agent', 'Unknown')
-        ip_address = request.remote_addr
-        user_logging.log_user_activity(
-            username=username,
-            action="login",
-            details={"user_agent": user_agent, "ip_address": ip_address}
-        )
-        
-        logger.info(f"Login successful for {username}")
-        return jsonify({
-            "token": session_token,
-            "user": profile
-        }), 200
-    except Exception as e:
-        logger.error(f"Login error for {username if 'username' in locals() else 'unknown'}: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+    data = request.json
+    username = data.get('username')
+    password = data.get('password')
+    
+    if not all([username, password]):
+        return jsonify({"error": "Missing credentials"}), 400
+    
+    # Get stored password hash
+    stored_hash = get_hash(f"users{redis_version}", username)
+    if not stored_hash:
+        return jsonify({"error": "Invalid username or password"}), 401
+    
+    # Verify password
+    if hash_password(password) != stored_hash:
+        return jsonify({"error": "Invalid username or password"}), 401
+    
+    # Generate session token
+    session_token = secrets.token_urlsafe(32)
+    write_hash(f"sessions{redis_version}", session_token, username)
+    
+    # Get user profile or create default one
+    profile_json = get_hash(f"user_profiles{redis_version}", username)
+    if profile_json:
+        profile = json.loads(profile_json)
+    else:
+        # Create default profile with avatar
+        avatar_url = f"/api/avatars/{username}"
+        profile = {
+            "username": username,
+            "avatar": avatar_url
+        }
+        write_hash(f"user_profiles{redis_version}", username, json.dumps(profile))
+    
+    # Log user login activity
+    user_agent = request.headers.get('User-Agent', 'Unknown')
+    ip_address = request.remote_addr
+    user_logging.log_user_activity(
+        username=username,
+        action="login",
+        details={"user_agent": user_agent, "ip_address": ip_address}
+    )
+    
+    return jsonify({
+        "token": session_token,
+        "user": profile
+    }), 200
 
 
 @app.route('/api/auth/logout', methods=['POST'])
@@ -732,55 +708,27 @@ def verify_session():
         "user": profile
     }), 200
 
-# User authentication endpoint
-@app.route('/api/auth/user', methods=['GET'])
-def get_current_user_direct():
-    """Get current user data directly"""
-    try:
-        # Get auth token from request
-        auth_header = request.headers.get('Authorization')
-        logger.info(f"Auth endpoint called with header: {auth_header[:15]}..." if auth_header and len(auth_header) > 15 else "No auth header or short header")
-        
-        if not auth_header:
-            logger.warning("Auth endpoint: No token provided")
-            return jsonify({"error": "No token provided"}), 401
-        
-        # Extract token from Authorization header (handle Bearer token format)
-        auth_token = auth_header
-        if auth_header.startswith('Bearer '):
-            auth_token = auth_header[7:]  # Remove 'Bearer ' prefix
-            logger.info(f"Auth endpoint: Extracted token from Bearer format: {auth_token[:10]}...")
-        
-        # Get username from session
-        # redis_version = os.environ.get('REDIS_VERSION', '')
-        username = redis_api.get_hash(f"sessions{redis_version}", auth_token)
-        logger.info(f"Auth endpoint: Username from token: {username}")
-        
-        if not username:
-            logger.warning(f"Auth endpoint: Invalid or expired token: {auth_token[:10]}...")
-            return jsonify({"error": "Invalid or expired token"}), 401
-        
-        # Get user data
-        user_data = redis_api.get_user_data(username)
-        logger.info(f"Auth endpoint: User data for {username}: {user_data}")
-        
-        # Check admin status
-        is_admin_from_data = user_data.get('is_admin', False)
-        is_admin_from_username = username in ADMIN_USERS
-        final_admin_status = is_admin_from_data or is_admin_from_username
-        
-        logger.info(f"Auth endpoint: Admin status for {username}: from data={is_admin_from_data}, from username={is_admin_from_username}, final={final_admin_status}")
-        
-        return jsonify({
-            "success": True,
-            "user": {
-                "username": username,
-                "is_admin": final_admin_status
-            }
-        })
-    except Exception as e:
-        logger.error(f"Error getting current user: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+
+def generate_avatar_svg(username):
+    """Generate an SVG avatar with user's initials."""
+    # Get first character of username (uppercase)
+    initial = username[0].upper()
+    
+    # Generate a consistent color based on username
+    random.seed(username)
+    hue = random.randint(0, 360)
+    
+    # SVG template with the initial in the center
+    svg = f'''
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">
+        <rect width="40" height="40" fill="hsl({hue}, 70%, 60%)" />
+        <text x="20" y="24" fill="white" text-anchor="middle" 
+              font-family="Arial, sans-serif" font-size="20" font-weight="bold">
+            {initial}
+        </text>
+    </svg>
+    '''
+    return svg.strip()
 
 @app.route('/api/avatar/<username>')
 def get_avatar(username):
@@ -2433,9 +2381,7 @@ def get_global_logs():
             return jsonify({"error": "User profile not found"}), 404
             
         profile = json.loads(profile_json)
-        is_admin = profile.get('is_admin', False)
-        
-        if not is_admin and username not in ADMIN_USERS:
+        if not profile.get('is_admin', False) and username != 'vincentliux':
             return jsonify({"error": "Unauthorized access"}), 403
         
         # Get pagination parameters
@@ -2485,214 +2431,6 @@ def get_room_logs(room_name):
             "limit": limit,
             "room_name": room_name
         }), 200
-    except Exception as e:
-        logger.error(f"Error getting room logs: {str(e)}")
-        return jsonify({"error": str(e)}), 500
-
-# Helper function to check admin status
-def check_admin_status():
-    """Check if the current user has admin status"""
-    try:
-        # Get auth token from request
-        auth_token = request.headers.get('Authorization')
-        if not auth_token:
-            logger.warning("Admin check: No token provided")
-            return False, jsonify({"error": "No token provided"}), 401
-        
-        # Get username from session
-        # redis_version = os.environ.get('REDIS_VERSION', '')
-        username = redis_api.get_hash(f"sessions{redis_version}", auth_token)
-        if not username:
-            logger.warning(f"Admin check: Invalid or expired token: {auth_token[:10]}...")
-            return False, jsonify({"error": "Invalid or expired token"}), 401
-        
-        # Check if user is in admin list
-        if username in ADMIN_USERS:
-            logger.info(f"Admin check: {username} is in admin list")
-            return True, username, None
-        
-        # Check user data for admin status
-        user_data = redis_api.get_user_data(username)
-        is_admin = user_data.get('is_admin', False)
-        
-        if not is_admin:
-            logger.warning(f"Admin check: {username} is not an admin")
-            return False, jsonify({"error": "Unauthorized access"}), 403
-        
-        logger.info(f"Admin check: {username} is an admin from user data")
-        return True, username, None
-    except Exception as e:
-        logger.error(f"Error checking admin status: {str(e)}")
-        return False, jsonify({"error": str(e)}), 500
-
-# Admin Dashboard API Endpoints
-@app.route('/api/user-activity/export/song-interactions', methods=['GET'])
-def export_song_interactions():
-    """Export song interactions data for admin dashboard"""
-    logger.info("Admin endpoint: Exporting song interactions")
-    
-    # Check admin status
-    is_admin, response, status_code = check_admin_status()
-    if not is_admin:
-        return response, status_code
-    
-    # Return dummy data for testing
-    return jsonify({
-        "success": True,
-        "data": [
-            {
-                "song_id": "youtube_dQw4w9WgXcQ",
-                "title": "Rick Astley - Never Gonna Give You Up",
-                "username": "vincentliux",
-                "action": "play",
-                "timestamp": "2025-03-19T10:30:00"
-            },
-            {
-                "song_id": "youtube_9bZkp7q19f0",
-                "title": "PSY - GANGNAM STYLE",
-                "username": "vincentliux",
-                "action": "favorite",
-                "timestamp": "2025-03-19T11:15:00"
-            },
-            {
-                "song_id": "youtube_kJQP7kiw5Fk",
-                "title": "Luis Fonsi - Despacito ft. Daddy Yankee",
-                "username": "user123",
-                "action": "add",
-                "timestamp": "2025-03-19T12:00:00"
-            }
-        ]
-    })
-
-@app.route('/api/user-activity/export/room-interactions', methods=['GET'])
-def export_room_interactions():
-    """Export room interactions data for admin dashboard"""
-    logger.info("Admin endpoint: Exporting room interactions")
-    
-    # Check admin status
-    is_admin, response, status_code = check_admin_status()
-    if not is_admin:
-        return response, status_code
-    
-    # Return dummy data for testing
-    return jsonify({
-        "success": True,
-        "data": [
-            {
-                "room_name": "Marvel",
-                "username": "vincentliux",
-                "action": "join_room",
-                "timestamp": "2025-03-19T09:30:00"
-            },
-            {
-                "room_name": "favorites_vincentliux",
-                "username": "vincentliux",
-                "action": "create_room",
-                "timestamp": "2025-03-19T09:41:04"
-            },
-            {
-                "room_name": "Marvel",
-                "username": "user123",
-                "action": "favorite_room",
-                "timestamp": "2025-03-19T10:15:00"
-            }
-        ]
-    })
-
-@app.route('/api/user-activity/export/song-features', methods=['GET'])
-def export_song_features():
-    """Export song features data for admin dashboard"""
-    logger.info("Admin endpoint: Exporting song features")
-    
-    # Check admin status
-    is_admin, response, status_code = check_admin_status()
-    if not is_admin:
-        return response, status_code
-    
-    # Return dummy data for testing
-    return jsonify({
-        "success": True,
-        "data": [
-            {
-                "song_id": "youtube_dQw4w9WgXcQ",
-                "title": "Rick Astley - Never Gonna Give You Up",
-                "play_count": 42,
-                "favorite_count": 15,
-                "add_count": 20,
-                "remove_count": 5
-            },
-            {
-                "song_id": "youtube_9bZkp7q19f0",
-                "title": "PSY - GANGNAM STYLE",
-                "play_count": 38,
-                "favorite_count": 12,
-                "add_count": 18,
-                "remove_count": 3
-            },
-            {
-                "song_id": "youtube_kJQP7kiw5Fk",
-                "title": "Luis Fonsi - Despacito ft. Daddy Yankee",
-                "play_count": 35,
-                "favorite_count": 10,
-                "add_count": 15,
-                "remove_count": 2
-            }
-        ]
-    })
-
-@app.route('/api/user-activity/export/room-features', methods=['GET'])
-def export_room_features():
-    """Export room features data for admin dashboard"""
-    logger.info("Admin endpoint: Exporting room features")
-    
-    # Check admin status
-    is_admin, response, status_code = check_admin_status()
-    if not is_admin:
-        return response, status_code
-    
-    # Return dummy data for testing
-    return jsonify({
-        "success": True,
-        "data": [
-            {
-                "room_name": "Marvel",
-                "join_count": 25,
-                "favorite_count": 10,
-                "song_count": 15,
-                "host": "vincentliux"
-            },
-            {
-                "room_name": "favorites_vincentliux",
-                "join_count": 15,
-                "favorite_count": 8,
-                "song_count": 12,
-                "host": "vincentliux"
-            },
-            {
-                "room_name": "Chill Vibes",
-                "join_count": 20,
-                "favorite_count": 12,
-                "song_count": 18,
-                "host": "user123"
-            }
-        ]
-    })
-
-@app.route('/api/user-activity/export/dataset', methods=['GET'])
-def export_recommendation_dataset():
-    """Export complete dataset for recommendation system"""
-    logger.info("Admin endpoint: Exporting recommendation dataset")
-    
-    # Check admin status
-    is_admin, response, status_code = check_admin_status()
-    if not is_admin:
-        return response, status_code
-    
-    # Return success message for testing
-    return jsonify({
-        "success": True,
-        "message": "Dataset export initiated. Download will start shortly."
-    })
 
 if __name__ == '__main__':
     # app.run(port=3000, host='10.72.252.213', debug=True)
