@@ -1,5 +1,5 @@
 // API configuration
-export const host_by_https = false;
+export const host_by_https = true;
 // export const API_URL = "http://13.56.253.58:5000";
 export const API_URL = host_by_https 
   ? "https://aico-music.com" 

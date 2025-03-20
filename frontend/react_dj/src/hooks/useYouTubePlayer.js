@@ -30,23 +30,63 @@ const useYouTubePlayer = (playlist, socket, isHost, emitPlayerState) => {
   // Initialize YouTube player when playlist is available
   useEffect(() => {
     if (playlist.length === 0) return;
-  
-    // Initialize player if not already initialized
-    if (document.getElementById('youtube-iframe-api')) {
-      // Only initialize if player doesn't exist yet
-      if (!playerRef.current) {
+    
+    // Clear any previous errors
+    setPlayerError(null);
+    
+    // Function to initialize the player
+    const setupPlayer = () => {
+      // Check if YT API is loaded
+      if (window.YT && window.YT.Player) {
+        console.log("YouTube API is loaded, initializing player");
         initPlayer();
+      } else {
+        console.log("YouTube API not yet loaded, waiting...");
+        // Wait for API to load
+        const checkYT = setInterval(() => {
+          if (window.YT && window.YT.Player) {
+            console.log("YouTube API loaded after waiting");
+            clearInterval(checkYT);
+            initPlayer();
+          }
+        }, 500);
+        
+        // Set a timeout to prevent infinite waiting
+        setTimeout(() => {
+          clearInterval(checkYT);
+          if (!window.YT || !window.YT.Player) {
+            console.error("YouTube API failed to load after timeout");
+            setPlayerError("Failed to load YouTube player. Please refresh the page.");
+          }
+        }, 10000);
       }
+    };
+  
+    // Check if the API script is already loaded
+    if (document.getElementById('youtube-iframe-api')) {
+      setupPlayer();
       return;
     }
   
+    // Load the YouTube API script
     const tag = document.createElement('script');
     tag.id = 'youtube-iframe-api';
     tag.src = 'https://www.youtube.com/iframe_api';
+    
+    // Add error handling for script loading
+    tag.onerror = () => {
+      console.error("Failed to load YouTube iframe API script");
+      setPlayerError("Failed to load YouTube player. Please check your internet connection and try again.");
+    };
+    
     const firstScriptTag = document.getElementsByTagName('script')[0];
     firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
   
-    window.onYouTubeIframeAPIReady = initPlayer;
+    // Set up the callback for when the API is ready
+    window.onYouTubeIframeAPIReady = () => {
+      console.log("YouTube iframe API ready");
+      setupPlayer();
+    };
   
     return () => {
       window.onYouTubeIframeAPIReady = null;
@@ -164,9 +204,14 @@ const useYouTubePlayer = (playlist, socket, isHost, emitPlayerState) => {
         params.append('autoplay', autoplay ? '1' : '0');
         params.append('start', Math.floor(startSeconds));
         params.append('enablejsapi', '1');
-        params.append('playsinline', '1');
-        params.append('controls', '0');
+        params.append('fs', '0');
+        params.append('modestbranding', '1');
+        params.append('rel', '0');
         params.append('origin', window.location.origin);
+        params.append('playsinline', '1');
+        params.append('protocol', 'https'); // Force HTTPS protocol for the player
+        params.append('controls', '0');
+        params.append('disablekb', '1');
         
         const embedUrl = `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
         console.log('Setting iframe src to:', embedUrl);
@@ -369,6 +414,29 @@ const useYouTubePlayer = (playlist, socket, isHost, emitPlayerState) => {
     return match ? match[1] : '';
   };
 
+  // Function to try alternative video sources
+  const tryAlternativeSource = (trackIndex) => {
+    if (!playlist[trackIndex]) return false;
+    
+    const track = playlist[trackIndex];
+    
+    // Check if the track has an alternative URL
+    if (track.alternative_url) {
+      console.log(`Trying alternative URL for track: ${track.title}`);
+      
+      const videoId = extractVideoId(track.alternative_url);
+      if (videoId) {
+        // Load the alternative video
+        if (playerRef.current) {
+          playerRef.current.loadVideoById(videoId);
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  };
+
   const onPlayerError = (event) => {
     console.error("YouTube player error:", event.data);
     const errorMessages = {
@@ -378,16 +446,61 @@ const useYouTubePlayer = (playlist, socket, isHost, emitPlayerState) => {
       101: "Video cannot be played in embedded players",
       150: "Video cannot be played in embedded players"
     };
-    setPlayerError(`Player error: ${errorMessages[event.data] || `Unknown error (code: ${event.data})`}`);
+    
+    // Handle embedding disabled errors (101, 150)
+    if (event.data === 101 || event.data === 150) {
+      setPlayerError(`This video cannot be embedded due to YouTube restrictions. Try a different video.`);
+      
+      // First try an alternative source if available
+      if (tryAlternativeSource(currentTrack)) {
+        console.log("Trying alternative source for current track");
+        return;
+      }
+      
+      // If we're the host, automatically try to play the next track
+      if (isHost && playlist.length > 1) {
+        console.log("Embedding disabled for current video. Attempting to play next track...");
+        setTimeout(() => {
+          playNext();
+        }, 3000);
+      }
+    } else {
+      setPlayerError(`Player error: ${errorMessages[event.data] || `Unknown error (code: ${event.data})`}`);
+    }
   };
 
   const initPlayer = () => {
-    if (!playlist.length || !window.YT || !playerContainerRef.current) return;
+    if (!playlist.length) {
+      console.log("Cannot initialize player: playlist is empty");
+      return;
+    }
+    
+    if (!window.YT || !window.YT.Player) {
+      console.error("Cannot initialize player: YouTube API not loaded");
+      setPlayerError("YouTube player failed to load. Please refresh the page.");
+      return;
+    }
+    
+    if (!playerContainerRef.current) {
+      console.error("Cannot initialize player: player container not found");
+      setPlayerError("Player container not found. Please refresh the page.");
+      return;
+    }
   
     try {
       // Only create player if it doesn't exist
       if (!playerRef.current) {
+        console.log("Creating new YouTube player instance");
         const videoId = extractVideoId(playlist[currentTrack].song_url);
+        
+        if (!videoId) {
+          console.error("Invalid video URL:", playlist[currentTrack].song_url);
+          setPlayerError("Invalid YouTube URL. Please check the video link.");
+          return;
+        }
+        
+        console.log("Initializing player with video ID:", videoId);
+        
         playerRef.current = new window.YT.Player(playerContainerRef.current, {
           height: '0',
           width: '0',
@@ -412,6 +525,8 @@ const useYouTubePlayer = (playlist, socket, isHost, emitPlayerState) => {
         
         // Store the video ID reference
         currentVideoIdRef.current = videoId;
+      } else {
+        console.log("Player already initialized");
       }
     } catch (err) {
       console.error("Error initializing YouTube player:", err);
@@ -424,15 +539,37 @@ const useYouTubePlayer = (playlist, socket, isHost, emitPlayerState) => {
     playerReadyRef.current = true;
     setIsInitialized(true);
     
+    // Clear any previous errors
+    setPlayerError(null);
+    
     // Capture the iframe reference right after player is ready
     capturePlayerIframe();
     
-    if (isHost && isPlaying) {
-      event.target.playVideo();
-    } else if (!isHost) {
-      // For guests, set the volume lower initially
-      event.target.setVolume(70);
+    // Get video duration
+    try {
+      const newDuration = event.target.getDuration();
+      if (newDuration && newDuration > 0) {
+        setDuration(newDuration);
+        console.log(`Video duration: ${newDuration} seconds`);
+      } else {
+        console.warn("Could not get video duration from player");
+      }
+    } catch (err) {
+      console.error("Error getting video duration:", err);
     }
+    
+    // Start playing if host
+    if (isHost) {
+      try {
+        event.target.playVideo();
+        console.log("Auto-playing video for host");
+      } catch (err) {
+        console.error("Error auto-playing video:", err);
+      }
+    }
+    
+    // Start tracking progress
+    startProgressTracking();
   };
 
   const onPlayerStateChange = (event) => {

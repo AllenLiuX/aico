@@ -69,6 +69,7 @@ function PlayRoom() {
   const [refreshing, setRefreshing] = useState(false);
   const [connectedUsers, setConnectedUsers] = useState([]);
   const [showConnectionError, setShowConnectionError] = useState(false);
+  const [playerError, setPlayerError] = useState(null);
   
   // Add a ref to preserve current line index when toggling lyrics
   const currentLineIndexRef = useRef(-1);
@@ -206,7 +207,6 @@ function PlayRoom() {
     progress,
     duration,
     currentTime,
-    playerError,
     playerContainerRef,
     togglePlay,
     playNext,
@@ -216,8 +216,16 @@ function PlayRoom() {
     playSpecificTrack,
     handlePinToTop: handlePinToTopPlayer,
     stopProgressTracking,
-    isHost: playerIsHost // This should match the isHost state
+    isHost: playerIsHost, // This should match the isHost state
+    playerError: youtubePlayerError // Renamed to avoid conflict
   } = useYouTubePlayer(playlist, socket, isHost, emitPlayerState);
+  
+  // Update the local playerError state when the YouTube player error changes
+  useEffect(() => {
+    if (youtubePlayerError) {
+      setPlayerError(youtubePlayerError);
+    }
+  }, [youtubePlayerError]);
 
   const {
     showNotification,
@@ -675,20 +683,44 @@ function PlayRoom() {
         </div>
 
         {/* QR Code Modal */}
-        <QRCodeModal
-          show={showQRCode}
-          roomName={roomName}
-          onClose={() => setShowQRCode(false)}
-        />
+        {showQRCode && (
+          <QRCodeModal 
+            roomName={roomName} 
+            onClose={() => setShowQRCode(false)} 
+          />
+        )}
         
         {/* Notification Modal */}
-        <RequestNotificationModal
-          isOpen={showNotification}
-          onClose={() => setShowNotification(false)}
-          title={notificationTitle}
-          message={notificationMessage}
-          type={notificationType}
-        />
+        {showNotification && (
+          <RequestNotificationModal
+            title={notificationTitle}
+            message={notificationMessage}
+            type={notificationType}
+            onClose={() => setShowNotification(false)}
+          />
+        )}
+        
+        {/* Connection Error Modal */}
+        {showConnectionError && (
+          <div className="modal-overlay">
+            <div className="modal-content error-modal">
+              <h3>Connection Error</h3>
+              <p>There was an error connecting to the room. Please try again later.</p>
+              <button onClick={() => navigate('/')}>Return to Home</button>
+            </div>
+          </div>
+        )}
+        
+        {/* Player Error Message */}
+        {playerError && (
+          <div className="player-error-banner">
+            <div className="error-content">
+              <span className="error-icon">⚠️</span>
+              <span>{playerError}</span>
+              <button onClick={() => setPlayerError(null)} className="close-error">×</button>
+            </div>
+          </div>
+        )}
       </div>
     </MobileResponsiveWrapper>
   );

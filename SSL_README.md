@@ -173,6 +173,68 @@ npm run build
 sudo cp -r build/* /usr/share/nginx/html/aico/
 ```
 
+## Handling YouTube Embedding Restrictions
+
+Some YouTube videos have embedding restrictions set by their owners, which prevents them from being played in embedded players like the one used in our application. When this happens, you'll see an error message like "Video cannot be played in embedded players" (error code 101 or 150).
+
+### Solution Implemented
+
+1. **Error Handling**: We've improved the error handling in the YouTube player hook to detect embedding restriction errors and provide a better user experience:
+   - The application now shows a clear error message to users
+   - For hosts, the player automatically attempts to play the next track after a short delay
+   - The code checks for alternative video sources when available
+
+2. **Visual Feedback**: A prominent error banner appears when a video cannot be embedded, explaining the issue to users.
+
+3. **Workarounds for Users**:
+   - Try using different YouTube videos that allow embedding
+   - Use YouTube Music links instead of regular YouTube links when possible
+   - Consider using official music videos from artist channels, which often allow embedding
+
+### Technical Details
+
+The embedding restriction is controlled by the video owner on YouTube and cannot be bypassed. This is a YouTube API limitation, not an issue with our application's configuration.
+
+The error codes related to embedding restrictions are:
+- 101: "Video cannot be played in embedded players"
+- 150: "Video cannot be played in embedded players"
+
+These errors occur when the video owner has specifically disabled the "Allow embedding" option in their YouTube video settings.
+
+## Troubleshooting YouTube Player Issues
+
+### Error: "Failed to initialize player: window.YT.Player is not a constructor"
+
+This error occurs when the YouTube Iframe API fails to load properly before the player tries to initialize. We've implemented several fixes to address this issue:
+
+1. **Improved API Loading**: The YouTube API loading process now includes:
+   - Better error handling for script loading failures
+   - A polling mechanism to check when the API is available
+   - Timeout detection to prevent infinite waiting
+   - Detailed console logging for debugging
+
+2. **Browser Compatibility**: Some browsers may have issues with the YouTube player:
+   - Safari on iOS has better compatibility with YouTube embeds
+   - Chrome on macOS may require additional permissions or settings
+   - Make sure third-party cookies are enabled in your browser
+   - Check that JavaScript is enabled and not blocked by extensions
+
+3. **Network Issues**: YouTube API loading can be affected by:
+   - Slow internet connections
+   - Firewalls or content blockers
+   - VPNs that might interfere with YouTube content
+
+### Fixing Player Issues
+
+If users experience YouTube player issues:
+
+1. **Refresh the page**: This often resolves temporary loading issues
+2. **Clear browser cache**: Cached scripts might be causing conflicts
+3. **Try a different browser**: If the issue persists in one browser
+4. **Check console logs**: Look for specific error messages to diagnose the problem
+
+The application now includes more robust error handling and will display user-friendly error messages when issues occur.
+
 ## Certificate Renewal
 
 Let's Encrypt certificates are valid for 90 days. To set up automatic renewal:
