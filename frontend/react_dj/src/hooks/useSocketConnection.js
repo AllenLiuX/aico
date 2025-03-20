@@ -86,10 +86,37 @@ const useSocketConnection = (roomName, isHost = false) => {
   const emitPlayerState = useCallback((playerState) => {
     if (!socket || !isHost || !isConnected) return;
 
+    // Get username from localStorage - ensure it's not 'guest' if the user is logged in
+    let username = localStorage.getItem('username') || 'guest';
+    const token = localStorage.getItem('token');
+    
+    // If there's a token but username is guest, try to get the actual username
+    if (token && (username === 'guest' || username === 'Guest')) {
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        try {
+          const userObj = JSON.parse(storedUser);
+          if (userObj && userObj.username) {
+            username = userObj.username;
+          }
+        } catch (e) {
+          console.error('Error parsing user from localStorage:', e);
+        }
+      }
+    }
+    
+    console.log('Emitting player state change:', {
+      room_name: roomName,
+      is_host: true,
+      player_state: playerState,
+      username: username
+    });
+
     socket.emit('player_state_change', {
       room_name: roomName,
       is_host: true,
-      player_state: playerState
+      player_state: playerState,
+      username: username
     });
   }, [socket, roomName, isHost, isConnected]);
 

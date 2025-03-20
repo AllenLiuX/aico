@@ -145,44 +145,76 @@ def handle_player_state_change(data):
     """Handle player state changes (play, pause, etc.)"""
     try:
         room_name = data.get('room_name')
-        state = data.get('state')
-        position = data.get('position', 0)
         username = data.get('username')
+        
+        # Log the data for debugging
+        logger.info(f"Player state change: {data}")
+        
+        # Check for both state and player_state for backward compatibility
+        player_state = data.get('player_state', {})
+        is_playing = player_state.get('isPlaying', False)
+        current_track = player_state.get('currentTrack', 0)
+        video_id = player_state.get('videoId', '')
+        position = player_state.get('currentTime', 0)
+        
+        # Convert isPlaying to state format
+        state = "playing" if is_playing else "paused"
         
         # Update the room's player state in Redis
         redis_api.update_room_player_state(room_name, state, position)
         
-        # Log user activity for play/pause events
-        if username and username != 'guest' and room_name:
-            # Get current song information from the room
+        # Always log song plays, even for guest users, but only once per song session
+        if room_name and is_playing:
+            # First try to get song info from the room playlist
             room_data = redis_api.get_room_data(room_name)
             current_playlist = room_data.get('playlist', [])
-            current_index = room_data.get('current_index', 0)
+            current_song = None
             
-            # Check if there's a song playing
-            if current_playlist and 0 <= current_index < len(current_playlist):
-                current_song = current_playlist[current_index]
+            # Try to get the song from the playlist using currentTrack
+            if current_playlist and 0 <= current_track < len(current_playlist):
+                current_song = current_playlist[current_track]
+            
+            # If we have a song and the state is playing
+            if current_song or video_id:
+                # Use actual username if available, otherwise use 'guest'
+                log_username = username if username and username.lower() != 'guest' else 'guest'
+                song_id = current_song.get('song_id') if current_song else video_id
                 
-                # Log play or pause action
-                action = "play_song" if state == "playing" else "pause_song"
-                user_logging.log_user_activity(
-                    username=username,
-                    action=action,
-                    room_name=room_name,
-                    song_id=current_song.get('song_id'),
-                    details={
-                        "title": current_song.get('title'),
-                        "artist": current_song.get('artist'),
-                        "position": position
-                    }
-                )
+                # Check if this song was recently logged to avoid duplicate logs
+                last_played_key = f"last_played:{room_name}"
+                last_played = redis_client.get(last_played_key)
+                
+                # Only log if this is a different song than the last one played in this room
+                if not last_played or last_played.decode('utf-8') != song_id:
+                    # Update the last played song for this room
+                    redis_client.set(last_played_key, song_id)
+                    redis_client.expire(last_played_key, 3600)  # Expire after 1 hour
+                    
+                    # Log the play action
+                    title = current_song.get('title', '') if current_song else 'Unknown'
+                    artist = current_song.get('artist', '') if current_song else 'Unknown'
+                    
+                    logger.info(f"Logging play_song for user {log_username}, song {title if title else video_id} in room {room_name}")
+                    
+                    # Log the play action using user_logging module
+                    user_logging.log_user_activity(
+                        username=log_username,
+                        action="play_song",
+                        song_id=song_id,
+                        room_name=room_name,
+                        details={
+                            "title": title,
+                            "artist": artist,
+                            "position": position
+                        }
+                    )
+                    
+                    # Increment play count in Redis
+                    new_count = redis_api.increment_song_play_count(song_id, title=title, artist=artist)
+                    logger.info(f"Incremented play count for song {song_id} to {new_count}")
         
-        # Broadcast the state change to all users in the room
-        emit('player_state_update', {
-            'state': state,
-            'position': position,
-            'username': username
-        }, room=room_name)
+        # Broadcast the player state to all clients in the room
+        emit('player_state_update', player_state, room=room_name)
         
     except Exception as e:
         logger.error(f"Error handling player state change: {str(e)}")
@@ -1443,8 +1475,10 @@ def request_track():
             playlist.append(track)
             
             # Update the playlist in Redis
-            write_hash(f"room_playlists{redis_version}", room_name, json.dumps(playlist))
+            # redis_client.set(f"playlist:{room_name}", json.dumps(playlist))
             
+            redis_api.write_hash(f"room_playlists{redis_version}", room_name, json.dumps(playlist))
+
             logger.info(f"Track added directly to playlist for room {room_name} (moderation off)")
             
             return jsonify({
@@ -2693,6 +2727,54 @@ def export_recommendation_dataset():
         "success": True,
         "message": "Dataset export initiated. Download will start shortly."
     })
+
+@app.route('/api/songs/log-play', methods=['POST'])
+def log_song_play():
+    """Log when a user plays a song"""
+    try:
+        data = request.json
+        song_id = data.get('song_id')
+        song_title = data.get('title')
+        song_artist = data.get('artist')
+        room_name = data.get('room_name')
+        username = data.get('username', 'vincentliux')  # Default to vincentliux for testing
+        
+        # Get user from auth token
+        auth_token = request.headers.get('Authorization')
+        if auth_token:
+            # Extract token from Bearer format
+            if auth_token.startswith('Bearer '):
+                auth_token = auth_token[7:]
+                
+            token_username = get_hash(f"sessions{redis_version}", auth_token)
+            if token_username:
+                username = token_username
+        
+        # Log the play action
+        logger.info(f"Logging play_song for user {username}, song {song_title} in room {room_name}")
+        user_logging.log_user_activity(
+            username=username,
+            action="play_song",
+            room_name=room_name,
+            song_id=song_id,
+            details={
+                "title": song_title,
+                "artist": song_artist
+            }
+        )
+        
+        # Increment play count in Redis
+        new_count = redis_api.increment_song_play_count(song_id, title=song_title, artist=song_artist)
+        logger.info(f"Incremented play count for song {song_id} to {new_count}")
+        
+        return jsonify({
+            "success": True,
+            "message": "Song play logged successfully",
+            "play_count": new_count
+        })
+    except Exception as e:
+        logger.error(f"Error logging song play: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     # app.run(port=3000, host='10.72.252.213', debug=True)

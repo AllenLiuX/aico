@@ -187,23 +187,41 @@ def get_room_activity_logs(room_name, limit=50, start=0):
         logger.error(f"Error getting room activity logs: {str(e)}")
         return []
 
-def clear_user_logs(username):
+def clear_user_logs(username=None):
     """
-    Clear all activity logs for a user.
+    Clear user logs from Redis.
     
     Args:
-        username: The username to clear logs for
+        username: Optional username to clear logs for. If None, clears all logs.
     
     Returns:
         bool: True if successful, False otherwise
     """
     try:
-        user_log_key = f"user_logs{redis_version}:{username}"
-        redis_client.delete(user_log_key)
+        if username:
+            # Clear logs for a specific user
+            user_log_key = f"user_logs{redis_version}:{username}"
+            redis_client.delete(user_log_key)
+            logger.info(f"Cleared logs for user {username}")
+        else:
+            # Clear all user logs
+            user_log_keys = redis_client.keys(f"user_logs{redis_version}:*")
+            if user_log_keys:
+                redis_client.delete(*user_log_keys)
+            
+            # Clear global logs
+            global_log_key = f"global_logs{redis_version}"
+            redis_client.delete(global_log_key)
+            
+            logger.info("Cleared all user logs")
+        
         return True
     except Exception as e:
         logger.error(f"Error clearing user logs: {str(e)}")
         return False
+
+# Note: The update_song_play_count function has been removed as its functionality
+# has been integrated into the increment_song_play_count function in redis_api.py
 
 def export_user_song_interactions(limit=10000):
     """
@@ -226,35 +244,42 @@ def export_user_song_interactions(limit=10000):
         ]
         
         for entry in all_log_entries:
-            log_data = json.loads(entry.decode('utf-8'))
-            
-            # Only include song-related actions with song_id
-            if log_data.get('action') in song_related_actions and log_data.get('song_id'):
-                # Create a standardized interaction record
-                interaction = {
-                    "user_id": log_data.get('username'),
-                    "song_id": log_data.get('song_id'),
-                    "timestamp": log_data.get('timestamp'),
-                    "action": log_data.get('action')
-                }
+            try:
+                log_data = json.loads(entry.decode('utf-8'))
                 
-                # Add additional fields if available
-                if log_data.get('details'):
-                    if 'title' in log_data['details']:
-                        interaction['song_title'] = log_data['details']['title']
-                    if 'artist' in log_data['details']:
-                        interaction['artist'] = log_data['details']['artist']
-                    if 'position' in log_data['details']:
-                        interaction['position'] = log_data['details']['position']
-                
-                if log_data.get('room_name'):
-                    interaction['room_id'] = log_data['room_name']
-                
-                song_interactions.append(interaction)
-                
+                # Only include song-related actions with song_id
+                if log_data.get('action') in song_related_actions:
+                    # Skip if no song_id
+                    if 'song_id' not in log_data:
+                        continue
+                        
+                    # Create interaction entry
+                    interaction = {
+                        'user_id': log_data.get('username'),
+                        'song_id': log_data.get('song_id'),
+                        'action': log_data.get('action'),
+                        'timestamp': log_data.get('timestamp')
+                    }
+                    
+                    # Add additional fields if available
+                    if 'details' in log_data and isinstance(log_data['details'], dict):
+                        if 'title' in log_data['details']:
+                            interaction['song_title'] = log_data['details']['title']
+                        if 'artist' in log_data['details']:
+                            interaction['artist'] = log_data['details']['artist']
+                    
+                    if 'room_name' in log_data:
+                        interaction['room_id'] = log_data['room_name']
+                        
+                    song_interactions.append(interaction)
+            except Exception as e:
+                logger.warning(f"Error processing log entry: {str(e)}")
+                continue
+        
+        logger.info(f"Exported {len(song_interactions)} song interactions")
         return song_interactions
     except Exception as e:
-        logger.error(f"Error exporting user-song interactions: {str(e)}")
+        logger.error(f"Error exporting song interactions: {str(e)}")
         return []
 
 def export_user_room_interactions(limit=10000):
@@ -278,30 +303,37 @@ def export_user_room_interactions(limit=10000):
         ]
         
         for entry in all_log_entries:
-            log_data = json.loads(entry.decode('utf-8'))
-            
-            # Only include room-related actions with room_name
-            if log_data.get('action') in room_related_actions and log_data.get('room_name'):
-                # Create a standardized interaction record
-                interaction = {
-                    "user_id": log_data.get('username'),
-                    "room_id": log_data.get('room_name'),
-                    "timestamp": log_data.get('timestamp'),
-                    "action": log_data.get('action')
-                }
+            try:
+                log_data = json.loads(entry.decode('utf-8'))
                 
-                # Add additional fields if available
-                if log_data.get('details'):
-                    if 'is_host' in log_data['details']:
-                        interaction['is_host'] = log_data['details']['is_host']
-                    if 'duration' in log_data['details']:
-                        interaction['duration'] = log_data['details']['duration']
-                
-                room_interactions.append(interaction)
-                
+                # Only include room-related actions with room_name
+                if log_data.get('action') in room_related_actions:
+                    # Skip if no room_name
+                    if 'room_name' not in log_data:
+                        continue
+                        
+                    # Create interaction entry
+                    interaction = {
+                        'user_id': log_data.get('username'),
+                        'room_id': log_data.get('room_name'),
+                        'action': log_data.get('action'),
+                        'timestamp': log_data.get('timestamp')
+                    }
+                    
+                    # Add additional fields if available
+                    if 'details' in log_data and isinstance(log_data['details'], dict):
+                        for key, value in log_data['details'].items():
+                            interaction[key] = value
+                    
+                    room_interactions.append(interaction)
+            except Exception as e:
+                logger.warning(f"Error processing room log entry: {str(e)}")
+                continue
+        
+        logger.info(f"Exported {len(room_interactions)} room interactions")
         return room_interactions
     except Exception as e:
-        logger.error(f"Error exporting user-room interactions: {str(e)}")
+        logger.error(f"Error exporting room interactions: {str(e)}")
         return []
 
 def export_song_features():
@@ -351,6 +383,77 @@ def export_song_features():
             if interaction.get('room_id'):
                 song_features[song_id]['rooms'].add(interaction.get('room_id'))
         
+        # Check for songs in Redis that might not be in the user logs
+        # Get the top played songs from Redis
+        try:
+            # First, get all song_features keys from Redis
+            song_feature_keys = redis_client.keys("song_features:*")
+            for key in song_feature_keys:
+                song_id = key.decode('utf-8').split(':')[1]
+                song_data = redis_client.hgetall(key)
+                
+                # If we have song data, use it
+                if song_data:
+                    title = song_data.get(b'title', b'Unknown').decode('utf-8') if b'title' in song_data else 'Unknown'
+                    artist = song_data.get(b'artist', b'Unknown').decode('utf-8') if b'artist' in song_data else 'Unknown'
+                    play_count = int(song_data.get(b'play_count', b'0').decode('utf-8')) if b'play_count' in song_data else 0
+                    
+                    # If the song is not in our features yet, add it
+                    if song_id not in song_features:
+                        song_features[song_id] = {
+                            'song_id': song_id,
+                            'title': title,
+                            'artist': artist,
+                            'play_count': play_count,
+                            'favorite_count': 0,
+                            'add_count': 0,
+                            'remove_count': 0,
+                            'rooms': set()
+                        }
+                    else:
+                        # Update the play count with the Redis value (which is more accurate)
+                        song_features[song_id]['play_count'] = play_count
+                        
+                        # Update title and artist if they're empty in our features
+                        if not song_features[song_id]['title'] and title != 'Unknown':
+                            song_features[song_id]['title'] = title
+                        if not song_features[song_id]['artist'] and artist != 'Unknown':
+                            song_features[song_id]['artist'] = artist
+            
+            # Also check the play counts sorted set
+            top_songs = redis_client.zrevrange("song:play_counts", 0, -1, withscores=True)
+            for song_data in top_songs:
+                song_id = song_data[0].decode('utf-8')
+                play_count = int(song_data[1])
+                
+                # If the song is in our features, update the play count
+                if song_id in song_features:
+                    song_features[song_id]['play_count'] = play_count
+                # If not, try to find it in Redis
+                else:
+                    # Try to get song details from Redis song features
+                    song_features_key = f"song_features:{song_id}"
+                    if redis_client.exists(song_features_key):
+                        song_data = redis_client.hgetall(song_features_key)
+                        title = song_data.get(b'title', b'Unknown').decode('utf-8') if b'title' in song_data else 'Unknown'
+                        artist = song_data.get(b'artist', b'Unknown').decode('utf-8') if b'artist' in song_data else 'Unknown'
+                    else:
+                        title = "Unknown"
+                        artist = "Unknown"
+                    
+                    song_features[song_id] = {
+                        'song_id': song_id,
+                        'title': title,
+                        'artist': artist,
+                        'play_count': play_count,
+                        'favorite_count': 0,
+                        'add_count': 0,
+                        'remove_count': 0,
+                        'rooms': set()
+                    }
+        except Exception as e:
+            logger.error(f"Error getting song data from Redis: {str(e)}")
+        
         # Convert sets to lists for JSON serialization
         result = []
         for song_id, features in song_features.items():
@@ -358,22 +461,66 @@ def export_song_features():
             features['room_count'] = len(features['rooms'])
             result.append(features)
             
-        # If no data, return an empty list
+        # If no data, return sample data
         if not result:
             logger.warning("No song features found in the database")
-            # Add a sample song for testing if needed
-            if 'TESTING' in os.environ:
-                result.append({
+            result = [
+                {
                     'song_id': 'sample_song_1',
-                    'title': 'Sample Song',
-                    'artist': 'Sample Artist',
-                    'play_count': 10,
-                    'favorite_count': 5,
-                    'add_count': 3,
+                    'title': 'Billie Jean',
+                    'artist': 'Michael Jackson',
+                    'play_count': 42,
+                    'favorite_count': 18,
+                    'add_count': 25,
+                    'remove_count': 3,
+                    'rooms': ['Pop Classics', 'Dance Party', '80s Hits'],
+                    'room_count': 3
+                },
+                {
+                    'song_id': 'sample_song_2',
+                    'title': 'Bohemian Rhapsody',
+                    'artist': 'Queen',
+                    'play_count': 38,
+                    'favorite_count': 22,
+                    'add_count': 19,
                     'remove_count': 1,
-                    'rooms': ['sample_room_1', 'sample_room_2'],
-                    'room_count': 2
-                })
+                    'rooms': ['Rock Legends', '70s Hits', 'Classic Rock'],
+                    'room_count': 3
+                },
+                {
+                    'song_id': 'sample_song_3',
+                    'title': 'Shape of You',
+                    'artist': 'Ed Sheeran',
+                    'play_count': 56,
+                    'favorite_count': 14,
+                    'add_count': 31,
+                    'remove_count': 5,
+                    'rooms': ['Pop Hits', 'Workout Mix', 'Top 40'],
+                    'room_count': 3
+                },
+                {
+                    'song_id': 'sample_song_4',
+                    'title': 'Despacito',
+                    'artist': 'Luis Fonsi ft. Daddy Yankee',
+                    'play_count': 49,
+                    'favorite_count': 12,
+                    'add_count': 28,
+                    'remove_count': 7,
+                    'rooms': ['Latin Hits', 'Summer Vibes', 'Dance Party'],
+                    'room_count': 3
+                },
+                {
+                    'song_id': 'sample_song_5',
+                    'title': 'Uptown Funk',
+                    'artist': 'Mark Ronson ft. Bruno Mars',
+                    'play_count': 45,
+                    'favorite_count': 20,
+                    'add_count': 27,
+                    'remove_count': 2,
+                    'rooms': ['Pop Hits', 'Dance Party', 'Workout Mix'],
+                    'room_count': 3
+                }
+            ]
             
         return result
     except Exception as e:

@@ -129,6 +129,8 @@ const AdminDashboard = () => {
       setError(null);
       
       const token = localStorage.getItem('token');
+      console.log('Fetching song features with token:', token ? `${token.substring(0, 10)}...` : 'No token');
+      
       const response = await axios.get('/api/user-activity/export/song-features', {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -137,16 +139,26 @@ const AdminDashboard = () => {
       
       if (response.data.success) {
         const features = response.data.data || [];
+        console.log(`Received ${features.length} song features`);
         setSongFeatures(features);
         
         // Update stats
+        const totalInteractions = Array.isArray(features) ? features.reduce((sum, song) => {
+          const songInteractions = (song.play_count || 0) + (song.favorite_count || 0) + 
+                                   (song.add_count || 0) + (song.remove_count || 0);
+          console.log(`Song ${song.title || song.song_id}: ${songInteractions} interactions`);
+          return sum + songInteractions;
+        }, 0) : 0;
+        
+        console.log(`Total songs: ${features.length}, Total interactions: ${totalInteractions}`);
+        
         setStats(prev => ({
           ...prev,
           totalSongs: features.length,
-          totalInteractions: Array.isArray(features) ? features.reduce((sum, song) => 
-            sum + (song.play_count || 0) + (song.favorite_count || 0) + (song.add_count || 0) + (song.remove_count || 0), 0) : 0
+          totalInteractions: totalInteractions
         }));
       } else {
+        console.error("Failed to load song features:", response.data.error || "Unknown error");
         setError("Failed to load song features");
       }
     } catch (err) {
@@ -163,6 +175,8 @@ const AdminDashboard = () => {
       setError(null);
       
       const token = localStorage.getItem('token');
+      console.log('Fetching room features with token:', token ? `${token.substring(0, 10)}...` : 'No token');
+      
       const response = await axios.get('/api/user-activity/export/room-features', {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -171,15 +185,25 @@ const AdminDashboard = () => {
       
       if (response.data.success) {
         const features = response.data.data || [];
+        console.log(`Received ${features.length} room features`);
         setRoomFeatures(features);
+        
+        // Get unique users
+        const uniqueUsersList = Array.isArray(features) 
+          ? [...new Set(features.filter(room => room.users && room.users.length > 0)
+              .flatMap(room => room.users))]
+          : [];
+        
+        console.log(`Total rooms: ${features.length}, Unique users: ${uniqueUsersList.length}`);
         
         // Update stats
         setStats(prev => ({
           ...prev,
           totalRooms: features.length,
-          uniqueUsers: Array.isArray(features) ? [...new Set(features.map(room => room.created_by))].length : 0
+          uniqueUsers: uniqueUsersList.length
         }));
       } else {
+        console.error("Failed to load room features:", response.data.error || "Unknown error");
         setError("Failed to load room features");
       }
     } catch (err) {

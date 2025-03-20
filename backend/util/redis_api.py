@@ -307,6 +307,118 @@ def update_room_player_state(room_name, state, position):
         logger.error(f"Error updating player state for room {room_name}: {str(e)}")
         return False
 
+def increment_song_play_count(song_id, title=None, artist=None):
+    """
+    Increment the play count for a song in Redis.
+    
+    Args:
+        song_id (str): The ID of the song to increment the play count for.
+        title (str, optional): The title of the song.
+        artist (str, optional): The artist of the song.
+    
+    Returns:
+        int: The new play count.
+    """
+    if not song_id:
+        logger.warning("Attempted to increment play count for empty song_id")
+        return 0
+        
+    try:
+        # Key for storing song play counts
+        key = f"song:play_count:{song_id}"
+        
+        # Increment the play count
+        new_count = redis_client.incr(key)
+        
+        # Also store in a sorted set for easy retrieval of top played songs
+        redis_client.zadd("song:play_counts", {song_id: new_count})
+        
+        # Update the song features data in Redis if title and artist are provided
+        if title or artist:
+            song_features_key = f"song_features:{song_id}"
+            
+            # Check if the song features exist
+            if not redis_client.exists(song_features_key):
+                # Create a new song features entry with the same schema as favorite_song
+                song_features = {
+                    "song_id": song_id,
+                    "play_count": new_count,
+                    "favorite_count": 0,
+                    "last_updated": datetime.now().isoformat()
+                }
+                
+                # Add title and artist if provided
+                if title:
+                    song_features["title"] = title
+                if artist:
+                    song_features["artist"] = artist
+                    
+                redis_client.hset(song_features_key, mapping=song_features)
+            else:
+                # Update the existing song features
+                redis_client.hset(song_features_key, "play_count", new_count)
+                redis_client.hset(song_features_key, "last_updated", datetime.now().isoformat())
+                
+                # Update title and artist if provided
+                if title:
+                    redis_client.hset(song_features_key, "title", title)
+                if artist:
+                    redis_client.hset(song_features_key, "artist", artist)
+        
+        logger.info(f"Incremented play count for song {song_id} to {new_count}")
+        return new_count
+    except Exception as e:
+        logger.error(f"Error incrementing play count for song {song_id}: {str(e)}")
+        return 0
+
+
+def get_song_play_count(song_id):
+    """
+    Get the play count for a song from Redis.
+    
+    Args:
+        song_id (str): The ID of the song to get the play count for.
+    
+    Returns:
+        int: The play count for the song.
+    """
+    if not song_id:
+        return 0
+        
+    try:
+        # Key for storing song play counts
+        key = f"song:play_count:{song_id}"
+        
+        # Get the play count
+        count = redis_client.get(key)
+        
+        # Return 0 if the key doesn't exist
+        return int(count) if count else 0
+    except Exception as e:
+        logger.error(f"Error getting play count for song {song_id}: {str(e)}")
+        return 0
+
+
+def get_top_played_songs(limit=10):
+    """
+    Get the top played songs from Redis.
+    
+    Args:
+        limit (int): The maximum number of songs to return.
+    
+    Returns:
+        list: A list of tuples containing (song_id, play_count) for the top played songs.
+    """
+    try:
+        # Get the top played songs from the sorted set
+        top_songs = redis_client.zrevrange("song:play_counts", 0, limit-1, withscores=True)
+        
+        # Convert from bytes to strings
+        return [(song_id.decode('utf-8'), int(count)) for song_id, count in top_songs]
+    except Exception as e:
+        logger.error(f"Error getting top played songs: {str(e)}")
+        return []
+
 if __name__ == '__main__':
     # write_hash('test', 'test_val', 123)
     # print(get_hash("test", "test_val"))

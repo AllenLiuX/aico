@@ -18,7 +18,7 @@ def logger_setup(log_path: Path, debug: bool = False) -> None:
         filename=log_path,
         level=logging.DEBUG if debug else logging.INFO,
         format="[%(asctime)s] %(levelname)s:%(name)s:%(funcName)s:%(message)s",
-        filemode="a",  # Changed from "w" to "a" to append instead of overwrite
+        filemode="w",  # Changed from "w" to "a" to append instead of overwrite
     )
 
     # Add console handler to see logs in terminal

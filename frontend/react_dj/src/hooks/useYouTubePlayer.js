@@ -1,6 +1,8 @@
 // frontend/react_dj/src/hooks/useYouTubePlayer.js - Direct Player Control
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import axios from 'axios';
+import { API_URL } from '../config';
 
 /**
  * Custom hook to manage YouTube player functionality
@@ -598,6 +600,11 @@ const useYouTubePlayer = (playlist, socket, isHost, emitPlayerState) => {
     
     if (isNowPlaying) {
       startProgressTracking();
+      
+      // Log song play when the player state changes to playing
+      if (isHost) {
+        logSongPlay(currentTrack);
+      }
     } else {
       stopProgressTracking();
     }
@@ -636,6 +643,8 @@ const useYouTubePlayer = (playlist, socket, isHost, emitPlayerState) => {
       playerRef.current.pauseVideo();
     } else {
       playerRef.current.playVideo();
+      // Log song play when resuming
+      logSongPlay(currentTrack);
     }
   };
 
@@ -686,6 +695,9 @@ const useYouTubePlayer = (playlist, socket, isHost, emitPlayerState) => {
     // Update state
     setIsPlaying(true);
     currentVideoIdRef.current = videoId;
+    
+    // Log song play when loading a new video
+    logSongPlay(index);
   };
 
   const formatTime = (timeInSeconds) => {
@@ -745,6 +757,36 @@ const useYouTubePlayer = (playlist, socket, isHost, emitPlayerState) => {
     // Return the updated playlist
     return updatedPlaylist;
   };
+
+  // Function to log song play to backend
+  const logSongPlay = useCallback((trackIndex) => {
+    if (!playlist || !playlist[trackIndex]) return;
+    
+    const track = playlist[trackIndex];
+    const roomName = localStorage.getItem('currentRoom');
+    const token = localStorage.getItem('token');
+    
+    if (!token || !roomName) return;
+    
+    console.log('Logging song play:', track.title);
+    
+    axios.post(`${API_URL}/api/songs/log-play`, {
+      song_id: track.song_id,
+      title: track.title,
+      artist: track.artist,
+      room_name: roomName
+    }, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    .then(response => {
+      console.log('Song play logged successfully:', response.data);
+    })
+    .catch(error => {
+      console.error('Error logging song play:', error);
+    });
+  }, [playlist]);
 
   return {
     currentTrack,
