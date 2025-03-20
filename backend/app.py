@@ -150,6 +150,18 @@ def handle_player_state_change(data):
         # Log the data for debugging
         logger.info(f"Player state change: {data}")
         
+        # Try to get username from the socket session
+        if not username or username.lower() == 'guest':
+            # Get username from the room host data
+            if room_name:
+                try:
+                    host_data = redis_client.hgetall(f"room_host{redis_version}:{room_name}")
+                    if host_data and b'username' in host_data:
+                        username = host_data[b'username'].decode('utf-8')
+                        logger.info(f"Using room host as username: {username}")
+                except Exception as e:
+                    logger.error(f"Error getting room host: {str(e)}")
+        
         # Check for both state and player_state for backward compatibility
         player_state = data.get('player_state', {})
         is_playing = player_state.get('isPlaying', False)
