@@ -1,0 +1,264 @@
+/* Changelog Component Styles */
+.changelogContainer {
+  width: 100%;
+  max-width: 900px;
+  margin: 3rem auto;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+}
+
+.changelogTitle {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+  text-align: center;
+  background: linear-gradient(90deg, #8A2BE2, #5D3FD3);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.02em;
+}
+
+.timeline {
+  position: relative;
+  padding-left: 2rem;
+}
+
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 2px;
+  background: linear-gradient(to bottom, #8A2BE2 0%, rgba(138, 43, 226, 0.2) 100%);
+}
+
+.timelineItem {
+  position: relative;
+  margin-bottom: 2.5rem;
+}
+
+.timelineItem:last-child {
+  margin-bottom: 0;
+}
+
+.timelineDot {
+  position: absolute;
+  left: -2.5rem;
+  top: 0.5rem;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background: #8A2BE2;
+  box-shadow: 0 0 10px rgba(138, 43, 226, 0.5);
+  z-index: 1;
+}
+
+.timelineContent {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.versionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.versionHeader:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.versionInfo {
+  flex: 1;
+}
+
+.versionTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+  color: #ffffff;
+}
+
+.versionMeta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 0.875rem;
+  color: #888888;
+}
+
+.versionDate, .versionType {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.versionType {
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-weight: 500;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.feature {
+  background: rgba(52, 211, 153, 0.1);
+  color: #34D399;
+}
+
+.security {
+  background: rgba(239, 68, 68, 0.1);
+  color: #EF4444;
+}
+
+.bugfix {
+  background: rgba(251, 191, 36, 0.1);
+  color: #FBBF24;
+}
+
+.release {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3B82F6;
+}
+
+.other {
+  background: rgba(156, 163, 175, 0.1);
+  color: #9CA3AF;
+}
+
+.expandButton {
+  background: transparent;
+  border: none;
+  color: #888888;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.expandButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.versionDetails {
+  padding: 0 1.5rem 1.5rem;
+  animation: fadeIn 0.3s ease;
+}
+
+.versionDescription {
+  margin-bottom: 1rem;
+  color: #cccccc;
+  line-height: 1.6;
+}
+
+.changesList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.changeItem {
+  position: relative;
+  padding-left: 1.5rem;
+  margin-bottom: 0.75rem;
+  color: #bbbbbb;
+  line-height: 1.5;
+}
+
+.changeItem:last-child {
+  margin-bottom: 0;
+}
+
+.changeItem::before {
+  content: '•';
+  position: absolute;
+  left: 0;
+  color: #8A2BE2;
+  font-weight: bold;
+}
+
+.loadingContainer, .errorContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  text-align: center;
+}
+
+.loader {
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid rgba(138, 43, 226, 0.3);
+  border-radius: 50%;
+  border-top-color: #8A2BE2;
+  animation: spin 1s ease-in-out infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .changelogContainer {
+    padding: 1.5rem;
+    margin: 2rem auto;
+  }
+  
+  .changelogTitle {
+    font-size: 1.75rem;
+  }
+  
+  .timeline {
+    padding-left: 1.5rem;
+  }
+  
+  .timelineDot {
+    left: -2rem;
+  }
+  
+  .versionHeader {
+    padding: 0.75rem 1rem;
+  }
+  
+  .versionTitle {
+    font-size: 1.1rem;
+  }
+  
+  .versionMeta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+}

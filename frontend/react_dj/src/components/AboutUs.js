@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Music, Users, Brain, Sparkles, ArrowRight, 
-  Mic, Share, Calendar, Zap, MessageCircle, Shield
+  Mic, Share, Calendar, Zap, MessageCircle, Shield,
+  Clock, History
 } from 'lucide-react';
 import styles from '../styles/about.module.css';
+import Changelog from './Changelog';
 
 const content = {
   en: {
@@ -88,7 +90,11 @@ const content = {
         }
       ]
     },
-    cta: "Start Experience"
+    cta: "Start Experience",
+    changelog: {
+      title: "Release History",
+      description: "Track our journey as we continuously improve AICO Music with new features and enhancements."
+    }
   },
   zh: {
     hero: {
@@ -171,7 +177,11 @@ const content = {
         }
       ]
     },
-    cta: "开始体验"
+    cta: "开始体验",
+    changelog: {
+      title: "版本历史",
+      description: "跟踪我们的旅程，我们不断通过新功能和增强功能改进AICO音乐。"
+    }
   }
 };
 
@@ -267,6 +277,15 @@ function AboutUs() {
             </div>
           ))}
         </div>
+      </section>
+
+      <section className={styles.changelogSection}>
+        <h2 className={styles.changelogTitle}>
+          <History size={24} className={styles.changelogIcon} />
+          {t.changelog.title}
+        </h2>
+        <p className={styles.changelogDescription}>{t.changelog.description}</p>
+        <Changelog />
       </section>
 
       <div className={styles.cta}>

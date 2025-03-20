@@ -1,0 +1,144 @@
+{
+  "changelogs": [
+    {
+      "version": "1.3.0",
+      "date": "2025-03-20",
+      "title": "Enhanced YouTube Player & HTTPS Security",
+      "description": "Improved music playback experience with better error handling and secure connections",
+      "changes": [
+        "Fixed YouTube player issues across different browsers",
+        "Added helpful error messages when videos can't be played",
+        "Secured all connections with HTTPS for better privacy",
+        "Improved player loading speed and reliability",
+        "Enhanced error recovery when playback is interrupted"
+      ],
+      "type": "feature"
+    },
+    {
+      "version": "1.2.0",
+      "date": "2025-03-19",
+      "title": "iOS Support & Playlist Enhancements",
+      "description": "Better mobile experience and improved playlist management",
+      "changes": [
+        "Added iOS app support for mobile users",
+        "New favorite buttons to save songs you love",
+        "Simplified room creation with direct playlist generation",
+        "Added helpful examples when creating playlists",
+        "Improved playlist sorting and organization"
+      ],
+      "type": "feature"
+    },
+    {
+      "version": "1.1.0",
+      "date": "2025-03-18",
+      "title": "UI Refresh & Real-time Features",
+      "description": "Beautiful new design with improved social features",
+      "changes": [
+        "Refreshed About Us and landing pages with new design",
+        "Added avatar upload to personalize your profile",
+        "New theme colors for a more modern look",
+        "Improved real-time synchronization between hosts and guests",
+        "Added confirmation dialogs for song requests"
+      ],
+      "type": "feature"
+    },
+    {
+      "version": "1.0.0",
+      "date": "2025-03-16",
+      "title": "Mobile Optimization & Social Features",
+      "description": "Better mobile experience and new ways to connect",
+      "changes": [
+        "Optimized all screens for mobile devices",
+        "Added social features to connect with other music lovers",
+        "New 'Pin to Top' feature to highlight your favorite tracks",
+        "Real-time lyrics display synchronized with music",
+        "Improved playlist moderation for room hosts"
+      ],
+      "type": "release"
+    },
+    {
+      "version": "0.9.0",
+      "date": "2025-03-05",
+      "title": "Mobile Responsive Design",
+      "description": "AICO Music now works great on all your devices",
+      "changes": [
+        "Completely redesigned interface for mobile devices",
+        "Added song approval system for room hosts",
+        "Improved component structure for better performance",
+        "Enhanced playlist management with pin and delete functions",
+        "New explore page to discover music rooms"
+      ],
+      "type": "feature"
+    },
+    {
+      "version": "0.8.0",
+      "date": "2025-02-23",
+      "title": "User Profiles & AI Improvements",
+      "description": "Personalized profiles and smarter playlists",
+      "changes": [
+        "Added user profiles with customizable bio and avatar",
+        "Upgraded to GPT-4o for better playlist generation",
+        "New search functionality to find and add songs",
+        "Improved UI across iPhone and desktop devices",
+        "Added user authentication system"
+      ],
+      "type": "feature"
+    },
+    {
+      "version": "0.7.0",
+      "date": "2025-02-20",
+      "title": "Player Improvements & Search Features",
+      "description": "Better playback experience and easier song discovery",
+      "changes": [
+        "Added progress bar to track song playback",
+        "New search by song name functionality",
+        "Redesigned player UI for better usability",
+        "Fixed song skipping and playlist navigation",
+        "Added support for YouTube Music links"
+      ],
+      "type": "feature"
+    },
+    {
+      "version": "0.6.0",
+      "date": "2024-09-20",
+      "title": "Online Deployment & QR Sharing",
+      "description": "Share your music rooms with friends using QR codes",
+      "changes": [
+        "Deployed AICO Music online for public access",
+        "Added QR code generation for easy room sharing",
+        "Improved AI playlist generation with optimized prompts",
+        "Added room introduction and settings storage",
+        "Implemented automatic play for the first song in playlists"
+      ],
+      "type": "feature"
+    },
+    {
+      "version": "0.5.0",
+      "date": "2024-09-14",
+      "title": "AI Integration & Database Setup",
+      "description": "Smarter playlist generation with AI technology",
+      "changes": [
+        "Fixed GPT integration for AI-powered playlist creation",
+        "Set up Redis database for persistent storage",
+        "Improved sharing functionality with direct links",
+        "Created host dashboard for room management",
+        "Solved environment and deployment issues"
+      ],
+      "type": "feature"
+    },
+    {
+      "version": "0.1.0",
+      "date": "2024-08-29",
+      "title": "Initial Project Launch",
+      "description": "The beginning of AICO Music",
+      "changes": [
+        "Project initialization and core architecture",
+        "Basic main page for music list setup",
+        "Foundation for collaborative music rooms",
+        "Initial frontend design and layout",
+        "Core music player functionality"
+      ],
+      "type": "release"
+    }
+  ]
+}

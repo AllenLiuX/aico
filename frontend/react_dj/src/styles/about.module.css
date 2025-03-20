@@ -374,6 +374,32 @@
   background: var(--accent);
 }
 
+.changelogSection {
+  margin: 6rem 0;
+  text-align: center;
+}
+
+.changelogTitle {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.changelogIcon {
+  color: var(--primary);
+}
+
+.changelogDescription {
+  font-size: 1.25rem;
+  color: var(--muted-foreground);
+  max-width: 800px;
+  margin: 0 auto 3rem;
+}
+
 @media (max-width: 768px) {
   .aboutContainer {
     padding: 6rem 1.5rem 4rem;
@@ -440,5 +466,14 @@
   .ctaButton {
     padding: 1rem 2rem;
     font-size: 1rem;
+  }
+
+  .changelogTitle {
+    font-size: 2rem;
+  }
+  
+  .changelogDescription {
+    font-size: 1rem;
+    margin-bottom: 2rem;
   }
 }

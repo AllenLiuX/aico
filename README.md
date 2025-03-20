@@ -35,13 +35,33 @@ Mac:
 
 ## Online Serving
 
-```screen -ls```
-screen -r xxx
-ctrl -A -D
+```screen -ls```  # list all screen sessions
+
+```screen -S xxx``` # create a new screen session
+
+```screen -r xxx``` # attach to an existing screen session
+
+```ctrl -A -D``` # detach from a screen session
 
 ## Deploying Updates to the React Frontend
 
-When you make changes to the React frontend, follow these steps to deploy the updates:
+When you make changes to the React frontend, you can use our deployment script:
+
+```bash
+# Basic deployment
+sudo ./deploy_frontend.sh
+
+# Install dependencies and deploy
+sudo ./deploy_frontend.sh --install-deps
+
+# Deploy and restart Nginx
+sudo ./deploy_frontend.sh --restart-nginx
+
+# Deploy and restart backend
+sudo ./deploy_frontend.sh --restart-backend
+```
+
+Alternatively, you can manually deploy by following these steps:
 
 1. Update your code in the React project
 2. Build the React application:

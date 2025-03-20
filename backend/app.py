@@ -29,7 +29,6 @@ from util.all_utils import *
 
 import util.lyrics as lyrics_api
 from util.lyrics import fetch_lyrics
-
 import os
 from werkzeug.utils import secure_filename
 from PIL import Image
@@ -2164,6 +2163,18 @@ def check_favorite_song():
     except Exception as e:
         logger.error(f"Error checking favorite song: {str(e)}")
         return jsonify({"error": "Failed to check favorite status"}), 500
+
+@app.route('/api/changelogs', methods=['GET'])
+def get_changelogs():
+    try:
+        # Read the changelogs from the JSON file
+        changelog_path = os.path.join(os.path.dirname(__file__), 'changelogs.json')
+        with open(changelog_path, 'r') as file:
+            changelogs_data = json.load(file)
+        return jsonify(changelogs_data)
+    except Exception as e:
+        logging.error(f"Error fetching changelogs: {str(e)}")
+        return jsonify({"error": "Failed to fetch changelogs"}), 500
 
 if __name__ == '__main__':
     # app.run(port=3000, host='10.72.252.213', debug=True)
