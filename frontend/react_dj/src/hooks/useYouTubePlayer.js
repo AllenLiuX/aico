@@ -357,7 +357,15 @@ const useYouTubePlayer = (playlist, socket, isHost, emitPlayerState) => {
 
   const extractVideoId = (url) => {
     if (!url) return '';
-    const match = url.match(/[?&]v=([^&]+)/) || url.match(/youtu\.be\/([^?]+)/);
+    
+    // Ensure URL is using HTTPS
+    let secureUrl = url;
+    if (url.startsWith('http:')) {
+      secureUrl = url.replace('http:', 'https:');
+      console.log('Converted YouTube URL to HTTPS:', secureUrl);
+    }
+    
+    const match = secureUrl.match(/[?&]v=([^&]+)/) || secureUrl.match(/youtu\.be\/([^?]+)/);
     return match ? match[1] : '';
   };
 
@@ -392,7 +400,8 @@ const useYouTubePlayer = (playlist, socket, isHost, emitPlayerState) => {
             modestbranding: 1,
             rel: 0,
             origin: window.location.origin,
-            playsinline: 1
+            playsinline: 1,
+            protocol: 'https' // Force HTTPS protocol for the player
           },
           events: {
             onReady: onPlayerReady,
