@@ -336,7 +336,8 @@ function Profile() {
           <div className="avatar-section">
             <div className="avatar-container">
               <Avatar
-                src={user.avatar || `/api/avatar/${user.username}`}
+                src={user.avatar ? getFullAvatarUrl(user.avatar) : null}
+                username={user.username}
                 size={140}
                 onClick={() => isOwnProfile && setShowAvatarUpload(true)}
                 className={isOwnProfile ? "clickable" : ""}

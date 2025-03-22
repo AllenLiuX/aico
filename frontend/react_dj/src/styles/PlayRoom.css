@@ -1520,8 +1520,6 @@ body.play-room-active {
   }
 }
 
-/* Add these styles to your PlayRoom.css file */
-
 /* Guest-specific player controls */
 .guest-controls {
   display: flex;
@@ -1741,4 +1739,86 @@ body.play-room-active {
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-20px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Guest Add Song Button Styles */
+.guest-add-music-button {
+  background-color: #2CBDFB !important;
+  color: #121212 !important;
+  font-weight: 600 !important;
+  padding: 10px 16px !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(44, 189, 251, 0.3) !important;
+  transition: all 0.2s ease !important;
+  animation: pulse-attention 2s infinite;
+}
+
+.guest-add-music-button:hover {
+  background-color: #0f9cd8 !important;
+  color: #121212 !important;
+  transform: scale(1.05) !important;
+  box-shadow: 0 6px 16px rgba(44, 189, 251, 0.4) !important;
+}
+
+/* Mobile-specific guest add song button */
+.guest-add-song-container {
+  display: none;
+  width: 100%;
+  padding: 12px 0;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.guest-add-song-button-mobile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: #2CBDFB;
+  color: #121212;
+  font-weight: 600;
+  padding: 12px 24px;
+  border-radius: 30px;
+  border: none;
+  font-size: 16px;
+  box-shadow: 0 4px 12px rgba(44, 189, 251, 0.3);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 80%;
+  max-width: 300px;
+}
+
+.guest-add-song-button-mobile:hover {
+  background-color: #0f9cd8;
+  transform: scale(1.03);
+  box-shadow: 0 6px 16px rgba(44, 189, 251, 0.4);
+}
+
+@keyframes pulse-attention {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* Mobile-specific adjustments */
+@media (max-width: 768px) {
+  .guest-add-song-container {
+    display: flex;
+  }
+  
+  /* Hide the regular add button in the header for guests on mobile */
+  .guest-add-music-button {
+    display: none;
+  }
+  
+  /* Make the playlist header more compact on mobile */
+  .playlist-header {
+    flex-wrap: wrap;
+  }
+  
+  /* Ensure the playlist actions don't overflow */
+  .playlist-actions {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
 }

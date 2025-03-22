@@ -6,13 +6,13 @@ import AuthModal from './AuthModal';
 import ProfileDropdown from './ProfileDropdown';
 import { UserContext } from '../contexts/UserContext';
 import '../styles/Header.css';
-import { API_URL } from '../config';
+import { API_URL, host_by_https } from '../config';
+import Avatar from './common/Avatar';
 
 function Header() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const { user, logout } = useContext(UserContext);
-  // const [user, setUser] = useState(null);
   const [isIOS, setIsIOS] = useState(false);
   const dropdownRef = useRef(null);
   const buttonRef = useRef(null);
@@ -32,11 +32,6 @@ function Header() {
     };
     
     checkPlatform();
-    
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      setUser(JSON.parse(userData));
-    }
 
     const handleClickOutside = (event) => {
       if (dropdownRef.current && 
@@ -67,7 +62,17 @@ function Header() {
 
   const getFullAvatarUrl = (avatarPath) => {
     if (!avatarPath) return null;
-    if (avatarPath.startsWith('http')) return avatarPath;
+    
+    // If it's already a full URL
+    if (avatarPath.startsWith('http')) {
+      // Convert HTTP to HTTPS if needed
+      if (avatarPath.startsWith('http:') && host_by_https) {
+        return avatarPath.replace('http:', 'https:');
+      }
+      return avatarPath;
+    }
+    
+    // Otherwise, prepend the API_URL
     return `${API_URL}${avatarPath}`;
   };
   
@@ -127,9 +132,10 @@ function Header() {
                 } : undefined}
                 className="profile-button"
               >
-                <img
-                  src={getFullAvatarUrl(user.avatar) || `/api/avatar/${user.username}`}
-                  alt="Profile"
+                <Avatar 
+                  src={user.avatar ? getFullAvatarUrl(user.avatar) : null}
+                  username={user.username}
+                  size={32}
                   className="profile-avatar"
                 />
                 <span className="profile-name">{user.username}</span>

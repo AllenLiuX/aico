@@ -540,28 +540,197 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .profile-container {
+    padding: 16px 12px;
+  }
+  
+  .profile-header {
     padding: 16px;
+    margin-bottom: 20px;
   }
-
-  .top-row {
+  
+  .profile-main {
     flex-direction: column;
-    gap: 16px;
-    align-items: flex-start;
+    gap: 20px;
+    align-items: center;
+    text-align: center;
   }
-
-  .stats {
+  
+  .profile-info {
+    align-items: center;
+  }
+  
+  .profile-username {
+    font-size: 24px;
+    margin-bottom: 8px;
+  }
+  
+  .profile-bio {
+    font-size: 14px;
+  }
+  
+  .profile-metadata {
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  
+  .metadata-item {
+    font-size: 13px;
+  }
+  
+  .profile-stats {
     flex-wrap: wrap;
-    gap: 16px;
-  }
-
-  .edit-btn {
-    margin: 16px 0 0;
-    width: 100%;
     justify-content: center;
+    gap: 16px;
+    margin-top: 16px;
   }
-
-  .rooms-grid {
+  
+  .stat-item {
+    min-width: 70px;
+  }
+  
+  .stat-value {
+    font-size: 20px;
+  }
+  
+  .stat-label {
+    font-size: 12px;
+  }
+  
+  .profile-tabs {
+    gap: 8px;
+    padding-bottom: 0;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    margin-bottom: 16px;
+  }
+  
+  .tab-button {
+    padding: 8px 12px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  
+  .rooms-grid, 
+  .favorites-grid {
     grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .room-card {
+    padding: 12px;
+  }
+  
+  .room-info h3 {
+    font-size: 16px;
+  }
+  
+  .users-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .user-card {
+    padding: 12px;
+  }
+  
+  .user-avatar {
+    width: 48px;
+    height: 48px;
+  }
+  
+  .unfollow-button {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  
+  .tag-selector {
+    padding: 12px;
+  }
+  
+  .tag-categories {
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+  
+  .category-btn,
+  .tag-btn {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+  
+  .available-tags {
+    gap: 8px;
+  }
+  
+  /* Fix for Safari on iOS */
+  .avatar-container img {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+  
+  /* Ensure forms display properly on mobile */
+  .edit-form {
+    padding: 12px;
+  }
+  
+  .form-group {
+    margin-bottom: 12px;
+  }
+  
+  .form-group label {
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+  
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+  
+  .form-actions {
+    gap: 10px;
+  }
+  
+  .form-actions button {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+}
+
+/* iPhone-specific adjustments */
+@media (max-width: 428px) {
+  .profile-container {
+    padding: 12px 8px;
+  }
+  
+  .profile-header {
+    padding: 12px;
+  }
+  
+  .avatar-section {
+    width: 120px;
+  }
+  
+  .avatar-container {
+    width: 120px;
+    height: 120px;
+  }
+  
+  .profile-username {
+    font-size: 22px;
+  }
+  
+  .profile-tabs {
+    gap: 4px;
+  }
+  
+  .tab-button {
+    padding: 6px 10px;
+    font-size: 12px;
   }
 }
 
@@ -745,35 +914,4 @@
 .empty-state p {
   margin: 0;
   font-size: 16px;
-}
-
-/* Mobile responsiveness */
-@media (max-width: 768px) {
-  .profile-tabs {
-    gap: 8px;
-    padding-bottom: 0;
-  }
-  
-  .tab-button {
-    padding: 8px 12px;
-    font-size: 13px;
-  }
-  
-  .users-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .user-card {
-    padding: 12px;
-  }
-  
-  .user-avatar {
-    width: 48px;
-    height: 48px;
-  }
-  
-  .unfollow-button {
-    padding: 6px 12px;
-    font-size: 12px;
-  }
 }

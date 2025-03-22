@@ -826,6 +826,27 @@ def get_current_user_direct():
         logger.error(f"Error getting current user: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+def generate_avatar_svg(username):
+    """Generate an SVG avatar with user's initials."""
+    # Get first character of username (uppercase)
+    initial = username[0].upper() if username else "?"
+    
+    # Generate a consistent color based on username
+    random.seed(username)
+    hue = random.randint(0, 360)
+    
+    # SVG template with the initial in the center
+    svg = f'''
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">
+        <rect width="40" height="40" fill="hsl({hue}, 70%, 60%)" />
+        <text x="20" y="24" fill="white" text-anchor="middle" 
+              font-family="Arial, sans-serif" font-size="20" font-weight="bold">
+            {initial}
+        </text>
+    </svg>
+    '''
+    return svg.strip()
+
 @app.route('/api/avatar/<username>')
 def get_avatar(username):
     svg = generate_avatar_svg(username)
@@ -839,6 +860,22 @@ def get_avatar(username):
     response.headers['Cache-Control'] = 'public, max-age=86400'  # Cache for 24 hours
     return response
 
+@app.route('/api/avatars/<path:filename>')
+def serve_avatar_with_timestamp(filename):
+    # Extract username from filename (e.g., "username_1234567890.jpg" -> "username")
+    username = filename.split('_')[0] if '_' in filename else filename.split('.')[0]
+    
+    # Generate SVG avatar
+    svg = generate_avatar_svg(username)
+    
+    response = send_file(
+        BytesIO(svg.encode()),
+        mimetype='image/svg+xml'
+    )
+    
+    # Set cache control headers
+    response.headers['Cache-Control'] = 'public, max-age=86400'  # Cache for 24 hours
+    return response
 
 # Add these new Redis functions
 def get_room_host(room_name):

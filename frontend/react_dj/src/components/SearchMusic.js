@@ -12,7 +12,7 @@ function SearchMusic() {
   const [searchResults, setSearchResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [searchType, setSearchType] = useState('artist');
+  const [searchType, setSearchType] = useState('song');
   const [isHost, setIsHost] = useState(false);
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
