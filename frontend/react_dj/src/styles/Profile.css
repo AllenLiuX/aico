@@ -777,7 +777,7 @@
 }
 
 /* iPhone specific adjustments */
-@media (max-width: 428px) {
+@media (max-width: 480px) {
   .edit-avatar-btn {
     width: 36px;
     height: 36px;
@@ -987,4 +987,39 @@
 .empty-state p {
   margin: 0;
   font-size: 16px;
+}
+
+/* Modal overlay for avatar upload */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+/* Mobile responsiveness for avatar upload */
+@media (max-width: 768px) {
+  .profile-avatar-container {
+    margin-bottom: 15px;
+  }
+  
+  .profile-avatar-container button {
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+}
+
+/* iPhone specific adjustments */
+@media (max-width: 480px) {
+  .profile-avatar-container button {
+    padding: 10px 15px;
+    font-size: 14px;
+    margin-top: 10px;
+  }
 }

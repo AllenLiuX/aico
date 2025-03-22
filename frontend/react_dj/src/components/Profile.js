@@ -259,27 +259,48 @@ function Profile() {
     }
   };
 
-  const handleAvatarUpload = (newAvatarUrl) => {
-    // Update local state
-    setUser(prev => ({
-      ...prev,
-      avatar: newAvatarUrl
-    }));
+  const handleAvatarClick = () => {
+    if (isOwnProfile) {
+      setShowAvatarUpload(true);
+    }
+  };
 
+  const handleAvatarUpload = (avatarUrl) => {
+    console.log('New avatar URL:', avatarUrl);
+    
+    // Update the avatar in the state
+    setUser(prevData => ({
+      ...prevData,
+      avatar: avatarUrl
+    }));
+    
     // Update user data in localStorage
-    const userData = JSON.parse(localStorage.getItem('user'));
+    const userData = JSON.parse(localStorage.getItem('user') || '{}');
     if (userData) {
-      userData.avatar = newAvatarUrl;
+      userData.avatar = avatarUrl;
       localStorage.setItem('user', JSON.stringify(userData));
     }
-
-    // Update profile data in local state
-    setEditForm(prev => ({
-      ...prev,
-      avatar: newAvatarUrl
-    }));
+    
+    // Show a success message
+    alert('Avatar updated successfully!');
+    
+    // Force a refresh of the page to ensure all components update
+    window.location.reload();
   };
-  
+
+  const renderAvatarUploadModal = () => {
+    if (!showAvatarUpload) return null;
+    
+    return (
+      <div className="modal-overlay">
+        <AvatarUpload 
+          onUploadSuccess={handleAvatarUpload} 
+          onClose={() => setShowAvatarUpload(false)} 
+        />
+      </div>
+    );
+  };
+
   // Function to handle tab switching
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -339,7 +360,7 @@ function Profile() {
                 src={user.avatar ? getFullAvatarUrl(user.avatar) : null}
                 username={user.username}
                 size={140}
-                onClick={() => isOwnProfile && setShowAvatarUpload(true)}
+                onClick={handleAvatarClick}
                 className={isOwnProfile ? "clickable" : ""}
               />
               {isOwnProfile && (
@@ -348,13 +369,7 @@ function Profile() {
                 </button>
               )}
             </div>
-            {showAvatarUpload && (
-              <AvatarUpload 
-                show={showAvatarUpload}
-                onClose={() => setShowAvatarUpload(false)}
-                onUpload={handleAvatarUpload}
-              />
-            )}
+            {renderAvatarUploadModal()}
           </div>
 
           <div className="profile-info">

@@ -1377,17 +1377,21 @@ def upload_avatar():
         return jsonify({"error": "Invalid session"}), 401
 
     if 'avatar' not in request.files:
+        logger.error("No avatar file in request")
         return jsonify({"error": "No file provided"}), 400
 
     file = request.files['avatar']
     if file.filename == '':
+        logger.error("Empty filename in avatar upload")
         return jsonify({"error": "No file selected"}), 400
 
     if not allowed_file(file.filename):
+        logger.error(f"Invalid file type: {file.filename}")
         return jsonify({"error": "Invalid file type"}), 400
 
     try:
         # Process and save image
+        logger.info(f"Processing avatar upload for user {username}")
         image = Image.open(file)
         
         # Resize to standard size
@@ -1399,11 +1403,21 @@ def upload_avatar():
         
         # Generate unique filename with timestamp
         filename = f"{username}_{int(time.time())}.jpg"
-        filepath = AVATARS_DIR / filename
-        logger.info(f'saving avatar for {username} at {filepath}')
         
-        # Save optimized image
-        image.save(str(filepath), 'JPEG', quality=85, optimize=True)
+        # Save to both backend and frontend directories to ensure consistency
+        backend_filepath = AVATARS_DIR / filename
+        frontend_filepath = Path(__file__).parent.parent / 'frontend' / 'react_dj' / 'build' / 'static' / 'avatars' / filename
+        
+        # Create directories if they don't exist
+        AVATARS_DIR.mkdir(parents=True, exist_ok=True)
+        frontend_dir = Path(__file__).parent.parent / 'frontend' / 'react_dj' / 'build' / 'static' / 'avatars'
+        frontend_dir.mkdir(parents=True, exist_ok=True)
+        
+        logger.info(f'saving avatar for {username} at {backend_filepath} and {frontend_filepath}')
+        
+        # Save optimized image to both locations
+        image.save(str(backend_filepath), 'JPEG', quality=85, optimize=True)
+        image.save(str(frontend_filepath), 'JPEG', quality=85, optimize=True)
         
         # Update user profile in Redis
         profile_json = get_hash(f"user_profiles{redis_version}", username)
@@ -1412,19 +1426,25 @@ def upload_avatar():
         write_hash(f"user_profiles{redis_version}", username, json.dumps(profile))
         
         # Update room host avatars if needed
-        room_list = get_all_rooms()
-        for room in room_list:
-            if room.get('host', {}).get('username') == username:
-                set_room_host(room['name'], username, update_timestamp=False)
+        all_rooms = get_all_hash(f"room_playlists{redis_version}")
+        all_room_names = list(all_rooms.keys())
+        for room_name in all_room_names:
+            host_data = get_room_host(room_name)
+            if host_data and host_data.get('username') == username:
+                set_room_host(room_name, username, f"/api/avatars/{filename}", update_timestamp=False)
         
-        avatar_url = get_user_avatar_url(username)
+        # Return the URL path that matches where the frontend expects to find the avatar
+        avatar_url = f"/static/avatars/{filename}"
+        logger.info(f"Avatar upload successful for {username}, URL: {avatar_url}")
         return jsonify({
             "message": "Avatar uploaded successfully",
             "avatar_url": avatar_url
         }), 200
 
     except Exception as e:
-        logger.error(f"Error uploading avatar: {str(e)}")
+        logger.error(f"Error uploading avatar for {username}: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
         return jsonify({"error": str(e)}), 500
 
 def allowed_file(filename):
@@ -1432,21 +1452,26 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # Add route to serve static files (if needed)
-# @app.route('/api/avatars/<path:filename>')
-# def serve_avatar(filename):
-#     try:
-#         if not os.path.exists(AVATARS_DIR / filename):
-#             logger.warning(f"Avatar file not found: {filename}")
-#             # Extract username from filename and fall back to SVG
-#             username = filename.split('_')[0] if '_' in filename else filename.split('.')[0]
-#             return get_avatar(username)
-            
-#         response = send_from_directory(str(AVATARS_DIR), filename)
-#         response.headers['Cache-Control'] = 'public, max-age=31536000'
-#         return response
-#     except Exception as e:
-#         logger.error(f"Error serving avatar {filename}: {str(e)}")
-#         return jsonify({"error": "Failed to serve avatar"}), 500
+@app.route('/api/avatars/<path:filename>')
+def serve_avatar_file(filename):
+    """Serve an avatar file from the avatars directory."""
+    logger.info(f"Serving avatar file: {filename}")
+    try:
+        # First check the backend avatars directory
+        if (AVATARS_DIR / filename).exists():
+            return send_from_directory(str(AVATARS_DIR), filename)
+        
+        # Then check the frontend static avatars directory
+        frontend_dir = Path(__file__).parent.parent / 'frontend' / 'react_dj' / 'build' / 'static' / 'avatars'
+        if (frontend_dir / filename).exists():
+            return send_from_directory(str(frontend_dir), filename)
+        
+        # If not found, log a warning and return 404
+        logger.warning(f"Avatar file not found: {filename}")
+        return "Avatar not found", 404
+    except Exception as e:
+        logger.error(f"Error serving avatar file {filename}: {str(e)}")
+        return "Error serving avatar", 500
 
 # Update the existing request-track endpoint in app.py
 
@@ -2496,6 +2521,8 @@ def check_admin_status():
         # Get username from session
         # redis_version = os.environ.get('REDIS_VERSION', '')
         username = redis_api.get_hash(f"sessions{redis_version}", auth_token)
+        logger.info(f"Admin check: Username from token: {username}")
+        
         if not username:
             logger.warning(f"Admin check: Invalid or expired token: {auth_token[:10]}...")
             return False, jsonify({"error": "Invalid or expired token"}), 401
@@ -2750,6 +2777,18 @@ def format_user_profile(username, profile=None):
 
 def get_user_avatar_url(username):
     """Get the avatar URL for a user."""
+    # Find the most recent avatar file for this user
+    try:
+        avatar_files = list(AVATARS_DIR.glob(f"{username}_*.jpg"))
+        if avatar_files:
+            # Get the most recent file
+            latest_avatar = max(avatar_files, key=lambda x: x.stat().st_mtime)
+            filename = latest_avatar.name
+            return f"/api/avatars/{filename}"
+    except Exception as e:
+        logger.error(f"Error getting avatar URL for {username}: {str(e)}")
+    
+    # If no uploaded avatar or error, return the default avatar URL
     return f"/api/avatar/{username}"
 
 def set_room_host(room_name, username, avatar, update_timestamp=True):
@@ -2759,7 +2798,7 @@ def set_room_host(room_name, username, avatar, update_timestamp=True):
         room_name: The name of the room
         username: The username of the host
         avatar: The avatar URL of the host
-        update_timestamp: Whether to update the last_host_update timestamp
+        update_timestamp: Whether to update the last_host_update timestamp (default: True)
     """
     try:
         room_json = get_hash(f"rooms{redis_version}", room_name)

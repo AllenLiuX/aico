@@ -1,0 +1,130 @@
+.avatar-upload-container {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-width: 400px;
+  width: 90%;
+  padding: 20px;
+  position: relative;
+  z-index: 1000;
+}
+
+.avatar-upload-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.avatar-upload-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #666;
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.close-btn:hover {
+  background-color: #f0f0f0;
+}
+
+.upload-options {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.upload-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background-color: #4a86e8;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 20px;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.upload-btn:hover {
+  background-color: #3a76d8;
+}
+
+.upload-btn:disabled {
+  background-color: #a0a0a0;
+  cursor: not-allowed;
+}
+
+.upload-error {
+  color: #e74c3c;
+  text-align: center;
+  margin-bottom: 15px;
+  font-size: 14px;
+}
+
+.upload-instructions {
+  color: #666;
+  font-size: 14px;
+  text-align: center;
+}
+
+.upload-instructions p {
+  margin: 5px 0;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .avatar-upload-container {
+    width: 85%;
+    padding: 15px;
+  }
+  
+  .upload-btn {
+    width: 100%;
+    padding: 12px 15px;
+    font-size: 16px;
+  }
+  
+  .avatar-upload-header h3 {
+    font-size: 16px;
+  }
+}
+
+/* iPhone specific adjustments */
+@media (max-width: 480px) {
+  .avatar-upload-container {
+    width: 90%;
+    padding: 15px;
+  }
+  
+  .upload-btn {
+    padding: 14px 20px;
+    font-size: 16px;
+  }
+}
