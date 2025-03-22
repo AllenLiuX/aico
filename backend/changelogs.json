@@ -1,6 +1,21 @@
 {
   "changelogs": [
     {
+      "version": "1.4.0",
+      "date": "2025-03-22",
+      "title": "Playlist Generation & OAuth Fixes",
+      "description": "Fixed critical issues with playlist generation and improved Google login",
+      "changes": [
+        "Fixed OpenAI API key configuration for reliable playlist generation",
+        "Enhanced Google OAuth login flow with better error handling",
+        "Improved avatar handling for Google-authenticated users",
+        "Added GitHub login button UI (backend integration pending)",
+        "Fixed inconsistent Redis API calls for better reliability",
+        "Simplified avatar retrieval logic to fix Google avatar display issues"
+      ],
+      "type": "bugfix"
+    },
+    {
       "version": "1.3.0",
       "date": "2025-03-20",
       "title": "Enhanced YouTube Player & HTTPS Security",

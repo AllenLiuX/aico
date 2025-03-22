@@ -40,6 +40,7 @@ function App() {
                 <Route path="/search_music" element={<SearchMusic />} />
                 <Route path="/explore" element={<Explore />} />
                 <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/auth/google/callback" element={<Navigate to="/" replace />} />
               </Routes>
             </main>
           </div>

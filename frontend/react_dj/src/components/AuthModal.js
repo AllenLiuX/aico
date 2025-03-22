@@ -1,5 +1,5 @@
 // AuthModal.js
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Mail, Lock, Github, AlertCircle } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import { jwtDecode } from 'jwt-decode';
@@ -15,6 +15,66 @@ const AuthModal = ({ isOpen, onClose }) => {
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Check for Google authorization code in URL
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const googleCode = urlParams.get('google_code');
+    const authError = urlParams.get('auth_error');
+    
+    if (googleCode) {
+      // Exchange the code for tokens
+      exchangeGoogleCodeForToken(googleCode);
+      
+      // Clean up URL parameters
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, newUrl);
+    }
+    
+    if (authError) {
+      setError(`Google authentication error: ${authError}`);
+      
+      // Clean up URL parameters
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, newUrl);
+    }
+  }, []);
+  
+  // Function to exchange Google code for token
+  const exchangeGoogleCodeForToken = async (code) => {
+    try {
+      setIsLoading(true);
+      
+      const response = await fetch(`${API_URL}/api/auth/google/exchange`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          code: code,
+          redirect_uri: 'https://aico-music.com/auth/google/callback'
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to exchange Google code for token');
+      }
+      
+      // Store token and user data
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      
+      // Refresh page
+      window.location.reload();
+      
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -75,6 +135,8 @@ const AuthModal = ({ isOpen, onClose }) => {
       
       // Decode the credential to get user info including picture
       const decoded = jwtDecode(credentialResponse.credential);
+      console.log("Google login success, decoded info:", decoded);
+      
       const googleUserInfo = {
         email: decoded.email,
         name: decoded.name,
@@ -93,28 +155,26 @@ const AuthModal = ({ isOpen, onClose }) => {
         }),
       });
 
-      const data = await response.json();
-      
       if (!response.ok) {
-        throw new Error(data.error || 'Google authentication failed');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Google authentication failed');
       }
 
+      const data = await response.json();
+      console.log("Backend response:", data);
+      
       // Store token and user data with Google avatar
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify({
         ...data.user,
         avatar: googleUserInfo.picture // Ensure we use Google's avatar URL
       }));
-      localStorage.setItem('userProfile', JSON.stringify({
-        name: data.user.username,
-        email: data.user.email,
-        picture: googleUserInfo.picture // Use Google's avatar URL
-      }));
-
+      
       // Close modal and refresh page
       onClose();
       window.location.reload();
     } catch (err) {
+      console.error("Google login error:", err);
       setError(err.message);
     } finally {
       setIsLoading(false);
@@ -205,6 +265,7 @@ const AuthModal = ({ isOpen, onClose }) => {
               size="large"
               text="continue_with"
               locale="en"
+              ux_mode="popup"
             />
           </div>
           <button className="social-button">

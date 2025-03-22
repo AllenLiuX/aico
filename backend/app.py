@@ -4,9 +4,16 @@ import util.gpt as gpt
 import util.llm_modules as llm
 from pathlib import Path
 import os
+import re
 import json
-import time
 import uuid
+import time
+import random
+import string
+import requests
+import datetime
+import jwt
+from datetime import datetime, timedelta
 import hashlib
 import secrets
 import logging
@@ -20,7 +27,6 @@ import random
 import util.youtube_music as youtube_music
 from io import BytesIO
 from PIL import Image
-from datetime import datetime
 import util.redis_api as redis_api
 from util.redis_api import *
 import redis
@@ -39,6 +45,9 @@ from data.example_prompts import EXAMPLE_PROMPTS
 
 # List of admin users
 ADMIN_USERS = ['vincentliux', 'Carter']
+
+# Configuration
+FRONTEND_URL = "https://aico-music.com"
 
 log_path = Path(__file__).parent.parent / "logs" / "backend.online.log"
 logger_setup(log_path=log_path, debug=True)
@@ -656,7 +665,7 @@ def register():
     
     # Generate session token
     session_token = secrets.token_urlsafe(32)
-    write_hash(f"sessions{redis_version}", session_token, username)
+    redis_api.write_hash(f"sessions{redis_version}", session_token, username)
     
     # Log user registration
     user_agent = request.headers.get('User-Agent', 'Unknown')
@@ -704,7 +713,7 @@ def login():
         
         # Generate session token
         session_token = secrets.token_urlsafe(32)
-        write_hash(f"sessions{redis_version}", session_token, username)
+        redis_api.write_hash(f"sessions{redis_version}", session_token, username)
         
         # Get user profile or create default one
         profile_json = get_hash(f"user_profiles{redis_version}", username)
@@ -2818,6 +2827,106 @@ def set_room_host(room_name, username, avatar, update_timestamp=True):
         
     except Exception as e:
         logger.error(f"Error setting room host: {str(e)}")
+
+# Google OAuth Authentication
+@app.route('/api/auth/google', methods=['POST'])
+def google_login():
+    """Handle Google OAuth authentication."""
+    try:
+        data = request.json
+        credential = data.get('credential')
+        user_info = data.get('user_info', {})
+        
+        if not credential:
+            return jsonify({"error": "No Google credential provided"}), 400
+        
+        # Extract user information from the credential
+        try:
+            # Decode the JWT token
+            decoded = jwt.decode(credential, options={"verify_signature": False})
+            
+            # Extract user information
+            email = decoded.get('email') or user_info.get('email')
+            name = decoded.get('name') or user_info.get('name')
+            picture = decoded.get('picture') or user_info.get('picture')
+            
+            logger.info(f"Google login attempt for email: {email}")
+            
+            if not email:
+                return jsonify({"error": "No email found in Google credentials"}), 400
+                
+            # Generate username from email (remove domain part)
+            username = email.split('@')[0]
+            
+            # Check if user already exists
+            user_key = f"user:{username}"
+            user_exists = redis_api.redis_client.hexists(f"users{redis_version}", user_key)
+            
+            # Get user agent and IP for logging
+            user_agent = request.headers.get('User-Agent', 'Unknown')
+            ip_address = request.remote_addr
+            
+            if not user_exists:
+                # Create new user profile
+                profile = {
+                    "username": username,
+                    "email": email,
+                    "created_at": datetime.now().isoformat(),
+                    "has_avatar": False,
+                    "google_user": True,
+                    "google_picture": picture
+                }
+                
+                # Store user in Redis
+                redis_api.write_hash(f"users{redis_version}", user_key, json.dumps(profile))
+                
+                # Log user registration
+                user_logging.log_user_activity(
+                    username=username,
+                    action="register",
+                    details={"method": "google", "user_agent": user_agent, "ip_address": ip_address}
+                )
+                
+                logger.info(f"Created new user account for Google user: {username}")
+            else:
+                # Update existing user with Google info
+                user_data = redis_api.get_hash(f"users{redis_version}", user_key)
+                profile = json.loads(user_data)
+                profile["google_user"] = True
+                profile["google_picture"] = picture
+                
+                # Update user in Redis
+                redis_api.write_hash(f"users{redis_version}", user_key, json.dumps(profile))
+                
+                logger.info(f"Updated existing user account for Google user: {username}")
+            
+            # Generate session token
+            session_token = secrets.token_urlsafe(32)
+            redis_api.write_hash(f"sessions{redis_version}", session_token, username)
+            
+            # Log user login
+            user_logging.log_user_activity(
+                username=username,
+                action="login",
+                details={"method": "google", "user_agent": user_agent, "ip_address": ip_address}
+            )
+            
+            return jsonify({
+                "token": session_token,
+                "user": {
+                    "username": username,
+                    "email": email,
+                    "avatar": picture if picture else None
+                }
+            })
+            
+        except Exception as e:
+            logger.error(f"Error decoding Google credential: {str(e)}")
+            return jsonify({"error": f"Invalid Google credential: {str(e)}"}), 400
+        
+    except Exception as e:
+        logger.error(f"Google login error: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     # app.run(port=3000, host='10.72.252.213', debug=True)
