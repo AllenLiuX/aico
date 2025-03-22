@@ -685,6 +685,7 @@ function PlayRoom() {
         {/* QR Code Modal */}
         {showQRCode && (
           <QRCodeModal 
+            show={showQRCode}
             roomName={roomName} 
             onClose={() => setShowQRCode(false)} 
           />
