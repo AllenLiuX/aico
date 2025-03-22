@@ -97,7 +97,7 @@ def log_user_activity(username, action, details=None, room_name=None, song_id=No
         logger.error(f"Error logging user activity: {str(e)}")
         return False
 
-def get_user_activity_logs(username, limit=50, start=0):
+def get_user_logs(username, limit=50, start=0):
     """
     Get user activity logs from Redis.
     
@@ -118,14 +118,26 @@ def get_user_activity_logs(username, limit=50, start=0):
         # Parse JSON entries
         logs = []
         for entry in log_entries:
-            logs.append(json.loads(entry.decode('utf-8')))
+            log_data = json.loads(entry.decode('utf-8'))
+            
+            # Format timestamp for frontend display
+            if 'timestamp' in log_data:
+                try:
+                    # Parse ISO format timestamp and convert to a more readable format
+                    dt = datetime.fromisoformat(log_data['timestamp'])
+                    log_data['timestamp'] = dt.strftime('%Y-%m-%d %H:%M:%S')
+                except Exception as e:
+                    logger.error(f"Error formatting timestamp: {str(e)}")
+                    # Keep original timestamp if parsing fails
+            
+            logs.append(log_data)
             
         return logs
     except Exception as e:
         logger.error(f"Error getting user activity logs: {str(e)}")
         return []
 
-def get_global_activity_logs(limit=50, start=0):
+def get_global_logs(limit=50, start=0):
     """
     Get global activity logs from Redis.
     
@@ -145,14 +157,26 @@ def get_global_activity_logs(limit=50, start=0):
         # Parse JSON entries
         logs = []
         for entry in log_entries:
-            logs.append(json.loads(entry.decode('utf-8')))
+            log_data = json.loads(entry.decode('utf-8'))
+            
+            # Format timestamp for frontend display
+            if 'timestamp' in log_data:
+                try:
+                    # Parse ISO format timestamp and convert to a more readable format
+                    dt = datetime.fromisoformat(log_data['timestamp'])
+                    log_data['timestamp'] = dt.strftime('%Y-%m-%d %H:%M:%S')
+                except Exception as e:
+                    logger.error(f"Error formatting timestamp: {str(e)}")
+                    # Keep original timestamp if parsing fails
+            
+            logs.append(log_data)
             
         return logs
     except Exception as e:
         logger.error(f"Error getting global activity logs: {str(e)}")
         return []
 
-def get_room_activity_logs(room_name, limit=50, start=0):
+def get_room_logs(room_name, limit=50, start=0):
     """
     Get activity logs for a specific room from Redis.
     
@@ -175,6 +199,16 @@ def get_room_activity_logs(room_name, limit=50, start=0):
         for entry in all_log_entries:
             log_data = json.loads(entry.decode('utf-8'))
             if log_data.get('room_name') == room_name:
+                # Format timestamp for frontend display
+                if 'timestamp' in log_data:
+                    try:
+                        # Parse ISO format timestamp and convert to a more readable format
+                        dt = datetime.fromisoformat(log_data['timestamp'])
+                        log_data['timestamp'] = dt.strftime('%Y-%m-%d %H:%M:%S')
+                    except Exception as e:
+                        logger.error(f"Error formatting timestamp: {str(e)}")
+                        # Keep original timestamp if parsing fails
+                
                 room_logs.append(log_data)
                 
                 # Break if we've reached the limit
@@ -261,6 +295,16 @@ def export_user_song_interactions(limit=10000):
                         'timestamp': log_data.get('timestamp')
                     }
                     
+                    # Format timestamp for frontend display
+                    if 'timestamp' in interaction:
+                        try:
+                            # Parse ISO format timestamp and convert to a more readable format
+                            dt = datetime.fromisoformat(interaction['timestamp'])
+                            interaction['timestamp'] = dt.strftime('%Y-%m-%d %H:%M:%S')
+                        except Exception as e:
+                            logger.error(f"Error formatting timestamp: {str(e)}")
+                            # Keep original timestamp if parsing fails
+                    
                     # Add additional fields if available
                     if 'details' in log_data and isinstance(log_data['details'], dict):
                         if 'title' in log_data['details']:
@@ -320,14 +364,19 @@ def export_user_room_interactions(limit=10000):
                         'timestamp': log_data.get('timestamp')
                     }
                     
-                    # Add additional fields if available
-                    if 'details' in log_data and isinstance(log_data['details'], dict):
-                        for key, value in log_data['details'].items():
-                            interaction[key] = value
+                    # Format timestamp for frontend display
+                    if 'timestamp' in interaction:
+                        try:
+                            # Parse ISO format timestamp and convert to a more readable format
+                            dt = datetime.fromisoformat(interaction['timestamp'])
+                            interaction['timestamp'] = dt.strftime('%Y-%m-%d %H:%M:%S')
+                        except Exception as e:
+                            logger.error(f"Error formatting timestamp: {str(e)}")
+                            # Keep original timestamp if parsing fails
                     
                     room_interactions.append(interaction)
             except Exception as e:
-                logger.warning(f"Error processing room log entry: {str(e)}")
+                logger.warning(f"Error processing log entry: {str(e)}")
                 continue
         
         logger.info(f"Exported {len(room_interactions)} room interactions")

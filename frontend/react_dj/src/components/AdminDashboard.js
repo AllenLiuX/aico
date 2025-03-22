@@ -7,7 +7,7 @@ import {
   Button, CircularProgress, Alert, Grid, Card, 
   CardContent, CardHeader, List, ListItem, ListItemText,
   Divider, Table, TableBody, TableCell, TableContainer, 
-  TableHead, TableRow, Chip
+  TableHead, TableRow, Chip, TableSortLabel
 } from '@mui/material';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import '../styles/AdminDashboard.css';
@@ -47,6 +47,27 @@ const AdminDashboard = () => {
     totalRooms: 0,
     totalInteractions: 0,
     uniqueUsers: 0
+  });
+  
+  // Sorting state
+  const [songInteractionsOrder, setSongInteractionsOrder] = useState({
+    orderBy: 'timestamp',
+    order: 'desc'
+  });
+  
+  const [roomInteractionsOrder, setRoomInteractionsOrder] = useState({
+    orderBy: 'timestamp',
+    order: 'desc'
+  });
+  
+  const [songFeaturesOrder, setSongFeaturesOrder] = useState({
+    orderBy: 'play_count',
+    order: 'desc'
+  });
+  
+  const [roomFeaturesOrder, setRoomFeaturesOrder] = useState({
+    orderBy: 'join_count',
+    order: 'desc'
   });
 
   useEffect(() => {
@@ -249,9 +270,93 @@ const AdminDashboard = () => {
     }
   };
 
+  // Sorting functions
+  const handleSortRequest = (table, property) => {
+    const isAsc = table.orderBy === property && table.order === 'asc';
+    
+    switch(table.name) {
+      case 'songInteractions':
+        setSongInteractionsOrder({
+          orderBy: property,
+          order: isAsc ? 'desc' : 'asc'
+        });
+        break;
+      case 'roomInteractions':
+        setRoomInteractionsOrder({
+          orderBy: property,
+          order: isAsc ? 'desc' : 'asc'
+        });
+        break;
+      case 'songFeatures':
+        setSongFeaturesOrder({
+          orderBy: property,
+          order: isAsc ? 'desc' : 'asc'
+        });
+        break;
+      case 'roomFeatures':
+        setRoomFeaturesOrder({
+          orderBy: property,
+          order: isAsc ? 'desc' : 'asc'
+        });
+        break;
+      default:
+        break;
+    }
+  };
+
+  // Sort function for any array based on property and order
+  const getSortedData = (data, orderBy, order) => {
+    return [...data].sort((a, b) => {
+      // Handle numeric values
+      if (typeof a[orderBy] === 'number' && typeof b[orderBy] === 'number') {
+        return order === 'asc' 
+          ? a[orderBy] - b[orderBy] 
+          : b[orderBy] - a[orderBy];
+      }
+      
+      // Handle string values
+      if (a[orderBy] && b[orderBy]) {
+        return order === 'asc'
+          ? a[orderBy].localeCompare(b[orderBy])
+          : b[orderBy].localeCompare(a[orderBy]);
+      }
+      
+      // Handle null/undefined values
+      if (!a[orderBy] && b[orderBy]) return order === 'asc' ? -1 : 1;
+      if (a[orderBy] && !b[orderBy]) return order === 'asc' ? 1 : -1;
+      
+      return 0;
+    });
+  };
+
+  // Get sorted data for each table
+  const sortedSongInteractions = getSortedData(
+    songInteractions, 
+    songInteractionsOrder.orderBy, 
+    songInteractionsOrder.order
+  );
+
+  const sortedRoomInteractions = getSortedData(
+    roomInteractions, 
+    roomInteractionsOrder.orderBy, 
+    roomInteractionsOrder.order
+  );
+
+  const sortedSongFeatures = getSortedData(
+    songFeatures, 
+    songFeaturesOrder.orderBy, 
+    songFeaturesOrder.order
+  );
+
+  const sortedRoomFeatures = getSortedData(
+    roomFeatures, 
+    roomFeaturesOrder.orderBy, 
+    roomFeaturesOrder.order
+  );
+
   // Prepare chart data
-  const topSongsData = Array.isArray(songFeatures) && songFeatures.length > 0 
-    ? [...songFeatures]
+  const topSongsData = Array.isArray(sortedSongFeatures) && sortedSongFeatures.length > 0 
+    ? [...sortedSongFeatures]
       .sort((a, b) => (b.play_count || 0) - (a.play_count || 0))
       .slice(0, 10)
       .map(song => ({
@@ -262,8 +367,8 @@ const AdminDashboard = () => {
       }))
     : [];
 
-  const topRoomsData = Array.isArray(roomFeatures) && roomFeatures.length > 0
-    ? [...roomFeatures]
+  const topRoomsData = Array.isArray(sortedRoomFeatures) && sortedRoomFeatures.length > 0
+    ? [...sortedRoomFeatures]
       .sort((a, b) => (b.join_count || 0) - (a.join_count || 0))
       .slice(0, 10)
       .map(room => ({
@@ -421,16 +526,64 @@ const AdminDashboard = () => {
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableCell>Title</TableCell>
-                      <TableCell>Artist</TableCell>
-                      <TableCell align="right">Plays</TableCell>
-                      <TableCell align="right">Favorites</TableCell>
-                      <TableCell align="right">Adds</TableCell>
-                      <TableCell align="right">Rooms</TableCell>
+                      <TableCell>
+                        <TableSortLabel
+                          active={songFeaturesOrder.orderBy === 'title'}
+                          direction={songFeaturesOrder.order}
+                          onClick={() => handleSortRequest({ name: 'songFeatures', orderBy: 'title', order: songFeaturesOrder.order }, 'title')}
+                        >
+                          Title
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell>
+                        <TableSortLabel
+                          active={songFeaturesOrder.orderBy === 'artist'}
+                          direction={songFeaturesOrder.order}
+                          onClick={() => handleSortRequest({ name: 'songFeatures', orderBy: 'artist', order: songFeaturesOrder.order }, 'artist')}
+                        >
+                          Artist
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell align="right">
+                        <TableSortLabel
+                          active={songFeaturesOrder.orderBy === 'play_count'}
+                          direction={songFeaturesOrder.order}
+                          onClick={() => handleSortRequest({ name: 'songFeatures', orderBy: 'play_count', order: songFeaturesOrder.order }, 'play_count')}
+                        >
+                          Plays
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell align="right">
+                        <TableSortLabel
+                          active={songFeaturesOrder.orderBy === 'favorite_count'}
+                          direction={songFeaturesOrder.order}
+                          onClick={() => handleSortRequest({ name: 'songFeatures', orderBy: 'favorite_count', order: songFeaturesOrder.order }, 'favorite_count')}
+                        >
+                          Favorites
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell align="right">
+                        <TableSortLabel
+                          active={songFeaturesOrder.orderBy === 'add_count'}
+                          direction={songFeaturesOrder.order}
+                          onClick={() => handleSortRequest({ name: 'songFeatures', orderBy: 'add_count', order: songFeaturesOrder.order }, 'add_count')}
+                        >
+                          Adds
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell align="right">
+                        <TableSortLabel
+                          active={songFeaturesOrder.orderBy === 'room_count'}
+                          direction={songFeaturesOrder.order}
+                          onClick={() => handleSortRequest({ name: 'songFeatures', orderBy: 'room_count', order: songFeaturesOrder.order }, 'room_count')}
+                        >
+                          Rooms
+                        </TableSortLabel>
+                      </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {songFeatures.slice(0, 20).map((song) => (
+                    {sortedSongFeatures.slice(0, 20).map((song) => (
                       <TableRow key={song.song_id}>
                         <TableCell>{song.title}</TableCell>
                         <TableCell>{song.artist}</TableCell>
@@ -483,15 +636,55 @@ const AdminDashboard = () => {
                 <Table>
                   <TableHead>
                     <TableRow>
-                      <TableCell>Room Name</TableCell>
-                      <TableCell align="right">Joins</TableCell>
-                      <TableCell align="right">Favorites</TableCell>
-                      <TableCell align="right">Creates</TableCell>
-                      <TableCell align="right">Users</TableCell>
+                      <TableCell>
+                        <TableSortLabel
+                          active={roomFeaturesOrder.orderBy === 'room_id'}
+                          direction={roomFeaturesOrder.order}
+                          onClick={() => handleSortRequest({ name: 'roomFeatures', orderBy: 'room_id', order: roomFeaturesOrder.order }, 'room_id')}
+                        >
+                          Room Name
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell align="right">
+                        <TableSortLabel
+                          active={roomFeaturesOrder.orderBy === 'join_count'}
+                          direction={roomFeaturesOrder.order}
+                          onClick={() => handleSortRequest({ name: 'roomFeatures', orderBy: 'join_count', order: roomFeaturesOrder.order }, 'join_count')}
+                        >
+                          Joins
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell align="right">
+                        <TableSortLabel
+                          active={roomFeaturesOrder.orderBy === 'favorite_count'}
+                          direction={roomFeaturesOrder.order}
+                          onClick={() => handleSortRequest({ name: 'roomFeatures', orderBy: 'favorite_count', order: roomFeaturesOrder.order }, 'favorite_count')}
+                        >
+                          Favorites
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell align="right">
+                        <TableSortLabel
+                          active={roomFeaturesOrder.orderBy === 'create_count'}
+                          direction={roomFeaturesOrder.order}
+                          onClick={() => handleSortRequest({ name: 'roomFeatures', orderBy: 'create_count', order: roomFeaturesOrder.order }, 'create_count')}
+                        >
+                          Creates
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell align="right">
+                        <TableSortLabel
+                          active={roomFeaturesOrder.orderBy === 'user_count'}
+                          direction={roomFeaturesOrder.order}
+                          onClick={() => handleSortRequest({ name: 'roomFeatures', orderBy: 'user_count', order: roomFeaturesOrder.order }, 'user_count')}
+                        >
+                          Users
+                        </TableSortLabel>
+                      </TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {roomFeatures.slice(0, 20).map((room) => (
+                    {sortedRoomFeatures.slice(0, 20).map((room) => (
                       <TableRow key={room.room_id}>
                         <TableCell>{room.room_id}</TableCell>
                         <TableCell align="right">{room.join_count}</TableCell>
@@ -522,16 +715,64 @@ const AdminDashboard = () => {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>User</TableCell>
-                    <TableCell>Action</TableCell>
-                    <TableCell>Song</TableCell>
-                    <TableCell>Artist</TableCell>
-                    <TableCell>Room</TableCell>
-                    <TableCell>Timestamp</TableCell>
+                    <TableCell>
+                      <TableSortLabel
+                        active={songInteractionsOrder.orderBy === 'user_id'}
+                        direction={songInteractionsOrder.order}
+                        onClick={() => handleSortRequest({ name: 'songInteractions', orderBy: 'user_id', order: songInteractionsOrder.order }, 'user_id')}
+                      >
+                        User
+                      </TableSortLabel>
+                    </TableCell>
+                    <TableCell>
+                      <TableSortLabel
+                        active={songInteractionsOrder.orderBy === 'action'}
+                        direction={songInteractionsOrder.order}
+                        onClick={() => handleSortRequest({ name: 'songInteractions', orderBy: 'action', order: songInteractionsOrder.order }, 'action')}
+                      >
+                        Action
+                      </TableSortLabel>
+                    </TableCell>
+                    <TableCell>
+                      <TableSortLabel
+                        active={songInteractionsOrder.orderBy === 'song_title'}
+                        direction={songInteractionsOrder.order}
+                        onClick={() => handleSortRequest({ name: 'songInteractions', orderBy: 'song_title', order: songInteractionsOrder.order }, 'song_title')}
+                      >
+                        Song
+                      </TableSortLabel>
+                    </TableCell>
+                    <TableCell>
+                      <TableSortLabel
+                        active={songInteractionsOrder.orderBy === 'artist'}
+                        direction={songInteractionsOrder.order}
+                        onClick={() => handleSortRequest({ name: 'songInteractions', orderBy: 'artist', order: songInteractionsOrder.order }, 'artist')}
+                      >
+                        Artist
+                      </TableSortLabel>
+                    </TableCell>
+                    <TableCell>
+                      <TableSortLabel
+                        active={songInteractionsOrder.orderBy === 'room_id'}
+                        direction={songInteractionsOrder.order}
+                        onClick={() => handleSortRequest({ name: 'songInteractions', orderBy: 'room_id', order: songInteractionsOrder.order }, 'room_id')}
+                      >
+                        Room
+                      </TableSortLabel>
+                    </TableCell>
+                    <TableCell>
+                      <TableSortLabel
+                        active={songInteractionsOrder.orderBy === 'timestamp'}
+                        direction={songInteractionsOrder.order}
+                        onClick={() => handleSortRequest({ name: 'songInteractions', orderBy: 'timestamp', order: songInteractionsOrder.order }, 'timestamp')}
+                      >
+                        Timestamp
+                      </TableSortLabel>
+                    </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {songInteractions.slice(0, 50).map((interaction, index) => (
+                  {sortedSongInteractions.slice(0, 50).map((interaction, index) => (
                     <TableRow key={index}>
                       <TableCell>{interaction.user_id}</TableCell>
                       <TableCell>
@@ -549,7 +790,7 @@ const AdminDashboard = () => {
                       <TableCell>{interaction.song_title || 'Unknown'}</TableCell>
                       <TableCell>{interaction.artist || 'Unknown'}</TableCell>
                       <TableCell>{interaction.room_id || 'N/A'}</TableCell>
-                      <TableCell>{new Date(interaction.timestamp * 1000).toLocaleString()}</TableCell>
+                      <TableCell>{interaction.timestamp}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -573,15 +814,55 @@ const AdminDashboard = () => {
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>User</TableCell>
-                    <TableCell>Action</TableCell>
-                    <TableCell>Room</TableCell>
-                    <TableCell>Is Host</TableCell>
-                    <TableCell>Timestamp</TableCell>
+                    <TableCell>
+                      <TableSortLabel
+                        active={roomInteractionsOrder.orderBy === 'user_id'}
+                        direction={roomInteractionsOrder.order}
+                        onClick={() => handleSortRequest({ name: 'roomInteractions', orderBy: 'user_id', order: roomInteractionsOrder.order }, 'user_id')}
+                      >
+                        User
+                      </TableSortLabel>
+                    </TableCell>
+                    <TableCell>
+                      <TableSortLabel
+                        active={roomInteractionsOrder.orderBy === 'action'}
+                        direction={roomInteractionsOrder.order}
+                        onClick={() => handleSortRequest({ name: 'roomInteractions', orderBy: 'action', order: roomInteractionsOrder.order }, 'action')}
+                      >
+                        Action
+                      </TableSortLabel>
+                    </TableCell>
+                    <TableCell>
+                      <TableSortLabel
+                        active={roomInteractionsOrder.orderBy === 'room_id'}
+                        direction={roomInteractionsOrder.order}
+                        onClick={() => handleSortRequest({ name: 'roomInteractions', orderBy: 'room_id', order: roomInteractionsOrder.order }, 'room_id')}
+                      >
+                        Room
+                      </TableSortLabel>
+                    </TableCell>
+                    <TableCell>
+                      <TableSortLabel
+                        active={roomInteractionsOrder.orderBy === 'is_host'}
+                        direction={roomInteractionsOrder.order}
+                        onClick={() => handleSortRequest({ name: 'roomInteractions', orderBy: 'is_host', order: roomInteractionsOrder.order }, 'is_host')}
+                      >
+                        Is Host
+                      </TableSortLabel>
+                    </TableCell>
+                    <TableCell>
+                      <TableSortLabel
+                        active={roomInteractionsOrder.orderBy === 'timestamp'}
+                        direction={roomInteractionsOrder.order}
+                        onClick={() => handleSortRequest({ name: 'roomInteractions', orderBy: 'timestamp', order: roomInteractionsOrder.order }, 'timestamp')}
+                      >
+                        Timestamp
+                      </TableSortLabel>
+                    </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {roomInteractions.slice(0, 50).map((interaction, index) => (
+                  {sortedRoomInteractions.slice(0, 50).map((interaction, index) => (
                     <TableRow key={index}>
                       <TableCell>{interaction.user_id}</TableCell>
                       <TableCell>
@@ -598,7 +879,7 @@ const AdminDashboard = () => {
                       </TableCell>
                       <TableCell>{interaction.room_id}</TableCell>
                       <TableCell>{interaction.is_host ? 'Yes' : 'No'}</TableCell>
-                      <TableCell>{new Date(interaction.timestamp * 1000).toLocaleString()}</TableCell>
+                      <TableCell>{interaction.timestamp}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

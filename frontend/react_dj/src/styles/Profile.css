@@ -734,6 +734,79 @@
   }
 }
 
+/* Media queries for mobile responsiveness */
+@media (max-width: 768px) {
+  .profile-main {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .avatar-section {
+    width: 100px;
+    margin: 0 auto;
+  }
+
+  .avatar-container {
+    width: 100px;
+    height: 100px;
+  }
+
+  .username-section {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .edit-avatar-btn {
+    padding: 4px 8px;
+    font-size: 12px;
+    width: 80%;
+    margin: 0 auto;
+  }
+
+  .edit-profile-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+    align-self: flex-start;
+  }
+
+  .stats {
+    justify-content: center;
+    gap: 16px;
+  }
+}
+
+/* iPhone specific adjustments */
+@media (max-width: 428px) {
+  .edit-avatar-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    padding: 0;
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    background-color: rgba(44, 189, 251, 0.9);
+  }
+
+  .edit-profile-btn {
+    padding: 4px 10px;
+    font-size: 12px;
+    border-radius: 16px;
+  }
+
+  .username-section {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .avatar-container {
+    position: relative;
+  }
+}
+
 /* Scrollbar Styling */
 .tag-categories::-webkit-scrollbar {
   height: 4px;
