@@ -10,6 +10,14 @@
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   }
   
+  /* iOS-specific styles */
+  .ios-device {
+    -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+    user-select: none; /* Standard */
+    -webkit-overflow-scrolling: touch;
+  }
+  
   .header-container {
     max-width: 1200px;
     margin: 0 auto;
@@ -36,8 +44,29 @@
     padding: 8px 0;
   }
   
+  /* iOS-specific link styles */
+  .ios-device .nav-link {
+    padding: 12px 8px; /* Increased padding for better touch targets */
+    display: inline-block; /* Ensure the link is a block element for better touch */
+    cursor: pointer;
+    -webkit-tap-highlight-color: rgba(0,0,0,0); /* Remove tap highlight on iOS */
+  }
+  
+  /* Add active state for touch feedback only on iOS */
+  .ios-device .nav-link:active {
+    color: #0f9cd8;
+    opacity: 0.7;
+  }
+  
   .nav-link:hover {
     color: #0f9cd8;
+  }
+  
+  /* Ensure list items have enough space on iOS */
+  .ios-device .nav-list li {
+    padding: 0;
+    margin: 0;
+    position: relative;
   }
   
   .user-section {
@@ -57,6 +86,19 @@
     color: #2CBDFB;
     border-radius: 20px;
     transition: all 0.2s ease;
+    cursor: pointer;
+  }
+  
+  /* iOS-specific button styles */
+  .ios-device .login-button {
+    padding: 10px 18px; /* Increased padding for better touch targets */
+    -webkit-tap-highlight-color: rgba(0,0,0,0); /* Remove tap highlight on iOS */
+  }
+  
+  /* Add active state for touch feedback only on iOS */
+  .ios-device .login-button:active {
+    background-color: rgba(187, 134, 252, 0.2);
+    transform: scale(0.98);
   }
   
   .login-button:hover {
@@ -74,6 +116,18 @@
     cursor: pointer;
   }
   
+  /* iOS-specific profile button styles */
+  .ios-device .profile-button {
+    padding: 8px 12px; /* Increased padding for better touch targets */
+    -webkit-tap-highlight-color: rgba(0,0,0,0); /* Remove tap highlight on iOS */
+  }
+  
+  /* Add active state for touch feedback only on iOS */
+  .ios-device .profile-button:active {
+    opacity: 0.7;
+    transform: scale(0.98);
+  }
+  
   /* Header-specific avatar size */
   .header-container .profile-avatar {
     width: 24px;
@@ -82,6 +136,14 @@
     min-height: 24px;
     border-radius: 50%;
     object-fit: cover;
+  }
+  
+  /* Slightly larger avatar on iOS */
+  .ios-device .header-container .profile-avatar {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
   }
   
   .profile-name {
@@ -117,6 +179,37 @@
     text-align: left;
   }
   
+  /* iOS-specific dropdown styles */
+  .ios-device .dropdown-item {
+    padding: 14px 16px; /* Increased padding for better touch targets */
+    -webkit-tap-highlight-color: rgba(0,0,0,0); /* Remove tap highlight on iOS */
+  }
+  
+  .ios-device .dropdown-item:active {
+    background-color: #3c3c3c;
+  }
+  
   .dropdown-item:hover {
     background-color: #2c2c2c;
+  }
+  
+  /* Media queries for mobile devices */
+  @media (max-width: 768px) {
+    .nav-list {
+      gap: 16px; /* Smaller gap on mobile */
+    }
+    
+    .nav-link {
+      font-size: 15px;
+    }
+    
+    /* Only hide profile name on small screens, not on iOS specifically */
+    .profile-name {
+      display: none; /* Hide name on small screens */
+    }
+    
+    /* Restore profile name on iOS devices regardless of screen size */
+    .ios-device .profile-name {
+      display: inline; /* Show name on iOS */
+    }
   }

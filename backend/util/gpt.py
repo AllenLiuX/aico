@@ -72,7 +72,9 @@ def is_number(string):
         # If a ValueError occurs, the string cannot be converted to a number
         return False
 
-def personal_gpt(prompt):    
+def personal_gpt(prompt, model_choice=''):
+    if model_choice:
+        model_choice = model_choice
     # try:
     client = OpenAI(api_key=models[model_choice]['api_key'])
 
