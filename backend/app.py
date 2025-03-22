@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_file, send_from_directory
+from flask import Flask, request, jsonify, send_file, send_from_directory, redirect
 from flask_cors import CORS
 import util.gpt as gpt 
 import util.llm_modules as llm
@@ -645,15 +645,12 @@ def register():
     password_hash = hash_password(password)
     write_hash(f"users{redis_version}", username, password_hash)
     
-    # Create avatar URL
-    avatar_url = f"/api/avatars/{username}"
-    
     # Store user profile
     profile = {
         "username": username,
         "email": email,
         "created_at": datetime.now().isoformat(),
-        "avatar": avatar_url
+        "has_avatar": False  # Initialize with no avatar
     }
     write_hash(f"user_profiles{redis_version}", username, json.dumps(profile))
     
@@ -715,10 +712,10 @@ def login():
             profile = json.loads(profile_json)
         else:
             # Create default profile with avatar
-            avatar_url = f"/api/avatars/{username}"
             profile = {
                 "username": username,
-                "avatar": avatar_url
+                "created_at": datetime.now().isoformat(),
+                "has_avatar": False
             }
             write_hash(f"user_profiles{redis_version}", username, json.dumps(profile))
         
@@ -849,35 +846,38 @@ def generate_avatar_svg(username):
 
 @app.route('/api/avatar/<username>')
 def get_avatar(username):
-    svg = generate_avatar_svg(username)
+    # First check if user has an uploaded avatar
+    profile_json = get_hash(f"user_profiles{redis_version}", username)
+    if profile_json:
+        profile = json.loads(profile_json)
+        if profile.get('has_avatar'):
+            # Find the most recent avatar file for this user
+            try:
+                avatar_files = list(AVATARS_DIR.glob(f"{username}_*.jpg"))
+                if avatar_files:
+                    # Get the most recent file
+                    latest_avatar = max(avatar_files, key=lambda x: x.stat().st_mtime)
+                    logger.info(f"Serving avatar file {latest_avatar} for {username}")
+                    return send_file(
+                        str(latest_avatar),
+                        mimetype='image/jpeg',
+                        last_modified=latest_avatar.stat().st_mtime,
+                        max_age=31536000  # Cache for 1 year
+                    )
+            except Exception as e:
+                logger.error(f"Error serving avatar for {username}: {str(e)}")
     
+    # If no uploaded avatar or error, generate SVG avatar
+    logger.info(f"Generating SVG avatar for {username}")
+    svg = generate_avatar_svg(username)
     response = send_file(
         BytesIO(svg.encode()),
-        mimetype='image/svg+xml'
+        mimetype='image/svg+xml',
+        max_age=3600  # Cache for 1 hour
     )
-    
-    # Set cache control headers manually
-    response.headers['Cache-Control'] = 'public, max-age=86400'  # Cache for 24 hours
     return response
 
-@app.route('/api/avatars/<path:filename>')
-def serve_avatar_with_timestamp(filename):
-    # Extract username from filename (e.g., "username_1234567890.jpg" -> "username")
-    username = filename.split('_')[0] if '_' in filename else filename.split('.')[0]
-    
-    # Generate SVG avatar
-    svg = generate_avatar_svg(username)
-    
-    response = send_file(
-        BytesIO(svg.encode()),
-        mimetype='image/svg+xml'
-    )
-    
-    # Set cache control headers
-    response.headers['Cache-Control'] = 'public, max-age=86400'  # Cache for 24 hours
-    return response
-
-# Add these new Redis functions
+# Add room host functions
 def get_room_host(room_name):
     """Get room host information."""
     host_data = get_hash(f"room_hosts{redis_version}", room_name)
@@ -1011,7 +1011,7 @@ def follow_user():
         following_json = get_hash(f"user_following{redis_version}", username)
         following = json.loads(following_json) if following_json else []
 
-        # Get target's followers list
+        # Get followers list for the target user
         followers_json = get_hash(f"user_followers{redis_version}", target_username)
         followers = json.loads(followers_json) if followers_json else []
 
@@ -1076,7 +1076,6 @@ def favorite_room():
     except Exception as e:
         logger.error(f"Error in favorite operation: {str(e)}")
         return jsonify({"error": "Operation failed"}), 500
-
 
 @app.route('/api/user/profile', methods=['GET'])
 @app.route('/api/user/profile/<username>', methods=['GET'])
@@ -1178,7 +1177,7 @@ def get_user_profile(username=None):
                         follow_profile = json.loads(follow_profile_json)
                         following_data.append({
                             "username": follow_username,
-                            "avatar": follow_profile.get('avatar', f"/api/avatars/{follow_username}"),
+                            "avatar": get_user_avatar_url(follow_username),
                             "bio": follow_profile.get('bio', ''),
                             "country": follow_profile.get('country', '')
                         })
@@ -1194,7 +1193,7 @@ def get_user_profile(username=None):
                         follower_profile = json.loads(follower_profile_json)
                         followers_data.append({
                             "username": follower_username,
-                            "avatar": follower_profile.get('avatar', f"/api/avatars/{follower_username}"),
+                            "avatar": get_user_avatar_url(follower_username),
                             "bio": follower_profile.get('bio', ''),
                             "country": follower_profile.get('country', '')
                         })
@@ -1285,7 +1284,6 @@ def get_tag_suggestions():
         return jsonify(suggestions)
     
     return jsonify({category: suggestions.get(category, [])})
-
 
 @app.route('/api/explore/rooms', methods=['GET'])
 def get_explore_rooms():
@@ -1399,7 +1397,7 @@ def upload_avatar():
         if image.mode in ('RGBA', 'P'):
             image = image.convert('RGB')
         
-        # Generate unique filename
+        # Generate unique filename with timestamp
         filename = f"{username}_{int(time.time())}.jpg"
         filepath = AVATARS_DIR / filename
         logger.info(f'saving avatar for {username} at {filepath}')
@@ -1407,49 +1405,48 @@ def upload_avatar():
         # Save optimized image
         image.save(str(filepath), 'JPEG', quality=85, optimize=True)
         
-        # Update URL format to be absolute path from API root
-        avatar_url = f"/api/avatars/{filename}"
-        
         # Update user profile in Redis
         profile_json = get_hash(f"user_profiles{redis_version}", username)
-        profile = json.loads(profile_json) if profile_json else {}
-        profile['avatar'] = avatar_url
+        profile = json.loads(profile_json) if profile_json else format_user_profile(username)
+        profile['has_avatar'] = True
         write_hash(f"user_profiles{redis_version}", username, json.dumps(profile))
         
-        # Also update any rooms where this user is a host
-        user_rooms_response = get_user_rooms_helper(username)
-        rooms = user_rooms_response.json['rooms']
-        for room in rooms:
-            host_data = get_room_host(room['name'])
-            if host_data and host_data.get('username') == username:
-                set_room_host(room['name'], username, avatar_url, update_timestamp=False)
+        # Update room host avatars if needed
+        room_list = get_all_rooms()
+        for room in room_list:
+            if room.get('host', {}).get('username') == username:
+                set_room_host(room['name'], username, update_timestamp=False)
         
+        avatar_url = get_user_avatar_url(username)
         return jsonify({
             "message": "Avatar uploaded successfully",
             "avatar_url": avatar_url
-        })
+        }), 200
+
     except Exception as e:
         logger.error(f"Error uploading avatar: {str(e)}")
-        return jsonify({"error": "Failed to process image"}), 500
+        return jsonify({"error": str(e)}), 500
 
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # Add route to serve static files (if needed)
-@app.route('/api/avatars/<path:filename>')
-def serve_avatar(filename):
-    try:
-        if not os.path.exists(AVATARS_DIR / filename):
-            logger.warning(f"Avatar file not found: {filename}")
-            return jsonify({"error": "Avatar not found"}), 404
+# @app.route('/api/avatars/<path:filename>')
+# def serve_avatar(filename):
+#     try:
+#         if not os.path.exists(AVATARS_DIR / filename):
+#             logger.warning(f"Avatar file not found: {filename}")
+#             # Extract username from filename and fall back to SVG
+#             username = filename.split('_')[0] if '_' in filename else filename.split('.')[0]
+#             return get_avatar(username)
             
-        response = send_from_directory(str(AVATARS_DIR), filename)
-        response.headers['Cache-Control'] = 'public, max-age=31536000'
-        return response
-    except Exception as e:
-        logger.error(f"Error serving avatar {filename}: {str(e)}")
-        return jsonify({"error": "Failed to serve avatar"}), 500
+#         response = send_from_directory(str(AVATARS_DIR), filename)
+#         response.headers['Cache-Control'] = 'public, max-age=31536000'
+#         return response
+#     except Exception as e:
+#         logger.error(f"Error serving avatar {filename}: {str(e)}")
+#         return jsonify({"error": "Failed to serve avatar"}), 500
 
 # Update the existing request-track endpoint in app.py
 
@@ -1977,9 +1974,8 @@ def update_playlist_info():
 
 # Add these endpoint functions to your app.py file
 
-@app.route('/api/user/favorites', methods=['GET'])
-def get_favorites():
-    """Get user's favorite rooms"""
+@app.route('/api/user/follows', methods=['GET'])
+def get_user_follows():
     auth_token = request.headers.get('Authorization')
     if not auth_token:
         return jsonify({"error": "Authentication required"}), 401
@@ -1989,97 +1985,26 @@ def get_favorites():
         return jsonify({"error": "Invalid session"}), 401
 
     try:
-        # Get user's favorites list
-        favorites_json = get_hash(f"user_favorites{redis_version}", username)
-        favorites = json.loads(favorites_json) if favorites_json else []
+        follows = []
+        follows_list = get_user_follows_list(username)
         
-        # Get details for each favorite room if requested
-        detailed = request.args.get('detailed', 'false').lower() == 'true'
+        for follow_username in follows_list:
+            follow_profile_json = get_hash(f"user_profiles{redis_version}", follow_username)
+            if follow_profile_json:
+                follow_profile = json.loads(follow_profile_json)
+                follows.append({
+                    "username": follow_username,
+                    "avatar_url": get_user_avatar_url(follow_username)
+                })
         
-        if detailed:
-            rooms_data = []
-            for room_name in favorites:
-                try:
-                    # Get room data
-                    playlist_json = get_hash(f"room_playlists{redis_version}", room_name)
-                    settings_json = get_hash(f"settings{redis_version}", room_name)
-                    intro = get_hash(f"intro{redis_version}", room_name)
-                    
-                    if not playlist_json:
-                        continue
-                        
-                    playlist = json.loads(playlist_json)
-                    settings = json.loads(settings_json) if settings_json else {}
-                    
-                    cover_image = playlist[0].get('cover_img_url', '') if playlist and len(playlist) > 0 else ''
-                    
-                    rooms_data.append({
-                        "name": room_name,
-                        "cover_image": cover_image,
-                        "introduction": intro[:100] + '...' if intro and len(intro) > 100 else intro,
-                        "song_count": len(playlist),
-                        "genre": settings.get('genre', ''),
-                        "occasion": settings.get('occasion', '')
-                    })
-                except Exception as e:
-                    logger.error(f"Error getting favorite room details: {e}")
-                    continue
-            
-            return jsonify({"favorites": favorites, "rooms": rooms_data})
-        else:
-            return jsonify({"favorites": favorites})
-            
+        return jsonify({"follows": follows})
+
     except Exception as e:
-        logger.error(f"Error fetching user favorites: {str(e)}")
-        return jsonify({"error": "Failed to fetch favorites"}), 500
-
-@app.route('/api/user/following', methods=['GET'])
-def get_following():
-    """Get list of users the current user is following"""
-    auth_token = request.headers.get('Authorization')
-    if not auth_token:
-        return jsonify({"error": "Authentication required"}), 401
-
-    username = get_hash(f"sessions{redis_version}", auth_token)
-    if not username:
-        return jsonify({"error": "Invalid session"}), 401
-
-    try:
-        # Get following list
-        following_json = get_hash(f"user_following{redis_version}", username)
-        following = json.loads(following_json) if following_json else []
-
-        # Get details for each followed user if requested
-        detailed = request.args.get('detailed', 'false').lower() == 'true'
-        
-        if detailed:
-            users_data = []
-            for followed_username in following:
-                try:
-                    profile_json = get_hash(f"user_profiles{redis_version}", followed_username)
-                    if profile_json:
-                        profile = json.loads(profile_json)
-                        users_data.append({
-                            "username": followed_username,
-                            "avatar": profile.get('avatar', f"/api/avatars/{followed_username}"),
-                            "bio": profile.get('bio', ''),
-                            "country": profile.get('country', '')
-                        })
-                except Exception as e:
-                    logger.error(f"Error getting followed user details: {e}")
-                    continue
-            
-            return jsonify({"following": following, "users": users_data})
-        else:
-            return jsonify({"following": following})
-            
-    except Exception as e:
-        logger.error(f"Error fetching followed users: {str(e)}")
-        return jsonify({"error": "Failed to fetch followed users"}), 500
+        logger.error(f"Error getting user follows: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/user/followers', methods=['GET'])
-def get_followers():
-    """Get list of users following the current user"""
+def get_user_followers():
     auth_token = request.headers.get('Authorization')
     if not auth_token:
         return jsonify({"error": "Authentication required"}), 401
@@ -2089,37 +2014,23 @@ def get_followers():
         return jsonify({"error": "Invalid session"}), 401
 
     try:
-        # Get followers list
-        followers_json = get_hash(f"user_followers{redis_version}", username)
-        followers = json.loads(followers_json) if followers_json else []
+        followers = []
+        followers_list = get_user_followers_list(username)
         
-        # Get details for each follower if requested
-        detailed = request.args.get('detailed', 'false').lower() == 'true'
+        for follower_username in followers_list:
+            follower_profile_json = get_hash(f"user_profiles{redis_version}", follower_username)
+            if follower_profile_json:
+                follower_profile = json.loads(follower_profile_json)
+                followers.append({
+                    "username": follower_username,
+                    "avatar_url": get_user_avatar_url(follower_username)
+                })
         
-        if detailed:
-            users_data = []
-            for follower_username in followers:
-                try:
-                    profile_json = get_hash(f"user_profiles{redis_version}", follower_username)
-                    if profile_json:
-                        profile = json.loads(profile_json)
-                        users_data.append({
-                            "username": follower_username,
-                            "avatar": profile.get('avatar', f"/api/avatars/{follower_username}"),
-                            "bio": profile.get('bio', ''),
-                            "country": profile.get('country', '')
-                        })
-                except Exception as e:
-                    logger.error(f"Error getting follower details: {e}")
-                    continue
-            
-            return jsonify({"followers": followers, "users": users_data})
-        else:
-            return jsonify({"followers": followers})
-            
+        return jsonify({"followers": followers})
+
     except Exception as e:
-        logger.error(f"Error fetching followers: {str(e)}")
-        return jsonify({"error": "Failed to fetch followers"}), 500
+        logger.error(f"Error getting user followers: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 # Make sure the follow endpoint works for both follow and unfollow actions
 @app.route('/api/user/follow', methods=['POST'])
@@ -2824,6 +2735,50 @@ def log_song_play():
     except Exception as e:
         logger.error(f"Error logging song play: {str(e)}")
         return jsonify({"error": str(e)}), 500
+
+def format_user_profile(username, profile=None):
+    """Format a user profile with consistent avatar URL."""
+    if profile is None:
+        profile = {}
+    
+    return {
+        "username": username,
+        "email": profile.get("email"),
+        "created_at": profile.get("created_at", datetime.now().isoformat()),
+        "has_avatar": profile.get("has_avatar", False)
+    }
+
+def get_user_avatar_url(username):
+    """Get the avatar URL for a user."""
+    return f"/api/avatar/{username}"
+
+def set_room_host(room_name, username, avatar, update_timestamp=True):
+    """Set or update the host of a room.
+    
+    Args:
+        room_name: The name of the room
+        username: The username of the host
+        avatar: The avatar URL of the host
+        update_timestamp: Whether to update the last_host_update timestamp
+    """
+    try:
+        room_json = get_hash(f"rooms{redis_version}", room_name)
+        if not room_json:
+            return
+        
+        room = json.loads(room_json)
+        room["host"] = {
+            "username": username,
+            "avatar_url": get_user_avatar_url(username)
+        }
+        
+        if update_timestamp:
+            room["last_host_update"] = datetime.now().isoformat()
+        
+        write_hash(f"rooms{redis_version}", room_name, json.dumps(room))
+        
+    except Exception as e:
+        logger.error(f"Error setting room host: {str(e)}")
 
 if __name__ == '__main__':
     # app.run(port=3000, host='10.72.252.213', debug=True)

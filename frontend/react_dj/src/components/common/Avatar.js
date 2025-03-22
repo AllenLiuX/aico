@@ -7,11 +7,12 @@ const Avatar = ({ src, username, size = 24, onClick, className = "" }) => {
   const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
+    // Reset error state when src or username changes
+    setHasError(false);
+
     if (!src) {
-      // If no source is provided, use the username to create a consistent avatar URL
+      // If no source is provided, use the username to get avatar from backend
       if (username) {
-        // Add timestamp to prevent caching issues
-        const timestamp = Date.now();
         setImageSrc(`${API_URL}/api/avatar/${username}`);
       } else {
         setImageSrc(`${API_URL}/api/placeholder/${size}/${size}`);
@@ -22,26 +23,24 @@ const Avatar = ({ src, username, size = 24, onClick, className = "" }) => {
     // Handle different URL formats
     let fullSrc;
     if (src.startsWith('http:') && host_by_https) {
-      // Convert HTTP to HTTPS if needed
       fullSrc = src.replace('http:', 'https:');
     } else if (src.startsWith('/api/')) {
-      // Convert relative URLs to absolute URLs
       fullSrc = `${API_URL}${src}`;
     } else {
       fullSrc = src;
     }
     
     setImageSrc(fullSrc);
-    setHasError(false);
   }, [src, size, username]);
 
   const handleError = () => {
     if (!hasError) {
       setHasError(true);
-      // If image fails to load, fall back to the API avatar endpoint
-      if (username) {
+      // If image fails to load and we're not already using the API avatar endpoint
+      if (!imageSrc?.includes('/api/avatar/')) {
         setImageSrc(`${API_URL}/api/avatar/${username}`);
-      } else {
+      } else if (username) {
+        // If we're already at the avatar endpoint and it failed, use placeholder
         setImageSrc(`${API_URL}/api/placeholder/${size}/${size}`);
       }
     }
@@ -50,15 +49,11 @@ const Avatar = ({ src, username, size = 24, onClick, className = "" }) => {
   return (
     <img
       src={imageSrc}
-      alt={`${username || 'User'}'s avatar`}
+      alt={username ? `${username}'s avatar` : 'Avatar'}
       className={`${styles.avatar} ${className}`}
-      loading="lazy"
-      crossOrigin="anonymous"
+      style={{ width: size, height: size }}
       onError={handleError}
       onClick={onClick}
-      width={size}
-      height={size}
-      style={{ width: size, height: size }}
     />
   );
 };
