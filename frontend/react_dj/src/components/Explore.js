@@ -1,7 +1,7 @@
 // Explore.js
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Music, Calendar } from 'lucide-react';
+import { Music, Calendar, Headphones, Star } from 'lucide-react';
 import Avatar from './common/Avatar';
 import '../styles/Explore.css';
 import { API_URL } from '../config';
@@ -36,14 +36,6 @@ const RoomCard = ({ room }) => {
   return (
     <div className="room-card" onClick={handleRoomClick}>
       <div className="room-image">
-        {/* <img
-          src={room.cover_image || '/api/placeholder/300/200'}
-          alt={room.name}
-          onError={(e) => {
-            e.target.onerror = null;
-            e.target.src = '/api/placeholder/300/200';
-          }}
-        /> */}
         <img
           src={room.cover_image || '/api/placeholder/300/200'}
           alt={room.name}
@@ -60,7 +52,7 @@ const RoomCard = ({ room }) => {
       </div>
       <div className="room-content">
         <h3>{formatRoomName(room.name)}</h3>
-        <p>{room.introduction}</p>
+        <p>{room.introduction || "A curated music experience"}</p>
         <div className="room-tags">
           {room.genre && <span className="tag genre-tag">{room.genre}</span>}
           {room.occasion && <span className="tag occasion-tag">{room.occasion}</span>}
@@ -70,7 +62,7 @@ const RoomCard = ({ room }) => {
             <Avatar 
               src={room.host.avatar}
               username={room.host.username}
-              size={24}
+              size={28}
             />
             <span>{room.host.username}</span>
             
@@ -175,9 +167,12 @@ function Explore() {
   
     return (
       <div className="explore-container">
+        {/* Animated wave at the bottom */}
+        <div className="explore-wave"></div>
+        
         <div className="explore-header">
-          <h1>Explore Rooms</h1>
-          <p>Discover music rooms created by the community</p>
+          <h1>Explore Music Rooms</h1>
+          <p>Discover curated music experiences created by our community</p>
         </div>
   
         <div className="rooms-grid">
@@ -195,15 +190,15 @@ function Explore() {
   
         {allRoomsLoaded && rooms.length > 0 && (
           <div className="end-message">
-            You've seen all available rooms!
+            <Star size={20} style={{ marginBottom: '10px', color: '#2CBDFB' }} />
+            <p>You've explored all available rooms!</p>
           </div>
         )}
   
-        {hasMore && !loading && (
-          <div ref={loader} className="loader-element" />
-        )}
+        {/* Intersection Observer Element */}
+        <div ref={loader} className="loader-element"></div>
       </div>
     );
-  }
+}
 
 export default Explore;

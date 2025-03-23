@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Music, Settings } from 'lucide-react';
+import { Lock, Music, Settings, MusicIcon, Headphones, Radio } from 'lucide-react';
 
 function CreateRoom() {
   const [roomName, setRoomName] = useState('');
@@ -17,6 +17,45 @@ function CreateRoom() {
     }
   }, []);
 
+  // Create animated music notes
+  useEffect(() => {
+    const container = document.querySelector('.room-form-notes');
+    if (!container) return;
+
+    const noteSymbols = ['♪', '♫', '♬', '♩', '♭', '♮'];
+    const createNote = () => {
+      const note = document.createElement('div');
+      note.className = 'room-form-note';
+      note.textContent = noteSymbols[Math.floor(Math.random() * noteSymbols.length)];
+      note.style.left = `${Math.random() * 100}%`;
+      note.style.animationDuration = `${15 + Math.random() * 10}s`;
+      note.style.animationDelay = `${Math.random() * 5}s`;
+      container.appendChild(note);
+
+      // Remove note after animation completes
+      setTimeout(() => {
+        if (note && note.parentNode === container) {
+          container.removeChild(note);
+        }
+      }, 25000); // slightly longer than max animation time
+    };
+
+    // Create initial batch of notes
+    for (let i = 0; i < 10; i++) {
+      createNote();
+    }
+
+    // Create new notes periodically
+    const interval = setInterval(createNote, 3000);
+
+    return () => {
+      clearInterval(interval);
+      while (container.firstChild) {
+        container.removeChild(container.firstChild);
+      }
+    };
+  }, []);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     
@@ -31,8 +70,11 @@ function CreateRoom() {
 
   return (
     <div className="room-form-container">
+      {/* Animated background elements */}
+      <div className="room-form-notes"></div>
+      
       <form onSubmit={handleSubmit} className="room-form">
-        <h1>Create Room</h1>
+        <h1>Create Your Room</h1>
         
         {!isAuthenticated && (
           <div className="auth-warning">
@@ -51,6 +93,7 @@ function CreateRoom() {
             className="form-input"
             value={roomName}
             onChange={(e) => setRoomName(e.target.value)}
+            placeholder="Enter a unique room name"
             required
           />
         </div>
@@ -66,6 +109,7 @@ function CreateRoom() {
             className="form-input"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            placeholder="Set a password for private rooms"
           />
         </div>
 

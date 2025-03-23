@@ -1,152 +1,306 @@
 /* RoomForms.css - Shared styles for CreateRoom and JoinRoom */
 .room-form-container {
-    min-height: calc(100vh - 64px);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 32px 20px;
+  min-height: calc(100vh - 64px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  position: relative;
+  overflow: hidden;
+  background-color: #121212;
+}
+
+/* Dynamic background elements */
+.room-form-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 20% 30%, rgba(44, 189, 251, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(157, 78, 221, 0.15) 0%, transparent 50%);
+  z-index: 0;
+}
+
+/* Music notes animation */
+.room-form-notes {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.room-form-note {
+  position: absolute;
+  font-size: 24px;
+  opacity: 0;
+  color: rgba(44, 189, 251, 0.3);
+  animation: float-up 15s linear infinite;
+}
+
+@keyframes float-up {
+  0% {
+    opacity: 0;
+    transform: translateY(100vh) rotate(0deg);
   }
-  
+  10% {
+    opacity: 0.7;
+  }
+  90% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-50px) rotate(360deg);
+  }
+}
+
+.room-form {
+  width: 100%;
+  max-width: 450px;
+  background: rgba(30, 30, 30, 0.6);
+  backdrop-filter: blur(10px);
+  padding: 40px;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  position: relative;
+  z-index: 2;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.room-form:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 40px rgba(44, 189, 251, 0.15);
+}
+
+.room-form::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #2CBDFB, #9D4EDD);
+  border-radius: 16px 16px 0 0;
+}
+
+.room-form h1 {
+  text-align: center;
+  margin: 0 0 32px 0;
+  font-size: 32px;
+  font-weight: 800;
+  background: linear-gradient(45deg, #2CBDFB, #9D4EDD);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0px 2px 10px rgba(44, 189, 251, 0.3);
+}
+
+.auth-warning {
+  background: rgba(255, 193, 7, 0.1);
+  border-left: 3px solid #ffc107;
+  padding: 12px 16px;
+  margin-bottom: 24px;
+  border-radius: 0 8px 8px 0;
+}
+
+.auth-warning p {
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+  font-size: 14px;
+}
+
+.form-group {
+  margin-bottom: 24px;
+  position: relative;
+}
+
+.form-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+  font-size: 15px;
+}
+
+.form-label .icon {
+  color: #2CBDFB;
+  filter: drop-shadow(0 0 5px rgba(44, 189, 251, 0.5));
+}
+
+.form-input {
+  width: 100%;
+  padding: 14px 16px;
+  background-color: rgba(44, 44, 44, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: #fff;
+  transition: all 0.3s ease;
+  font-size: 15px;
+}
+
+.form-input:focus {
+  border-color: #2CBDFB;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(44, 189, 251, 0.2);
+}
+
+.form-select {
+  width: 100%;
+  padding: 14px 16px;
+  background-color: rgba(44, 44, 44, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 15px;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%232CBDFB' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  background-size: 16px;
+}
+
+.form-select:focus {
+  border-color: #2CBDFB;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(44, 189, 251, 0.2);
+}
+
+.form-select option {
+  background-color: #2c2c2c;
+  color: #fff;
+}
+
+.submit-button {
+  width: 100%;
+  padding: 16px;
+  background: linear-gradient(45deg, #2CBDFB, #9D4EDD);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(44, 189, 251, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.submit-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: all 0.6s ease;
+}
+
+.submit-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(44, 189, 251, 0.4);
+}
+
+.submit-button:hover::before {
+  left: 100%;
+}
+
+.back-link {
+  display: block;
+  text-align: center;
+  margin-top: 24px;
+  color: rgba(255, 255, 255, 0.6);
+  text-decoration: none;
+  transition: all 0.3s ease;
+  font-size: 15px;
+}
+
+.back-link:hover {
+  color: #2CBDFB;
+}
+
+/* Additional styles specific to CreateRoom */
+.moderation-toggle {
+  margin-top: 24px;
+}
+
+.toggle-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 15px;
+  margin-top: 8px;
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 52px;
+  height: 26px;
+}
+
+.toggle-input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(44, 44, 44, 0.8);
+  border-radius: 26px;
+  transition: 0.3s;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 2px;
+  background-color: #fff;
+  border-radius: 50%;
+  transition: 0.3s;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-input:checked + .toggle-slider {
+  background: linear-gradient(45deg, #2CBDFB, #9D4EDD);
+}
+
+.toggle-input:checked + .toggle-slider:before {
+  transform: translateX(26px);
+}
+
+/* Responsive design */
+@media (max-width: 480px) {
   .room-form {
-    width: 100%;
-    max-width: 400px;
-    background-color: #1e1e1e;
-    padding: 32px;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 30px 20px;
   }
   
   .room-form h1 {
-    text-align: center;
-    margin: 0 0 32px 0;
     font-size: 28px;
   }
-  
-  .form-group {
-    margin-bottom: 24px;
-  }
-  
-  .form-label {
-    display: block;
-    margin-bottom: 8px;
-    color: #2CBDFB;
-    font-weight: 500;
-  }
-  
-  .form-input {
-    width: 100%;
-    padding: 12px;
-    background-color: #2c2c2c;
-    border: 1px solid #3d3d3d;
-    border-radius: 8px;
-    color: #e0e0e0;
-    transition: border-color 0.2s;
-  }
-  
-  .form-input:focus {
-    border-color: #2CBDFB;
-    outline: none;
-  }
-  
-  .form-select {
-    width: 100%;
-    padding: 12px;
-    background-color: #2c2c2c;
-    border: 1px solid #3d3d3d;
-    border-radius: 8px;
-    color: #e0e0e0;
-    cursor: pointer;
-  }
-  
-  .form-select option {
-    background-color: #2c2c2c;
-    color: #e0e0e0;
-  }
-  
-  .submit-button {
-    width: 100%;
-    padding: 14px;
-    background-color: #2CBDFB;
-    color: #121212;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.2s;
-  }
-  
-  .submit-button:hover {
-    background-color: #0f9cd8;
-  }
-  
-  .back-link {
-    display: block;
-    text-align: center;
-    margin-top: 16px;
-    color: #666;
-    text-decoration: none;
-  }
-  
-  .back-link:hover {
-    color: #2CBDFB;
-  }
-  
-  /* Additional styles specific to CreateRoom */
-  .moderation-toggle {
-    margin-top: 24px;
-  }
-  
-  .toggle-label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-  }
-  
-  .toggle-switch {
-    position: relative;
-    display: inline-block;
-    width: 48px;
-    height: 24px;
-  }
-  
-  .toggle-input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-  
-  .toggle-slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #2c2c2c;
-    border-radius: 24px;
-    transition: 0.2s;
-  }
-  
-  .toggle-slider:before {
-    position: absolute;
-    content: "";
-    height: 18px;
-    width: 18px;
-    left: 3px;
-    bottom: 3px;
-    background-color: #e0e0e0;
-    border-radius: 50%;
-    transition: 0.2s;
-  }
-  
-  .toggle-input:checked + .toggle-slider {
-    background-color: #2CBDFB;
-  }
-  
-  .toggle-input:checked + .toggle-slider:before {
-    transform: translateX(24px);
-  }
-  
+}

@@ -119,7 +119,7 @@ function Header() {
             <li>{renderNavLink("/about", "About")}</li>
             {user && (
               <>
-                <li>{renderNavLink("/profile", "Profile")}</li>
+                {/* <li>{renderNavLink("/profile", "Profile")}</li> */}
                 <li>{renderNavLink("/store", "Store")}</li>
               </>
             )}

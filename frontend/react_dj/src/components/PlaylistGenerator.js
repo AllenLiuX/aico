@@ -88,7 +88,7 @@ function PlaylistGenerator() {
   const fetchExamplePrompts = async () => {
     if (examplePrompts.length > 0) {
       // If we already have examples, just show them
-      setShowExamplePrompts(true);
+      setShowExamplePrompts(!showExamplePrompts);
       return;
     }
 
@@ -214,6 +214,12 @@ function PlaylistGenerator() {
 
   return (
     <div className="playlist-generator">
+      {/* Animated wave element */}
+      <div className="playlist-wave"></div>
+      
+      {/* Animated music notes */}
+      <div className="playlist-notes"></div>
+      
       <div className="generator-header">
         <h1>{isMobile ? (isAppendMode ? "Add to Room" : "Create Room") : "AICO Room: " + (roomName || 'Unnamed Room')}</h1>
       </div>
@@ -419,73 +425,77 @@ function PlaylistGenerator() {
           </div>
         )}
 
-        <button type="submit" className="generate-button" disabled={isGenerating}>
-          {isGenerating ? 'Generating...' : 'Generate Playlist'}
+        {/* Error message */}
+        {error && (
+          <div className="error-message">
+            {error}
+          </div>
+        )}
+
+        {/* Success message for append mode */}
+        {successMessage && (
+          <div className="success-message">
+            {successMessage}
+          </div>
+        )}
+
+        <button 
+          type="submit" 
+          className="generate-button"
+          disabled={isGenerating}
+        >
+          {isGenerating ? 'Generating...' : isAppendMode ? 'Generate More Songs' : 'Generate Playlist'}
         </button>
       </form>
 
+      {/* Loading state */}
       {isGenerating && (
         <div className="loading-container">
-          <div className="loading-spinner" />
+          <div className="loading-spinner"></div>
           <p className="loading-text">Generating your playlist...</p>
         </div>
       )}
 
-      {error && (
-        <div className="error-message">
-          {error}
-        </div>
-      )}
-      
-      {successMessage && (
-        <div className="success-message">
-          {successMessage}
-        </div>
-      )}
-
+      {/* Generated playlist */}
       {playlist && !isGenerating && (
         <div className="playlist-container">
           <div className="playlist-header">
-            <h2 className="playlist-title">Your Generated Playlist</h2>
+            <h2 className="playlist-title">Generated Playlist</h2>
             <p className="playlist-description">
               {isAppendMode 
-                ? `Here are the new songs that will be added to your room's playlist` 
-                : `Here's what we've created based on your preferences`}
+                ? 'These songs will be added to your room when you click "Add to Room".' 
+                : 'Your playlist is ready! Click "Create Room" to start listening.'}
             </p>
           </div>
 
-          <button onClick={createRoom} className="create-room-button">
-            {isAppendMode ? 'Append to Playlist' : 'Create Room with This Playlist'}
-          </button>
-          
-          <div className="playlist-tracks">
+          <ul className="track-list">
             {playlist.map((track, index) => (
-              <div key={index} className="playlist-track">
-                <img
-                  src={track.cover_img_url || '/api/placeholder/48/48'}
-                  alt={track.title}
-                  className="track-thumbnail"
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = '/api/placeholder/48/48';
-                  }}
-                />
+              <li key={index} className="track-item">
                 <div className="track-info">
                   <h3 className="track-name">{track.title}</h3>
                   <p className="track-artist">{track.artist}</p>
                 </div>
-                <a
-                  href={track.song_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="play-button"
-                >
-                  Preview
-                </a>
-              </div>
+                {track.song_url && (
+                  <a 
+                    href={track.song_url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="play-link"
+                  >
+                    <Music size={14} />
+                    Preview
+                  </a>
+                )}
+              </li>
             ))}
-          </div>
+          </ul>
 
+          <button 
+            onClick={createRoom} 
+            className="create-room-button"
+          >
+            {isAppendMode ? 'Add to Room' : 'Create Room'}
+          </button>
         </div>
       )}
     </div>

@@ -1,769 +1,766 @@
 /* PlaylistGenerator.css */
 .playlist-generator {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 32px 20px;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 32px 20px;
+  position: relative;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
+  overflow: hidden;
+}
+
+/* Animated wave effect */
+.playlist-wave {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 120px;
+  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="%232CBDFB" fill-opacity="0.1" d="M0,192L48,197.3C96,203,192,213,288,229.3C384,245,480,267,576,250.7C672,235,768,181,864,181.3C960,181,1056,235,1152,234.7C1248,235,1344,181,1392,154.7L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>');
+  background-size: cover;
+  background-repeat: no-repeat;
+  z-index: 0;
+  animation: wave-animation 15s linear infinite alternate;
+}
+
+@keyframes wave-animation {
+  0% {
+    background-position-x: 0;
+  }
+  100% {
+    background-position-x: 1440px;
+  }
+}
+
+/* Floating music notes animation */
+.playlist-notes {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.playlist-notes::before,
+.playlist-notes::after {
+  content: "♪";
+  position: absolute;
+  font-size: 24px;
+  color: rgba(44, 189, 251, 0.1);
+  animation: float-notes 15s linear infinite;
+  z-index: 0;
+}
+
+.playlist-notes::before {
+  top: 20%;
+  left: 10%;
+  animation-duration: 15s;
+  animation-delay: 2s;
+}
+
+.playlist-notes::after {
+  top: 50%;
+  right: 10%;
+  animation-duration: 18s;
+  animation-delay: 5s;
+}
+
+@keyframes float-notes {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.6;
+  }
+  90% {
+    opacity: 0.4;
+  }
+  100% {
+    transform: translateY(-800px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+.generator-header {
+  text-align: center;
+  margin-bottom: 40px;
+  position: relative;
+  z-index: 1;
+}
+
+.generator-header h1 {
+  background: linear-gradient(90deg, #2CBDFB, #03dac6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 700;
+  text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+  margin-bottom: 8px;
+}
+
+.generator-form {
+  background-color: rgba(30, 30, 30, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 28px;
+  margin-bottom: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  position: relative;
+  z-index: 1;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.generator-form:hover {
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+}
+
+.form-group {
+  margin-bottom: 24px;
+  position: relative;
+}
+
+.form-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-weight: 500;
+  color: #2CBDFB;
+}
+
+.form-input {
+  width: 100%;
+  padding: 14px;
+  background-color: rgba(44, 44, 44, 0.7);
+  border: 1px solid rgba(61, 61, 61, 0.8);
+  border-radius: 8px;
+  color: #e0e0e0;
+  font-size: 16px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.form-input:focus {
+  border-color: #2CBDFB;
+  box-shadow: 0 0 0 2px rgba(44, 189, 251, 0.2);
+  outline: none;
+}
+
+.prompt-input {
+  width: 100%;
+  min-height: 120px;
+  padding: 16px;
+  background-color: rgba(44, 44, 44, 0.7);
+  border: 1px solid rgba(61, 61, 61, 0.8);
+  border-radius: 8px;
+  color: #e0e0e0;
+  font-size: 16px;
+  resize: vertical;
+  margin-bottom: 24px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.prompt-input:focus {
+  border-color: #2CBDFB;
+  box-shadow: 0 0 0 2px rgba(44, 189, 251, 0.2);
+  outline: none;
+}
+
+.advanced-toggle {
+  background: none;
+  border: none;
+  color: #2CBDFB;
+  padding: 8px 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 auto 24px;
+  font-weight: 500;
+  transition: color 0.3s ease, transform 0.3s ease;
+}
+
+.advanced-toggle:hover {
+  color: #03dac6;
+  transform: translateY(-2px);
+}
+
+.advanced-options {
+  background-color: rgba(44, 44, 44, 0.5);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: transform 0.3s ease;
+}
+
+.option-group {
+  margin-bottom: 20px;
+}
+
+.option-group:last-child {
+  margin-bottom: 0;
+}
+
+.option-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #2CBDFB;
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.option-select {
+  width: 100%;
+  padding: 12px;
+  background-color: rgba(54, 54, 54, 0.7);
+  border: 1px solid rgba(77, 77, 77, 0.8);
+  border-radius: 8px;
+  color: #e0e0e0;
+  cursor: pointer;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.option-select:focus {
+  border-color: #2CBDFB;
+  box-shadow: 0 0 0 2px rgba(44, 189, 251, 0.2);
+  outline: none;
+}
+
+.option-select option {
+  background-color: #363636;
+  color: #e0e0e0;
+}
+
+.custom-input {
+  width: 100%;
+  padding: 12px;
+  background-color: rgba(54, 54, 54, 0.7);
+  border: 1px solid rgba(77, 77, 77, 0.8);
+  border-radius: 8px;
+  color: #e0e0e0;
+  margin-top: 8px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.custom-input:focus {
+  border-color: #2CBDFB;
+  box-shadow: 0 0 0 2px rgba(44, 189, 251, 0.2);
+  outline: none;
+}
+
+.generate-button {
+  width: 100%;
+  padding: 16px;
+  background: linear-gradient(90deg, #2CBDFB, #03dac6);
+  color: #121212;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.generate-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.7s ease;
+  z-index: -1;
+}
+
+.generate-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(44, 189, 251, 0.3);
+}
+
+.generate-button:hover::before {
+  left: 100%;
+}
+
+/* Error and Success Messages */
+.error-message {
+  background-color: rgba(255, 87, 87, 0.1);
+  border-left: 4px solid #ff5757;
+  color: #ff5757;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.success-message {
+  background-color: rgba(3, 218, 198, 0.1);
+  border-left: 4px solid #03dac6;
+  color: #03dac6;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  font-weight: 500;
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+/* Generated Playlist Styles */
+.playlist-container {
+  background-color: rgba(30, 30, 30, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  position: relative;
+  z-index: 1;
+}
+
+.playlist-header {
+  margin-bottom: 24px;
+}
+
+.playlist-title {
+  color: #03dac6;
+  margin: 0 0 8px 0;
+  background: linear-gradient(90deg, #2CBDFB, #03dac6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.playlist-description {
+  color: #a0a0a0;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.track-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.track-item {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  background-color: rgba(44, 44, 44, 0.5);
+  border-radius: 12px;
+  margin-bottom: 12px;
+  transition: transform 0.3s ease, background-color 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.track-item:hover {
+  transform: translateY(-2px);
+  background-color: rgba(44, 44, 44, 0.7);
+}
+
+.track-item:last-child {
+  margin-bottom: 0;
+}
+
+.track-info {
+  flex: 1;
+  margin-right: 16px;
+}
+
+.track-name {
+  font-size: 16px;
+  margin: 0 0 4px 0;
+  color: #e0e0e0;
+}
+
+.track-artist {
+  color: #a0a0a0;
+  font-size: 14px;
+  margin: 0;
+}
+
+.play-link {
+  padding: 8px 16px;
+  background: linear-gradient(90deg, #1DB954, #1ed760);
+  color: white;
+  border-radius: 20px;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.play-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(29, 185, 84, 0.3);
+}
+
+.loading-container {
+  padding: 40px;
+  text-align: center;
+  background: rgba(30, 30, 30, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.loading-spinner {
+  display: inline-block;
+  width: 50px;
+  height: 50px;
+  border: 3px solid rgba(44, 189, 251, 0.2);
+  border-radius: 50%;
+  border-top-color: #2CBDFB;
+  animation: spin 1s ease-in-out infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-text {
+  color: #a0a0a0;
+  font-size: 16px;
+}
+
+.create-room-button {
+  display: block;
+  width: 100%;
+  padding: 16px;
+  background: linear-gradient(90deg, #2CBDFB, #03dac6);
+  color: #121212;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 32px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.create-room-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.7s ease;
+  z-index: -1;
+}
+
+.create-room-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(44, 189, 251, 0.3);
+}
+
+.create-room-button:hover::before {
+  left: 100%;
+}
+
+/* Example prompts */
+.example-prompts-toggle {
+  background: none;
+  border: none;
+  color: #2CBDFB;
+  padding: 8px 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  margin-top: 8px;
+  transition: color 0.3s ease;
+}
+
+.example-prompts-toggle:hover {
+  color: #03dac6;
+}
+
+.example-prompts-container {
+  background-color: rgba(44, 44, 44, 0.5);
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.example-prompts-container h3 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  color: #2CBDFB;
+}
+
+.example-prompts-description {
+  color: #a0a0a0;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.example-prompts-category {
+  margin-bottom: 24px;
+}
+
+.category-title {
+  color: #e0e0e0;
+  margin-bottom: 12px;
+  font-size: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 8px;
+}
+
+.example-prompts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.example-prompt-card {
+  background-color: rgba(30, 30, 30, 0.7);
+  border-radius: 8px;
+  padding: 16px;
+  cursor: pointer;
+  transition: transform 0.3s ease, background-color 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.example-prompt-card:hover {
+  transform: translateY(-4px);
+  background-color: rgba(44, 44, 44, 0.8);
+  border-color: rgba(44, 189, 251, 0.3);
+}
+
+.example-prompt-card h4 {
+  margin-top: 0;
+  margin-bottom: 8px;
+  color: #2CBDFB;
+  font-size: 15px;
+}
+
+.example-prompt-card p {
+  color: #a0a0a0;
+  font-size: 13px;
+  margin-bottom: 12px;
+  line-height: 1.4;
+}
+
+.example-prompt-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.example-tag {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.genre-tag {
+  color: #2CBDFB;
+  background-color: rgba(44, 189, 251, 0.1);
+}
+
+.occasion-tag {
+  color: #03dac6;
+  background-color: rgba(3, 218, 198, 0.1);
+}
+
+/* Room settings section */
+.room-settings-section {
+  background-color: rgba(44, 44, 44, 0.3);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Toggle switch styling */
+.toggle-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 24px;
+}
+
+.toggle-input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(44, 44, 44, 0.7);
+  transition: 0.4s;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 2px;
+  background-color: white;
+  transition: 0.4s;
+  border-radius: 50%;
+}
+
+.toggle-input:checked + .toggle-slider {
+  background: linear-gradient(90deg, #2CBDFB, #03dac6);
+}
+
+.toggle-input:checked + .toggle-slider:before {
+  transform: translateX(26px);
+}
+
+/* Song count selector styling */
+.song-count-group {
+  margin-bottom: 24px;
+}
+
+.song-count-selector {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.song-count-option {
+  flex: 1;
+  padding: 10px;
+  background-color: rgba(44, 44, 44, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #e0e0e0;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.3s ease;
+  min-width: 80px;
+}
+
+.song-count-option:hover {
+  background-color: rgba(44, 44, 44, 0.8);
+  border-color: rgba(44, 189, 251, 0.3);
+}
+
+.song-count-option.selected {
+  background: linear-gradient(90deg, rgba(44, 189, 251, 0.2), rgba(3, 218, 198, 0.2));
+  border-color: #2CBDFB;
+  color: #2CBDFB;
+  font-weight: 500;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .playlist-generator {
+    padding: 24px 16px;
   }
   
-  .generator-header {
-    text-align: center;
-    margin-bottom: 40px;
+  .generator-header h1 {
+    font-size: 28px;
   }
   
   .generator-form {
-    background-color: #1e1e1e;
-    border-radius: 12px;
-    padding: 24px;
-    margin-bottom: 32px;
-  }
-  
-  .prompt-input {
-    width: 100%;
-    min-height: 120px;
-    padding: 16px;
-    background-color: #2c2c2c;
-    border: 1px solid #3d3d3d;
-    border-radius: 8px;
-    color: #e0e0e0;
-    font-size: 16px;
-    resize: vertical;
-    margin-bottom: 24px;
-  }
-  
-  .prompt-input:focus {
-    border-color: #2CBDFB;
-    outline: none;
-  }
-  
-  .advanced-toggle {
-    background: none;
-    border: none;
-    color: #2CBDFB;
-    padding: 8px 16px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 0 auto 24px;
-  }
-  
-  .advanced-toggle:hover {
-    text-decoration: underline;
-  }
-  
-  .advanced-options {
-    background-color: #2c2c2c;
-    border-radius: 8px;
     padding: 20px;
-    margin-bottom: 24px;
   }
   
-  .option-group {
-    margin-bottom: 20px;
+  .example-prompts-grid {
+    grid-template-columns: 1fr;
   }
   
-  .option-group:last-child {
-    margin-bottom: 0;
-  }
-  
-  .option-label {
-    display: block;
-    color: #2CBDFB;
-    margin-bottom: 8px;
-    font-weight: 500;
-  }
-  
-  .option-select {
-    width: 100%;
-    padding: 12px;
-    background-color: #363636;
-    border: 1px solid #4d4d4d;
-    border-radius: 6px;
-    color: #e0e0e0;
-    cursor: pointer;
-  }
-  
-  .option-select option {
-    background-color: #363636;
-    color: #e0e0e0;
-  }
-  
-  .custom-input {
-    width: 100%;
-    padding: 12px;
-    background-color: #363636;
-    border: 1px solid #4d4d4d;
-    border-radius: 6px;
-    color: #e0e0e0;
-    margin-top: 8px;
-  }
-  
-  .generate-button {
-    width: 100%;
-    padding: 16px;
-    background-color: #2CBDFB;
-    color: #121212;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.2s;
-  }
-  
-  .generate-button:hover {
-    background-color: #0f9cd8;
-  }
-  
-  /* Error and Success Messages */
-  .error-message {
-    background-color: rgba(255, 87, 87, 0.1);
-    border-left: 4px solid #ff5757;
-    color: #ff5757;
-    padding: 16px;
-    border-radius: 4px;
-    margin-bottom: 24px;
-  }
-
-  .success-message {
-    background-color: rgba(3, 218, 198, 0.1);
-    border-left: 4px solid #03dac6;
-    color: #03dac6;
-    padding: 16px;
-    border-radius: 4px;
-    margin-bottom: 24px;
-    font-weight: 500;
-  }
-  
-  /* Generated Playlist Styles */
   .playlist-container {
-    background-color: #1e1e1e;
-    border-radius: 12px;
-    padding: 24px;
-  }
-  
-  .playlist-header {
-    margin-bottom: 24px;
-  }
-  
-  .playlist-title {
-    color: #03dac6;
-    margin: 0 0 8px 0;
-  }
-  
-  .playlist-description {
-    color: #666;
-    margin: 0;
-    line-height: 1.6;
-  }
-  
-  .track-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+    padding: 20px;
   }
   
   .track-item {
-    display: flex;
+    padding: 10px;
+    flex-direction: row;
     align-items: center;
-    padding: 12px;
-    background-color: #2c2c2c;
-    border-radius: 8px;
-    margin-bottom: 8px;
-  }
-  
-  .track-item:last-child {
-    margin-bottom: 0;
+    min-height: 60px;
+    height: auto;
   }
   
   .track-info {
-    flex: 1;
-    margin-right: 16px;
+    margin-right: 0;
+    margin-bottom: 0;
+    width: 75%;
   }
   
   .track-name {
-    font-size: 16px;
-    margin: 0 0 4px 0;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   
   .track-artist {
-    color: #666;
-    font-size: 14px;
-    margin: 0;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   
   .play-link {
-    padding: 8px 16px;
-    background-color: #1DB954;
-    color: white;
-    border-radius: 20px;
-    text-decoration: none;
-    font-size: 14px;
-    transition: background-color 0.2s;
-  }
-  
-  .play-link:hover {
-    background-color: #1ed760;
-  }
-  
-  .create-room-button {
-    display: block;
-    width: 100%;
-    padding: 16px;
-    background-color: #03dac6;
-    color: #121212;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: 600;
-    margin-top: 32px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-  }
-  
-  .create-room-button:hover {
-    background-color: #00c4b4;
-  }
-
-
-  /* Add to your PlaylistGenerator.css */
-  .loading-container {
-      padding: 40px;
-      text-align: center;
-      background: #1e1e1e;
-      border-radius: 12px;
-      margin-bottom: 32px;
-    }
-    
-    .loading-spinner {
-      width: 50px;
-      height: 50px;
-      border: 3px solid #2c2c2c;
-      border-radius: 50%;
-      border-top-color: #2CBDFB;
-      animation: spinner 1s linear infinite;
-      margin: 0 auto 20px;
-    }
-    
-    @keyframes spinner {
-      to {
-        transform: rotate(360deg);
-      }
-    }
-    
-    .loading-text {
-      color: #2CBDFB;
-      font-size: 18px;
-      margin: 0;
-    }
-    
-    /* Updated playlist styles */
-    .playlist-track {
-      display: flex;
-      align-items: center;
-      padding: 12px;
-      background-color: #2c2c2c;
-      border-radius: 8px;
-      margin-bottom: 8px;
-      transition: background-color 0.2s;
-    }
-    
-    .playlist-track:hover {
-      background-color: #363636;
-    }
-    
-    .track-thumbnail {
-      width: 48px;
-      height: 48px;
-      border-radius: 4px;
-      margin-right: 16px;
-      object-fit: cover;
-      flex-shrink: 0;
-    }
-    
-    .track-info {
-      flex: 1;
-      min-width: 0;
-      margin-right: 16px;
-    }
-    
-    .track-name {
-      font-size: 16px;
-      font-weight: 500;
-      color: #e0e0e0;
-      margin: 0 0 4px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    
-    .track-artist {
-      font-size: 14px;
-      color: #666;
-      margin: 0;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    
-    .play-button {
-      padding: 8px 16px;
-      background-color: #1DB954;
-      color: white;
-      border: none;
-      border-radius: 20px;
-      font-size: 14px;
-      cursor: pointer;
-      transition: background-color 0.2s;
-    }
-    
-    .play-button:hover {
-      background-color: #1ed760;
-    }
-
-    /* Add these styles to PlaylistGenerator.css */
-
-  /* Song count selector */
-  .song-count-selector {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-top: 8px;
-  }
-
-  .song-count-option {
-    background-color: #2c2c2c;
-    border: 2px solid #3c3c3c;
-    border-radius: 20px;
-    color: #e0e0e0;
-    padding: 8px 16px;
-    font-size: 14px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    outline: none;
-    flex: 1;
-    min-width: 80px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .song-count-option:hover {
-    background-color: #3c3c3c;
-    border-color: #4c4c4c;
-  }
-
-  .song-count-option.selected {
-    background-color: #2CBDFB;
-    color: #121212;
-    border-color: #2CBDFB;
-    font-weight: 500;
-  }
-
-  /* Form group for song count */
-  .form-group {
-    margin-bottom: 24px;
-  }
-
-  .form-label {
-    display: flex;
-    align-items: center;
-    margin-bottom: 10px;
-    font-weight: 500;
-    color: #e0e0e0;
-  }
-
-  .form-label .icon {
-    margin-right: 8px;
-    color: #2CBDFB;
-  }
-
-  /* Responsive adjustments */
-  @media (max-width: 768px) {
-    .song-count-selector {
-      gap: 8px;
-    }
-    
-    .song-count-option {
-      padding: 6px 12px;
-      font-size: 13px;
-      min-width: 70px;
-    }
-  }
-
-  @media (max-width: 480px) {
-    .song-count-selector {
-      flex-wrap: wrap;
-    }
-    
-    .song-count-option {
-      min-width: calc(50% - 8px);
-      margin-bottom: 8px;
-    }
-  }
-
-  /* Updated song count selector styles for better mobile support */
-
-  /* Adjust the song count selector for mobile devices */
-  @media (max-width: 768px) {
-    .song-count-selector {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-top: 8px;
-      width: 100%;
-    }
-    
-    .song-count-option {
-      padding: 10px;
-      font-size: 14px;
-      height: 40px;
-      min-width: unset;
-      width: 100%;
-      border-radius: 8px;
-    }
-  }
-
-  /* Specifically for very small screens */
-  @media (max-width: 350px) {
-    .song-count-selector {
-      grid-template-columns: 1fr;
-    }
-    
-    .form-label {
-      font-size: 14px;
-    }
-    
-    .song-count-option {
-      padding: 8px;
-      margin-bottom: 5px;
-    }
-  }
-
-  /* Make the form elements more visible on dark backgrounds on mobile */
-  @media (max-width: 768px) {
-    .generator-form {
-      padding: 16px;
-      border: 1px solid #3d3d3d;
-    }
-    
-    .form-group {
-      margin-bottom: 20px;
-    }
-    
-    /* Make the song count section stand out */
-    .form-label {
-      color: #2CBDFB;
-    }
-    
-    /* Ensure text is readable on mobile */
-    .form-label .icon {
-      width: 16px;
-      height: 16px;
-    }
-  }
-
-  /* Additional mobile-specific styles to fix the song count display */
-
-  /* Add these to your PlaylistGenerator.css file */
-
-  /* Enhance the song count section */
-  .song-count-group {
-    background-color: #2a2a2a;
-    padding: 15px;
-    border-radius: 8px;
-    border: 1px solid #3d3d3d;
-    margin-bottom: 20px;
-  }
-
-  /* Specific mobile adjustments */
-  @media (max-width: 480px) {
-    .generator-header h1 {
-      font-size: 24px;
-    }
-    
-    .generator-form {
-      padding: 16px;
-    }
-    
-    .prompt-input {
-      min-height: 100px;
-      font-size: 14px;
-      padding: 12px;
-    }
-    
-    /* Make the song count selector more prominent on small screens */
-    .song-count-group {
-      margin: 15px 0;
-      background-color: #2c2c2c;
-    }
-    
-    .song-count-selector {
-      margin-top: 12px;
-    }
-    
-    .song-count-option {
-      height: 42px;
-      font-size: 14px;
-      font-weight: 500;
-      border-width: 1px;
-    }
-    
-    .song-count-option.selected {
-      transform: scale(1.05);
-      box-shadow: 0 0 5px rgba(187, 134, 252, 0.5);
-    }
-    
-    /* Adjust labels on mobile */
-    .form-label {
-      font-size: 15px;
-    }
-    
-    /* Fix spacing issues on tiny screens */
-    @media (max-width: 320px) {
-      .song-count-option {
-        padding: 6px;
-        height: 38px;
-        font-size: 13px;
-      }
-      
-      .song-count-group {
-        padding: 10px;
-      }
-      
-      .form-label {
-        font-size: 14px;
-      }
-    }
-  }
-
-  /* iOS-specific fixes for inputs */
-  @supports (-webkit-touch-callout: none) {
-    .song-count-option {
-      -webkit-appearance: none;
-      appearance: none;
-      -webkit-tap-highlight-color: transparent;
-    }
-    
-    .prompt-input {
-      -webkit-appearance: none;
-      appearance: none;
-    }
-  }
-
-  /* Example prompts styles */
-  .example-prompts-toggle {
-    background: none;
-    border: none;
-    color: #2CBDFB;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin: 8px 0 0 0;
-    padding: 0;
-    cursor: pointer;
-    transition: color 0.2s;
-  }
-
-  .example-prompts-toggle:hover {
-    color: #5fd0ff;
-    text-decoration: underline;
-  }
-
-  .example-prompts-container {
-    background-color: #2c2c2c;
-    border-radius: 8px;
-    padding: 20px;
-    margin-top: 16px;
-    border: 1px solid #3d3d3d;
-    animation: fadeIn 0.3s ease-in-out;
-  }
-
-  .example-prompts-container h3 {
-    color: #e0e0e0;
-    margin: 0 0 8px 0;
-    font-size: 18px;
-  }
-
-  .example-prompts-description {
-    color: #999;
-    font-size: 14px;
-    margin: 0 0 16px 0;
-  }
-
-  /* Category styles */
-  .example-prompts-category {
-    margin-bottom: 24px;
-  }
-
-  .example-prompts-category:last-child {
-    margin-bottom: 0;
-  }
-
-  .category-title {
-    color: #BB86FC;
-    font-size: 16px;
-    margin: 0 0 12px 0;
-    padding-bottom: 8px;
-    border-bottom: 1px solid #3d3d3d;
-  }
-
-  .example-prompts-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-    gap: 16px;
-  }
-
-  .example-prompt-card {
-    background-color: #1e1e1e;
-    border-radius: 8px;
-    padding: 16px;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: 1px solid #3d3d3d;
-  }
-
-  .example-prompt-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    border-color: #2CBDFB;
-  }
-
-  .example-prompt-card h4 {
-    color: #2CBDFB;
-    margin: 0 0 8px 0;
-    font-size: 16px;
-  }
-
-  .example-prompt-card p {
-    color: #e0e0e0;
-    font-size: 14px;
-    margin: 0 0 12px 0;
-    line-height: 1.4;
-  }
-
-  .example-prompt-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-
-  .example-tag {
+    padding: 4px 8px;
     font-size: 12px;
-    padding: 3px 8px;
-    border-radius: 12px;
-    display: inline-block;
+    align-self: center;
+    margin-left: auto;
   }
+}
 
-  .example-tag.genre-tag {
-    background-color: rgba(44, 189, 251, 0.15);
-    color: #2CBDFB;
-  }
-
-  .example-tag.occasion-tag {
-    background-color: rgba(187, 134, 252, 0.15);
-    color: #BB86FC;
-  }
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(-10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  /* Mobile styles for example prompts */
-  @media (max-width: 768px) {
-    .example-prompts-grid {
-      grid-template-columns: 1fr;
-    }
-    
-    .example-prompts-container {
-      padding: 16px;
-    }
-
-    .category-title {
-      font-size: 15px;
-      margin-bottom: 10px;
-    }
-  }
-
-  /* Room Settings Section */
-  .room-settings-section {
-    margin-bottom: 32px;
-    padding-bottom: 24px;
-    border-bottom: 1px solid #3d3d3d;
+@media (max-width: 480px) {
+  .generator-header h1 {
+    font-size: 24px;
   }
   
-  .form-input {
-    width: 100%;
-    padding: 12px 16px;
-    background-color: #2c2c2c;
-    border: 1px solid #3d3d3d;
-    border-radius: 8px;
-    color: #e0e0e0;
-    font-size: 16px;
+  .song-count-selector {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .advanced-options {
+    padding: 16px;
+  }
+  
+  .option-group {
     margin-bottom: 16px;
   }
-  
-  .form-input:focus {
-    border-color: #2CBDFB;
-    outline: none;
-  }
-  
-  .toggle-label {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 0;
-  }
-  
-  .toggle-switch {
-    position: relative;
-    display: inline-block;
-    width: 50px;
-    height: 24px;
-  }
-  
-  .toggle-input {
-    opacity: 0;
-    width: 0;
-    height: 0;
-  }
-  
-  .toggle-slider {
-    position: absolute;
-    cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: #3d3d3d;
-    transition: .4s;
-    border-radius: 24px;
-  }
-  
-  .toggle-slider:before {
-    position: absolute;
-    content: "";
-    height: 16px;
-    width: 16px;
-    left: 4px;
-    bottom: 4px;
-    background-color: white;
-    transition: .4s;
-    border-radius: 50%;
-  }
-  
-  .toggle-input:checked + .toggle-slider {
-    background-color: #2CBDFB;
-  }
-  
-  .toggle-input:checked + .toggle-slider:before {
-    transform: translateX(26px);
-  }
+}

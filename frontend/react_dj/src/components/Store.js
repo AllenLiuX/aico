@@ -1,6 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { UserContext } from '../contexts/UserContext';
-import { Coins, Check, X, Tag } from 'lucide-react';
+import { Coins, Check, X, Tag, Music, Sparkles, AlertCircle, Headphones } from 'lucide-react';
 import axios from 'axios';
 import '../styles/Store.css';
 import { API_URL } from '../config';
@@ -64,10 +64,38 @@ const Store = () => {
   }, []);
 
   const coinPackages = [
-    { id: 'basic', coins: 100, price: '4.99' },
-    { id: 'standard', coins: 500, price: '19.99' },
-    { id: 'premium', coins: 1000, price: '34.99' },
-    { id: 'ultimate', coins: 2500, price: '79.99' }
+    { 
+      id: 'basic', 
+      coins: 100, 
+      price: '4.99',
+      name: 'Starter Pack',
+      icon: <Music size={20} />,
+      description: 'Perfect for beginners'
+    },
+    { 
+      id: 'standard', 
+      coins: 500, 
+      price: '19.99',
+      name: 'Melody Pack',
+      icon: <Headphones size={20} />,
+      description: 'For regular DJs and listeners'
+    },
+    { 
+      id: 'premium', 
+      coins: 1000, 
+      price: '34.99',
+      name: 'Harmony Pack',
+      icon: <Sparkles size={20} />,
+      description: 'For serious DJs and musicians'
+    },
+    { 
+      id: 'ultimate', 
+      coins: 2500, 
+      price: '79.99',
+      name: 'Symphony Pack',
+      icon: <Coins size={20} />,
+      description: 'For professional DJs and musicians'
+    }
   ];
 
   const handleCouponApply = () => {
@@ -150,19 +178,21 @@ const Store = () => {
       
       {successMessage && (
         <div className="success-message">
-          <Check size={18} />
+          <Check size={20} />
           <span>{successMessage}</span>
         </div>
       )}
       
       {errorMessage && (
         <div className="error-message">
-          <X size={18} />
+          <AlertCircle size={20} />
           <span>{errorMessage}</span>
         </div>
       )}
 
       <div className="coupon-section">
+        <h3>Have a Coupon?</h3>
+        <p>Enter your code below to get a discount on your purchase.</p>
         <div className="coupon-input-container">
           <input
             type="text"
@@ -176,6 +206,7 @@ const Store = () => {
             className="coupon-button"
             disabled={loading || !couponCode.trim()}
           >
+            <Tag size={16} className="coupon-icon" />
             Apply
           </button>
         </div>
@@ -193,10 +224,15 @@ const Store = () => {
           {coinPackages.map(pkg => (
             <div key={pkg.id} className="package-card">
               <div className="package-content">
+                <div className="package-name">
+                  {pkg.icon}
+                  <h3>{pkg.name}</h3>
+                </div>
                 <div className="coin-amount">
                   <Coins size={24} />
                   <span>{pkg.coins} coins</span>
                 </div>
+                <p className="package-description">{pkg.description}</p>
                 <div className="package-price">
                   {couponApplied && (
                     <span className="original-price">${pkg.price}</span>
@@ -210,12 +246,17 @@ const Store = () => {
                   className="purchase-button"
                   disabled={loading}
                 >
-                  Purchase
+                  {loading ? 'Processing...' : 'Purchase Now'}
                 </button>
               </div>
             </div>
           ))}
         </div>
+      </div>
+      
+      <div className="store-footer">
+        <p>Aico Coins are used to access premium features in our AI music platform.</p>
+        <p>Need help? Contact our support team at support@aicomusic.com</p>
       </div>
     </div>
   );
