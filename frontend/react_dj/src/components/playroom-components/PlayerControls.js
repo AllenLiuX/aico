@@ -64,6 +64,7 @@ const PlayerControls = ({
           </div>
         )}
         
+        {/* Lyric toggle button commented out
         <button 
           onClick={onToggleLyrics} 
           className={`control-button lyrics-button ${showLyrics ? 'active' : ''}`}
@@ -71,6 +72,7 @@ const PlayerControls = ({
         >
           <FileText size={20} />
         </button>
+        */}
       </div>
       
       {!isHost && (
