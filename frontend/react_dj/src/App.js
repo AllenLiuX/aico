@@ -14,6 +14,7 @@ import SearchMusic from './components/SearchMusic';
 import Profile from './components/Profile';
 import Explore from './components/Explore';
 import AdminDashboard from './components/AdminDashboard';
+import Store from './components/Store';
 
 import './styles/App.css';
 
@@ -40,6 +41,7 @@ function App() {
                 <Route path="/search_music" element={<SearchMusic />} />
                 <Route path="/explore" element={<Explore />} />
                 <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/store" element={<Store />} />
                 <Route path="/auth/google/callback" element={<Navigate to="/" replace />} />
               </Routes>
             </main>

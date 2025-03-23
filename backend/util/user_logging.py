@@ -23,6 +23,10 @@ It tracks various user actions such as:
    - Remove Song: When a user removes a song from a playlist
    - Favorite Song: When a user favorites a song
 
+4. Payment-related Actions:
+   - Purchase Coins: When a user purchases coins
+   - Use Coins: When a user spends coins
+
 All logs are stored in Redis with timestamps and relevant details to enable:
 - User behavior analysis
 - Personalized recommendations

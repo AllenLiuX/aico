@@ -38,7 +38,9 @@ from util.lyrics import fetch_lyrics
 import werkzeug.utils
 from werkzeug.utils import secure_filename
 from routes.activity_routes import activity_routes
+from routes.payment_routes import payment_routes
 from placeholder import init_placeholder_routes
+from util.coin_manager import get_user_coins, set_user_coins, add_user_coins
 
 # Import the example prompts
 from data.example_prompts import EXAMPLE_PROMPTS
@@ -69,6 +71,7 @@ CORS(app, supports_credentials=True)
 
 # Register blueprints
 app.register_blueprint(activity_routes, url_prefix='/api/user-activity')
+app.register_blueprint(payment_routes, url_prefix='/api/payments')
 
 # Initialize placeholder routes
 init_placeholder_routes(app)
@@ -638,48 +641,62 @@ def hash_password(password):
 
 @app.route('/api/auth/register', methods=['POST'])
 def register():
-    data = request.json
-    username = data.get('username')
-    password = data.get('password')
-    email = data.get('email')
-    
-    if not all([username, password]):
-        return jsonify({"error": "Missing required fields"}), 400
-    
-    # Check if username exists
-    if get_hash(f"users{redis_version}", username):
-        return jsonify({"error": "Username already exists"}), 409
-    
-    # Hash password and store user data
-    password_hash = hash_password(password)
-    write_hash(f"users{redis_version}", username, password_hash)
-    
-    # Store user profile
-    profile = {
-        "username": username,
-        "email": email,
-        "created_at": datetime.now().isoformat(),
-        "has_avatar": False  # Initialize with no avatar
-    }
-    write_hash(f"user_profiles{redis_version}", username, json.dumps(profile))
-    
-    # Generate session token
-    session_token = secrets.token_urlsafe(32)
-    redis_api.write_hash(f"sessions{redis_version}", session_token, username)
-    
-    # Log user registration
-    user_agent = request.headers.get('User-Agent', 'Unknown')
-    ip_address = request.remote_addr
-    user_logging.log_user_activity(
-        username=username,
-        action="register",
-        details={"user_agent": user_agent, "ip_address": ip_address, "email": email}
-    )
-    
-    return jsonify({
-        "token": session_token,
-        "user": profile
-    }), 201
+    try:
+        data = request.json
+        username = data.get('username')
+        email = data.get('email')
+        password = data.get('password')
+        
+        if not all([username, email, password]):
+            return jsonify({"error": "Missing required fields"}), 400
+        
+        # Validate username (alphanumeric and underscore only)
+        if not re.match(r'^[a-zA-Z0-9_]+$', username):
+            return jsonify({"error": "Username can only contain letters, numbers, and underscores"}), 400
+        
+        # Check if username exists
+        if get_hash(f"users{redis_version}", username):
+            return jsonify({"error": "Username already exists"}), 409
+        
+        # Hash password and store user data
+        password_hash = hash_password(password)
+        write_hash(f"users{redis_version}", username, password_hash)
+        
+        # Store user profile
+        profile = {
+            "username": username,
+            "email": email,
+            "created_at": datetime.now().isoformat(),
+            "has_avatar": False,  # Initialize with no avatar
+        }
+        write_hash(f"user_profiles{redis_version}", username, json.dumps(profile))
+        
+        # Set initial coins using the unified coin management system
+        set_user_coins(username, 1000, "Initial allocation for new user")
+        
+        # Generate session token
+        session_token = secrets.token_urlsafe(32)
+        redis_api.write_hash(f"sessions{redis_version}", session_token, username)
+        
+        # Log user registration
+        user_agent = request.headers.get('User-Agent', 'Unknown')
+        ip_address = request.remote_addr
+        user_logging.log_user_activity(
+            username=username,
+            action="register",
+            details={"user_agent": user_agent, "ip_address": ip_address, "email": email}
+        )
+        
+        # Get the profile with coins for the response
+        profile["coins"] = get_user_coins(username)
+        
+        return jsonify({
+            "token": session_token,
+            "user": profile
+        }), 201
+    except Exception as e:
+        logger.error(f"Error registering user: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/api/auth/login', methods=['POST'])
@@ -724,9 +741,13 @@ def login():
             profile = {
                 "username": username,
                 "created_at": datetime.now().isoformat(),
-                "has_avatar": False
+                "has_avatar": False,
+                "coins": 0
             }
             write_hash(f"user_profiles{redis_version}", username, json.dumps(profile))
+        
+        # Get coins using the unified coin management system
+        profile["coins"] = get_user_coins(username)
         
         # Log user login activity
         user_agent = request.headers.get('User-Agent', 'Unknown')
@@ -745,7 +766,6 @@ def login():
     except Exception as e:
         logger.error(f"Login error for {username if 'username' in locals() else 'unknown'}: {str(e)}")
         return jsonify({"error": str(e)}), 500
-
 
 @app.route('/api/auth/logout', methods=['POST'])
 def logout():
@@ -819,13 +839,17 @@ def get_current_user_direct():
         is_admin_from_username = username in ADMIN_USERS
         final_admin_status = is_admin_from_data or is_admin_from_username
         
+        # Get user coins using the unified coin management system
+        coins = get_user_coins(username)
+        
         logger.info(f"Auth endpoint: Admin status for {username}: from data={is_admin_from_data}, from username={is_admin_from_username}, final={final_admin_status}")
         
         return jsonify({
             "success": True,
             "user": {
                 "username": username,
-                "is_admin": final_admin_status
+                "is_admin": final_admin_status,
+                "coins": coins
             }
         })
     except Exception as e:
@@ -1078,8 +1102,18 @@ def favorite_room():
         # Update Redis
         write_hash(f"user_favorites{redis_version}", username, json.dumps(favorites))
 
+        # Also update user profile stats
+        profile_json = get_hash(f"user_profiles{redis_version}", username)
+        if profile_json:
+            profile = json.loads(profile_json)
+            if 'stats' not in profile:
+                profile['stats'] = {}
+            profile['stats']['favorites'] = len(favorites)
+            write_hash(f"user_profiles{redis_version}", username, json.dumps(profile))
+
         return jsonify({
-            "message": f"Successfully {action}ed room to favorites"
+            "message": f"Successfully {action}ed room to favorites", 
+            "favorites": favorites
         })
 
     except Exception as e:
@@ -2815,15 +2849,20 @@ def log_song_play():
 
 def format_user_profile(username, profile=None):
     """Format a user profile with consistent avatar URL."""
-    if profile is None:
-        profile = {}
+    if not profile:
+        profile_json = get_hash(f"user_profiles{redis_version}", username)
+        if profile_json:
+            profile = json.loads(profile_json)
+        else:
+            profile = {"username": username}
     
-    return {
-        "username": username,
-        "email": profile.get("email"),
-        "created_at": profile.get("created_at", datetime.now().isoformat()),
-        "has_avatar": profile.get("has_avatar", False)
-    }
+    # Add avatar URL
+    profile["avatar_url"] = get_user_avatar_url(username)
+    
+    # Add coins using the unified coin management system
+    profile["coins"] = get_user_coins(username)
+    
+    return profile
 
 def get_user_avatar_url(username):
     """Get the avatar URL for a user."""
@@ -2921,6 +2960,9 @@ def google_login():
                 # Store user in Redis
                 redis_api.write_hash(f"users{redis_version}", user_key, json.dumps(profile))
                 
+                # Set initial coins using the unified coin management system
+                set_user_coins(username, 1000, "Initial allocation for new Google user")
+                
                 # Log user registration
                 user_logging.log_user_activity(
                     username=username,
@@ -2952,19 +2994,18 @@ def google_login():
                 details={"method": "google", "user_agent": user_agent, "ip_address": ip_address}
             )
             
+            # Get the coins using the unified coin management system
+            profile["coins"] = get_user_coins(username)
+            
             return jsonify({
                 "token": session_token,
-                "user": {
-                    "username": username,
-                    "email": email,
-                    "avatar": picture if picture else None
-                }
+                "user": profile
             })
             
         except Exception as e:
-            logger.error(f"Error decoding Google credential: {str(e)}")
-            return jsonify({"error": f"Invalid Google credential: {str(e)}"}), 400
-        
+            logger.error(f"Error processing Google credentials: {str(e)}")
+            return jsonify({"error": f"Error processing Google credentials: {str(e)}"}), 500
+    
     except Exception as e:
         logger.error(f"Google login error: {str(e)}")
         return jsonify({"error": str(e)}), 500

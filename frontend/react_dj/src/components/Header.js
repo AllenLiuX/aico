@@ -1,7 +1,7 @@
 // Header.js
 import React, { useState, useEffect, useRef, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { UserCircle } from 'lucide-react';
+import { UserCircle, Coins } from 'lucide-react';
 import AuthModal from './AuthModal';
 import ProfileDropdown from './ProfileDropdown';
 import { UserContext } from '../contexts/UserContext';
@@ -116,7 +116,13 @@ function Header() {
           <ul className="nav-list">
             <li>{renderNavLink("/", "Home")}</li>
             <li>{renderNavLink("/explore", "Explore")}</li>
-            <li>{renderNavLink("/about", "About Us")}</li>
+            <li>{renderNavLink("/about", "About")}</li>
+            {user && (
+              <>
+                <li>{renderNavLink("/profile", "Profile")}</li>
+                <li>{renderNavLink("/store", "Store")}</li>
+              </>
+            )}
           </ul>
         </nav>
 
@@ -139,6 +145,12 @@ function Header() {
                   className="profile-avatar"
                 />
                 <span className="profile-name">{user.username}</span>
+                {user.coins !== undefined && (
+                  <span className="user-coins">
+                    <Coins size={14} style={{ marginRight: '4px' }} />
+                    {user.coins}
+                  </span>
+                )}
               </button>
               {showDropdown && (
                 <div ref={dropdownRef}>

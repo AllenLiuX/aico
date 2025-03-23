@@ -1,7 +1,7 @@
 // ProfileDropdown.js
 import React, { useContext } from 'react';
 import { Link } from 'react-router-dom';
-import { User, LogOut, BarChart2 } from 'lucide-react';
+import { User, LogOut, BarChart2, ShoppingCart } from 'lucide-react';
 import { UserContext } from '../contexts/UserContext';
 import '../styles/ProfileDropdown.css';
 
@@ -15,6 +15,11 @@ const ProfileDropdown = ({ onLogout }) => {
       <Link to="/profile" className="dropdown-item">
         <User size={18} />
         <span>Profile</span>
+      </Link>
+      
+      <Link to="/store" className="dropdown-item">
+        <ShoppingCart size={18} />
+        <span>Store</span>
       </Link>
       
       {user && user.is_admin && (

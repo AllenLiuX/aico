@@ -151,6 +151,24 @@
     font-size: 14px;
   }
   
+  .user-coins {
+    display: flex;
+    align-items: center;
+    background-color: rgba(108, 92, 231, 0.2);
+    color: #6c5ce7;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin-left: 8px;
+  }
+  
+  /* iOS-specific coin display */
+  .ios-device .user-coins {
+    padding: 4px 10px;
+    font-size: 13px;
+  }
+  
   /* Profile Dropdown Styles */
   .profile-dropdown {
     position: absolute;
