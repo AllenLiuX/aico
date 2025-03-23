@@ -53,8 +53,10 @@ const SocialActionButtons = ({ roomName, hostUsername, roomInfo }) => {
       if (response.ok) {
         const data = await response.json();
         const favorites = data.favorites || [];
-        setIsFavorite(favorites.includes(roomName));
-        console.log("Favorite check complete", {isFavorite: favorites.includes(roomName)});
+        // Check if the room is in favorites by comparing room names
+        const isFavorited = favorites.some(room => room.name === roomName);
+        setIsFavorite(isFavorited);
+        console.log("Favorite check complete", {isFavorite: isFavorited, favorites});
       }
     } catch (error) {
       console.error('Error checking favorite status:', error);

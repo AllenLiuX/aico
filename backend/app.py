@@ -1375,6 +1375,45 @@ def get_explore_rooms():
         logger.error(f"Error fetching explore rooms: {str(e)}")
         return jsonify({"error": "Failed to fetch rooms"}), 500
 
+@app.route('/api/user/favorites', methods=['GET'])
+def get_user_favorites():
+    """Get the list of user's favorite rooms"""
+    auth_token = request.headers.get('Authorization')
+    if not auth_token:
+        return jsonify({"error": "Authentication required"}), 401
+
+    username = get_hash(f"sessions{redis_version}", auth_token)
+    if not username:
+        return jsonify({"error": "Invalid session"}), 401
+
+    try:
+        # Get current favorites list
+        favorites_json = get_hash(f"user_favorites{redis_version}", username)
+        favorites = json.loads(favorites_json) if favorites_json else []
+        
+        # Get room details for each favorite
+        favorite_rooms = []
+        for room_name in favorites:
+            room_data = get_hash(f"rooms{redis_version}", room_name)
+            if room_data:
+                room_info = json.loads(room_data)
+                favorite_rooms.append(room_info)
+            else:
+                # If room data is missing, create a minimal room object with just the name
+                favorite_rooms.append({
+                    "name": room_name,
+                    "exists": False,
+                    "creator": "Unknown"
+                })
+        
+        return jsonify({
+            "favorites": favorite_rooms
+        })
+    
+    except Exception as e:
+        logger.error(f"Error retrieving favorites: {str(e)}")
+        return jsonify({"error": "Failed to retrieve favorites"}), 500
+
 @app.route('/api/user/avatar', methods=['POST'])
 def upload_avatar():
     auth_token = request.headers.get('Authorization')
@@ -2008,8 +2047,9 @@ def update_playlist_info():
 
 # Add these endpoint functions to your app.py file
 
-@app.route('/api/user/follows', methods=['GET'])
-def get_user_follows():
+@app.route('/api/user/following', methods=['GET'])
+def get_user_following():
+    """Get the list of users that the current user is following"""
     auth_token = request.headers.get('Authorization')
     if not auth_token:
         return jsonify({"error": "Authentication required"}), 401
@@ -2019,26 +2059,35 @@ def get_user_follows():
         return jsonify({"error": "Invalid session"}), 401
 
     try:
-        follows = []
-        follows_list = get_user_follows_list(username)
+        # Get current following list
+        following_json = get_hash(f"user_following{redis_version}", username)
+        following_usernames = json.loads(following_json) if following_json else []
         
-        for follow_username in follows_list:
+        # Get profile information for each followed user
+        following_users = []
+        for follow_username in following_usernames:
             follow_profile_json = get_hash(f"user_profiles{redis_version}", follow_username)
             if follow_profile_json:
                 follow_profile = json.loads(follow_profile_json)
-                follows.append({
+                following_users.append({
                     "username": follow_username,
-                    "avatar_url": get_user_avatar_url(follow_username)
+                    "avatar_url": get_user_avatar_url(follow_username),
+                    "profile": follow_profile
                 })
         
-        return jsonify({"follows": follows})
-
+        # Return both the simple username list (for compatibility) and the detailed user objects
+        return jsonify({
+            "following": following_usernames,
+            "following_users": following_users
+        })
+    
     except Exception as e:
-        logger.error(f"Error getting user follows: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error retrieving following list: {str(e)}")
+        return jsonify({"error": "Failed to retrieve following list"}), 500
 
 @app.route('/api/user/followers', methods=['GET'])
 def get_user_followers():
+    """Get the list of users that are following the current user"""
     auth_token = request.headers.get('Authorization')
     if not auth_token:
         return jsonify({"error": "Authentication required"}), 401
@@ -2048,25 +2097,18 @@ def get_user_followers():
         return jsonify({"error": "Invalid session"}), 401
 
     try:
-        followers = []
-        followers_list = get_user_followers_list(username)
+        # Get current followers list
+        followers_json = get_hash(f"user_followers{redis_version}", username)
+        followers = json.loads(followers_json) if followers_json else []
         
-        for follower_username in followers_list:
-            follower_profile_json = get_hash(f"user_profiles{redis_version}", follower_username)
-            if follower_profile_json:
-                follower_profile = json.loads(follower_profile_json)
-                followers.append({
-                    "username": follower_username,
-                    "avatar_url": get_user_avatar_url(follower_username)
-                })
-        
-        return jsonify({"followers": followers})
-
+        return jsonify({
+            "followers": followers
+        })
+    
     except Exception as e:
-        logger.error(f"Error getting user followers: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Error retrieving followers list: {str(e)}")
+        return jsonify({"error": "Failed to retrieve followers list"}), 500
 
-# Make sure the follow endpoint works for both follow and unfollow actions
 @app.route('/api/user/follow', methods=['POST'])
 def toggle_follow_user():
     """Follow or unfollow a user"""
@@ -2090,7 +2132,7 @@ def toggle_follow_user():
         if username == target_username:
             return jsonify({"error": "You cannot follow yourself"}), 400
 
-        # Get current following list for the user
+        # Get current following list
         following_json = get_hash(f"user_following{redis_version}", username)
         following = json.loads(following_json) if following_json else []
 
@@ -2126,7 +2168,6 @@ def toggle_follow_user():
         logger.error(f"Error in follow/unfollow: {str(e)}")
         return jsonify({"error": "Operation failed"}), 500
 
-# Update the existing favorite endpoint to ensure it's working correctly
 @app.route('/api/user/favorite', methods=['POST'])
 def toggle_favorite_room():
     """Add or remove a room from user's favorites"""
