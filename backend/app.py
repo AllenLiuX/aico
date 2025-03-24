@@ -407,8 +407,8 @@ def generate_playlist():
         redis_api.write_hash(f"intro{redis_version}", room_name, introduction)
         
         # Store host information if user is logged in
-        if username and avatar:
-            set_room_host(room_name, username, avatar, update_timestamp=False)
+        if username:
+            set_room_host(room_name, username, avatar or '/images/default_avatar.png', update_timestamp=False)
             add_room_to_user_profile(username, room_name)
             
             # Log room creation activity
@@ -451,9 +451,22 @@ def get_room_playlist():
 
     try:
         # Get existing playlist data
-        playlist = json.loads(get_hash(f"room_playlists{redis_version}", room_name))
-        settings = json.loads(get_hash(f"settings{redis_version}", room_name))
-        introduction = get_hash(f"intro{redis_version}", room_name)
+        time.sleep(0.5)
+        playlist_data = get_hash(f"room_playlists{redis_version}", room_name)
+        if not playlist_data:
+            logger.warning(f"No playlist data found for room: {room_name}")
+            playlist = []
+        else:
+            playlist = json.loads(playlist_data)
+        
+        settings_data = get_hash(f"settings{redis_version}", room_name)
+        if not settings_data:
+            logger.warning(f"No settings data found for room: {room_name}")
+            settings = {}
+        else:
+            settings = json.loads(settings_data)
+            
+        introduction = get_hash(f"intro{redis_version}", room_name) or ""
 
         # Get host information
         host_data = get_room_host(room_name)
@@ -1428,9 +1441,11 @@ def get_user_favorites():
         # Get room details for each favorite
         favorite_rooms = []
         for room_name in favorites:
-            room_data = get_hash(f"rooms{redis_version}", room_name)
+            room_data = get_hash(f"room_hosts{redis_version}", room_name)
             if room_data:
                 room_info = json.loads(room_data)
+                # Ensure the room name is included in the response
+                room_info["name"] = room_name
                 favorite_rooms.append(room_info)
             else:
                 # If room data is missing, create a minimal room object with just the name
@@ -1513,10 +1528,10 @@ def upload_avatar():
         for room_name in all_room_names:
             host_data = get_room_host(room_name)
             if host_data and host_data.get('username') == username:
-                set_room_host(room_name, username, f"/api/avatars/{filename}", update_timestamp=False)
+                set_room_host(room_name, username, f"/api/avatar/{username}", update_timestamp=False)
         
         # Return the URL path that matches where the frontend expects to find the avatar
-        avatar_url = f"/static/avatars/{filename}"
+        avatar_url = f"/static/avatar/{username}"
         logger.info(f"Avatar upload successful for {username}, URL: {avatar_url}")
         return jsonify({
             "message": "Avatar uploaded successfully",
@@ -1540,13 +1555,28 @@ def serve_avatar_file(filename):
     logger.info(f"Serving avatar file: {filename}")
     try:
         # First check the backend avatars directory
+        logger.info(f"Checking backend avatars directory: {AVATARS_DIR / filename}")
         if (AVATARS_DIR / filename).exists():
-            return send_from_directory(str(AVATARS_DIR), filename)
+            # return send_from_directory(str(AVATARS_DIR), filename)
+            avatar_file = AVATARS_DIR / filename
+            return send_file(
+                        str(avatar_file),
+                        mimetype='image/jpeg',
+                        last_modified=avatar_file.stat().st_mtime,
+                        max_age=31536000  # Cache for 1 year
+                    )
+
         
         # Then check the frontend static avatars directory
         frontend_dir = Path(__file__).parent.parent / 'frontend' / 'react_dj' / 'build' / 'static' / 'avatars'
+        logger.info(f"Checking frontend avatars directory: {frontend_dir / filename}")
         if (frontend_dir / filename).exists():
-            return send_from_directory(str(frontend_dir), filename)
+            return send_file(
+                str(frontend_dir / filename),
+                mimetype='image/jpeg',
+                last_modified=(frontend_dir / filename).stat().st_mtime,
+                max_age=31536000  # Cache for 1 year
+            )
         
         # If not found, log a warning and return 404
         logger.warning(f"Avatar file not found: {filename}")
@@ -2873,40 +2903,40 @@ def get_user_avatar_url(username):
             # Get the most recent file
             latest_avatar = max(avatar_files, key=lambda x: x.stat().st_mtime)
             filename = latest_avatar.name
-            return f"/api/avatars/{filename}"
+            return f"/api/avatar/{username}"
     except Exception as e:
         logger.error(f"Error getting avatar URL for {username}: {str(e)}")
     
     # If no uploaded avatar or error, return the default avatar URL
     return f"/api/avatar/{username}"
 
-def set_room_host(room_name, username, avatar, update_timestamp=True):
-    """Set or update the host of a room.
+# def set_room_host(room_name, username, avatar, update_timestamp=True):
+#     """Set or update the host of a room.
     
-    Args:
-        room_name: The name of the room
-        username: The username of the host
-        avatar: The avatar URL of the host
-        update_timestamp: Whether to update the last_host_update timestamp (default: True)
-    """
-    try:
-        room_json = get_hash(f"rooms{redis_version}", room_name)
-        if not room_json:
-            return
+#     Args:
+#         room_name: The name of the room
+#         username: The username of the host
+#         avatar: The avatar URL of the host
+#         update_timestamp: Whether to update the last_host_update timestamp (default: True)
+#     """
+#     try:
+#         room_json = get_hash(f"rooms{redis_version}", room_name)
+#         if not room_json:
+#             return
         
-        room = json.loads(room_json)
-        room["host"] = {
-            "username": username,
-            "avatar_url": get_user_avatar_url(username)
-        }
+#         room = json.loads(room_json)
+#         room["host"] = {
+#             "username": username,
+#             "avatar_url": get_user_avatar_url(username)
+#         }
         
-        if update_timestamp:
-            room["last_host_update"] = datetime.now().isoformat()
+#         if update_timestamp:
+#             room["last_host_update"] = datetime.now().isoformat()
         
-        write_hash(f"rooms{redis_version}", room_name, json.dumps(room))
+#         write_hash(f"rooms{redis_version}", room_name, json.dumps(room))
         
-    except Exception as e:
-        logger.error(f"Error setting room host: {str(e)}")
+#     except Exception as e:
+#         logger.error(f"Error setting room host: {str(e)}")
 
 # Google OAuth Authentication
 @app.route('/api/auth/google', methods=['POST'])
@@ -3010,7 +3040,12 @@ def google_login():
         logger.error(f"Google login error: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/health')
+def health_check():
+    """Simple health check endpoint."""
+    logger.info("Health check endpoint called")
+    return jsonify({"status": "ok"})
+
 if __name__ == '__main__':
     # app.run(port=3000, host='10.72.252.213', debug=True)
-     socketio.run(app, port=5000, host='0.0.0.0', debug=True)
-    # http://13.56.253.58/
+     socketio.run(app, port=5000, host='0.0.0.0', debug=True)    # http://13.56.253.58/

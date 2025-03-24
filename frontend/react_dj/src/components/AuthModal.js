@@ -268,10 +268,10 @@ const AuthModal = ({ isOpen, onClose }) => {
               ux_mode="popup"
             />
           </div>
-          <button className="social-button">
+          {/* <button className="social-button">
             <Github size={20} />
             <span>Github</span>
-          </button>
+          </button> */}
         </div>
 
         <div className="auth-switch">

@@ -1,6 +1,36 @@
 {
   "changelogs": [
     {
+      "version": "1.6.0",
+      "date": "2025-03-23",
+      "title": "Major UI Upgrade Across All Pages",
+      "description": "Comprehensive UI refresh with improved mobile responsiveness",
+      "changes": [
+        "Redesigned Homepage, CreateRoom, and Explore pages with music-focused styling",
+        "Enhanced PlayRoom layout for better mobile experience",
+        "Improved responsive design across all screen sizes",
+        "Fixed playlist visibility and component layout on mobile devices",
+        "Optimized padding and spacing for touch interactions",
+        "Simplified YouTube player for better cross-device compatibility"
+      ],
+      "type": "enhancement"
+    },
+    {
+      "version": "1.5.0",
+      "date": "2025-03-23",
+      "title": "Store and Coin System",
+      "description": "New virtual economy with coin purchases and premium features",
+      "changes": [
+        "Added Store page with coin purchase options",
+        "Implemented secure payment processing system",
+        "Created coin management system for user balances",
+        "Added coin display in header for easy balance checking",
+        "Built backend infrastructure for virtual economy",
+        "Prepared framework for premium features and purchases"
+      ],
+      "type": "feature"
+    },
+    {
       "version": "1.4.0",
       "date": "2025-03-22",
       "title": "Playlist Generation & OAuth Fixes",
