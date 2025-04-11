@@ -1,6 +1,6 @@
 // Fixed PlaylistSection.js to properly handle track selection
 import React from 'react';
-import { Plus, Sparkles } from 'lucide-react';
+import { Plus, Sparkles, RefreshCw } from 'lucide-react';
 import PlaylistTrack from '../PlaylistTrack';
 
 const PlaylistSection = ({
@@ -14,7 +14,9 @@ const PlaylistSection = ({
   onPinToTop,
   stopProgressTracking,
   onAddMusicClick,
-  onGeneratePlaylistClick
+  onGeneratePlaylistClick,
+  onRefreshPlaylist, // New prop for refresh functionality
+  isRefreshing = false // New prop to show refresh state
 }) => {
   return (
     <div className="playlist-section">
@@ -28,6 +30,14 @@ const PlaylistSection = ({
             </button>
           )}
           <button 
+            onClick={onRefreshPlaylist} 
+            className={`control-button refresh-playlist-button ${isRefreshing ? 'refreshing' : ''}`}
+            title="Refresh playlist"
+            disabled={isRefreshing}
+          >
+            <RefreshCw size={18} className={isRefreshing ? 'spinning' : ''} />
+          </button>
+          <button 
             onClick={onAddMusicClick} 
             className={`control-button add-music-button ${!isHost ? 'guest-add-music-button' : ''}`}
           >
@@ -38,8 +48,8 @@ const PlaylistSection = ({
       </div>
       
       {/* Guest Add Song Button - Visible only for non-hosts and only on mobile */}
-      {!isHost && (
-        <div className="guest-add-song-container">
+      {/* {!isHost && (
+        <div className="guest-add-song-container mobile-only">
           <button 
             onClick={onAddMusicClick} 
             className="guest-add-song-button-mobile"
@@ -48,7 +58,7 @@ const PlaylistSection = ({
             Add Song
           </button>
         </div>
-      )}
+      )} */}
       
       <ul className="track-list">
         {playlist.length > 0 ? (

@@ -67,6 +67,7 @@ function PlayRoom() {
     introduction: ''
   });
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshingPlaylist, setRefreshingPlaylist] = useState(false);
   const [connectedUsers, setConnectedUsers] = useState([]);
   const [showConnectionError, setShowConnectionError] = useState(false);
   const [playerError, setPlayerError] = useState(null);
@@ -281,6 +282,53 @@ function PlayRoom() {
     }
   };
 
+  // Function to refresh the playlist without interrupting playback
+  const refreshPlaylist = async () => {
+    if (!roomName) return;
+    
+    setRefreshingPlaylist(true);
+    console.log(`Refreshing playlist for room ${roomName}`);
+    
+    try {
+      // Get the current track info before refreshing
+      const currentSongId = playlist[currentTrack]?.song_id;
+      const currentPosition = currentTime;
+      const wasPlaying = isPlaying;
+      
+      // Fetch the latest playlist from the backend
+      const response = await fetch(`${API_URL}/api/room-playlist?room_name=${encodeURIComponent(roomName)}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to refresh playlist');
+      }
+      
+      const data = await response.json();
+      
+      // Update the playlist state
+      setPlaylist(data.playlist);
+      
+      // Find the current track in the new playlist
+      if (currentSongId) {
+        const newIndex = data.playlist.findIndex(track => track.song_id === currentSongId);
+        
+        // If the current track still exists in the new playlist, update the player
+        if (newIndex !== -1 && newIndex !== currentTrack) {
+          // Update the current track index without interrupting playback
+          // This is handled by the useYouTubePlayer hook
+          console.log(`Current track found at new index: ${newIndex}`);
+        }
+      }
+      
+      showNotificationMessage('Playlist Refreshed', 'Playlist has been updated', 'success');
+    } catch (error) {
+      console.error('Error refreshing playlist:', error);
+      showNotificationMessage('Error', 'Failed to refresh playlist', 'error');
+    } finally {
+      // Add a slight delay so the spinner is visible
+      setTimeout(() => setRefreshingPlaylist(false), 500);
+    }
+  };
+
   // Handle pin to top action (requires updating playlist state)
   const handlePinTrack = async (selectedIndex, currentPlayingIndex) => {
     // Only allow host to pin tracks
@@ -361,6 +409,22 @@ function PlayRoom() {
   const getCurrentPageSongs = () => {
     const startIndex = (currentPage - 1) * SONGS_PER_PAGE;
     return playlist.slice(startIndex, startIndex + SONGS_PER_PAGE);
+  };
+
+  // Calculate the current track index relative to the current page
+  const getPageRelativeCurrentTrack = () => {
+    if (currentTrack < 0 || !playlist[currentTrack]) return -1;
+    
+    const startIndex = (currentPage - 1) * SONGS_PER_PAGE;
+    const endIndex = startIndex + SONGS_PER_PAGE - 1;
+    
+    // If current track is not on this page, return -1
+    if (currentTrack < startIndex || currentTrack > endIndex) {
+      return -1;
+    }
+    
+    // Return the page-relative index
+    return currentTrack - startIndex;
   };
 
   // Fix for track selection - map index back to full playlist index
@@ -572,7 +636,7 @@ function PlayRoom() {
                 playlist={getCurrentPageSongs()}
                 fullPlaylistLength={playlist.length}
                 isHost={isHost}
-                currentTrack={currentTrack}
+                currentTrack={getPageRelativeCurrentTrack()}
                 roomName={roomName}
                 onTrackClick={handlePlaySpecificTrack}
                 onTrackDelete={handleTrackDelete}
@@ -580,6 +644,8 @@ function PlayRoom() {
                 stopProgressTracking={stopProgressTracking}
                 onAddMusicClick={handleSearchMusic}
                 onGeneratePlaylistClick={handleGeneratePlaylist}
+                onRefreshPlaylist={refreshPlaylist}
+                isRefreshing={refreshingPlaylist}
               />
               
               {/* Pagination Controls */}

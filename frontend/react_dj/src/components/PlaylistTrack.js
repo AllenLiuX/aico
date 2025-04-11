@@ -98,7 +98,7 @@ const PlaylistTrack = ({
   const handlePinToTop = async (e) => {
     e.stopPropagation(); // Prevent triggering track click
     
-    if (!isHost || isPinning || isCurrentTrack) return;
+    if (!isHost || isPinning) return;
     
     try {
       setIsPinning(true);
@@ -186,7 +186,7 @@ const PlaylistTrack = ({
         <span className="track-artist">{track.artist}</span>
         {error && <span className="track-error">{error}</span>}
       </div>
-      {isCurrentTrack && !isHost && (
+      {isCurrentTrack && (
         <span className="now-playing">▶</span>
       )}
       
@@ -206,7 +206,7 @@ const PlaylistTrack = ({
           <>
             <button
               onClick={handlePinToTop}
-              disabled={isPinning || isCurrentTrack}
+              disabled={isPinning}
               className="pin-button"
               title="Pin after current track"
             >
