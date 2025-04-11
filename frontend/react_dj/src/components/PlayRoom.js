@@ -146,23 +146,41 @@ function PlayRoom() {
       }
     };
 
+    // Fetch room settings to get actual moderation status
+    const fetchRoomSettings = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/room-playlist?room_name=${encodeURIComponent(roomName)}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch room settings');
+        }
+        
+        const data = await response.json();
+        
+        // Get actual moderation status from settings
+        const actualModerationEnabled = data.settings?.moderation_enabled !== undefined 
+          ? data.settings.moderation_enabled 
+          : true; // Default to true if not specified
+        
+        console.log(`Actual moderation status from server: ${actualModerationEnabled}`);
+        
+        // Update state with actual moderation status
+        setModerationEnabled(actualModerationEnabled);
+        
+        // Update URL to reflect actual moderation status if different
+        if (initialModeration !== actualModerationEnabled) {
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.set('moderation', actualModerationEnabled ? 'True' : 'False');
+          navigate(newUrl.pathname + newUrl.search, { replace: true });
+        }
+      } catch (error) {
+        console.error('Error fetching room settings:', error);
+      }
+    };
+
     verifyHostStatus();
-  }, [roomName, navigate, isHostParam]);
-
-  // Initialize socket connection
-  const { 
-    socket, 
-    connectionError, 
-    isConnected,
-    emitPlayerState 
-  } = useSocketConnection(roomName, isHost);
-
-  // Set connected users from socket data
-  useEffect(() => {
-    if (connectionError) {
-      setShowConnectionError(true);
-    }
-  }, [connectionError]);
+    fetchRoomSettings();
+  }, [roomName, navigate, isHostParam, initialModeration]);
 
   // Use our custom hooks
   const {
@@ -183,16 +201,39 @@ function PlayRoom() {
     handlePinToTop
   } = usePlaylist(roomName, isHost);
 
+  // Initialize socket connection
+  const { 
+    socket, 
+    connectionError, 
+    isConnected,
+    emitPlayerState 
+  } = useSocketConnection(roomName, isHost);
+
+  // Set connected users from socket data
+  useEffect(() => {
+    if (connectionError) {
+      setShowConnectionError(true);
+    }
+  }, [connectionError]);
+
   // Set initial moderation state based on settings
   useEffect(() => {
     if (settings && settings.moderation_enabled !== undefined) {
       console.log(`Setting moderation from settings: ${settings.moderation_enabled}`);
+      
+      // Update moderation state
       setModerationEnabled(settings.moderation_enabled);
+      
+      // Update URL to reflect actual moderation status
+      const params = new URLSearchParams(location.search);
+      const currentModeration = params.get('moderation') === 'True';
+      
+      if (currentModeration !== settings.moderation_enabled) {
+        params.set('moderation', settings.moderation_enabled ? 'True' : 'False');
+        navigate(`${location.pathname}?${params.toString()}`, { replace: true });
+      }
     }
-  }, [settings]);
-
-// PlayRoom.js (continued)
-// Additional code for PlayRoom.js
+  }, [settings, location.search, location.pathname, navigate]);
 
   // Set initial editing state when introduction loads
   useEffect(() => {
