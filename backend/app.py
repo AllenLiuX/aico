@@ -440,14 +440,17 @@ def get_room_playlist():
     
     # Only generate QR code if it doesn't exist
     qr_code_path = Path(__file__).parent.parent / 'frontend' / 'react_dj' / 'public' / 'images' / f"qr_code_{safe_room_name}.png"
-    if not qr_code_path.exists():
+    build_path = Path(__file__).parent.parent / 'frontend' / 'react_dj' / 'build' / 'images' / f"qr_code_{safe_room_name}.png"
+    if not build_path.exists():
         # Create images directory if it doesn't exist
         qr_code_path.parent.mkdir(parents=True, exist_ok=True)
         generate_qr_code_with_logo(f'http://aico-music.com/playroom?room_name={room_name}', qr_code_path)
+        logger.info(f"Generated QR code for room: {room_name} into {qr_code_path}")
         
-        build_path = Path(__file__).parent.parent / 'frontend' / 'react_dj' / 'build' / 'images' / f"qr_code_{safe_room_name}.png"
+        # build_path = Path(__file__).parent.parent / 'frontend' / 'react_dj' / 'build' / 'images' / f"qr_code_{safe_room_name}.png"
         build_path.parent.mkdir(parents=True, exist_ok=True)
         generate_qr_code_with_logo(f'http://aico-music.com/playroom?room_name={room_name}', build_path)
+        logger.info(f"Generated QR code for room: {room_name} into {build_path}")
 
     try:
         # Get existing playlist data
@@ -1548,7 +1551,7 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# Add route to serve static files (if needed)
+
 @app.route('/api/avatars/<path:filename>')
 def serve_avatar_file(filename):
     """Serve an avatar file from the avatars directory."""
@@ -1585,7 +1588,38 @@ def serve_avatar_file(filename):
         logger.error(f"Error serving avatar file {filename}: {str(e)}")
         return "Error serving avatar", 500
 
-# Update the existing request-track endpoint in app.py
+
+# Add route to serve static files (if needed)
+@app.route('/images/<path:filename>')
+def serve_image_file(filename):
+    """
+    Serve image files from the frontend build/images directory.
+    This endpoint handles requests to /images/* paths.
+    
+    Args:
+        filename: The name of the image file to serve
+        
+    Returns:
+        The requested image file
+    """
+    logger.info(f"Serving image: {filename}")
+    images_dir = Path(__file__).parent.parent / 'frontend' / 'react_dj' / 'build' / 'images'
+    
+    # Create the directory if it doesn't exist
+    images_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Also check the public directory as a fallback
+    public_images_dir = Path(__file__).parent.parent / 'frontend' / 'react_dj' / 'public' / 'images'
+    
+    # First try to serve from build/images
+    if (images_dir / filename).exists():
+        return send_from_directory(images_dir, filename)
+    # Then try to serve from public/images
+    elif (public_images_dir / filename).exists():
+        return send_from_directory(public_images_dir, filename)
+    else:
+        logger.error(f"Image not found: {filename}")
+        return jsonify({"error": "Image not found"}), 404
 
 @app.route('/api/request-track', methods=['POST'])
 def request_track():
@@ -3049,3 +3083,70 @@ def health_check():
 if __name__ == '__main__':
     # app.run(port=3000, host='10.72.252.213', debug=True)
      socketio.run(app, port=5000, host='0.0.0.0', debug=True)    # http://13.56.253.58/
+
+# @app.route('/images/<path:filename>')
+def serve_image_file(filename):
+    """
+    Serve image files from the frontend build/images directory.
+    This endpoint handles requests to /images/* paths.
+    
+    Args:
+        filename: The name of the image file to serve
+        
+    Returns:
+        The requested image file
+    """
+    logger.info(f"Serving image: {filename}")
+    images_dir = Path(__file__).parent.parent / 'frontend' / 'react_dj' / 'build' / 'images'
+    
+    # Create the directory if it doesn't exist
+    images_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Also check the public directory as a fallback
+    public_images_dir = Path(__file__).parent.parent / 'frontend' / 'react_dj' / 'public' / 'images'
+    
+    # First try to serve from build/images
+    if (images_dir / filename).exists():
+        return send_from_directory(images_dir, filename)
+    # Then try to serve from public/images
+    elif (public_images_dir / filename).exists():
+        return send_from_directory(public_images_dir, filename)
+    else:
+        logger.error(f"Image not found: {filename}")
+        return jsonify({"error": "Image not found"}), 404
+
+# @app.route('/api/avatars/<path:filename>')
+def serve_avatar_file(filename):
+    """Serve an avatar file from the avatars directory."""
+    logger.info(f"Serving avatar file: {filename}")
+    try:
+        # First check the backend avatars directory
+        logger.info(f"Checking backend avatars directory: {AVATARS_DIR / filename}")
+        if (AVATARS_DIR / filename).exists():
+            # return send_from_directory(str(AVATARS_DIR), filename)
+            avatar_file = AVATARS_DIR / filename
+            return send_file(
+                        str(avatar_file),
+                        mimetype='image/jpeg',
+                        last_modified=avatar_file.stat().st_mtime,
+                        max_age=31536000  # Cache for 1 year
+                    )
+
+        
+        # Then check the frontend static avatars directory
+        frontend_dir = Path(__file__).parent.parent / 'frontend' / 'react_dj' / 'build' / 'static' / 'avatars'
+        logger.info(f"Checking frontend avatars directory: {frontend_dir / filename}")
+        if (frontend_dir / filename).exists():
+            return send_file(
+                str(frontend_dir / filename),
+                mimetype='image/jpeg',
+                last_modified=(frontend_dir / filename).stat().st_mtime,
+                max_age=31536000  # Cache for 1 year
+            )
+        
+        # If not found, log a warning and return 404
+        logger.warning(f"Avatar file not found: {filename}")
+        return "Avatar not found", 404
+    except Exception as e:
+        logger.error(f"Error serving avatar file {filename}: {str(e)}")
+        return "Error serving avatar", 500

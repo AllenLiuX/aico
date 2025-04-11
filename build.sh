@@ -43,3 +43,4 @@ nohup python3 app.py &
 # google-chrome --version
 
 
+# sudo chown -R ec2-user:ec2-user /home/ec2-user/aico/frontend/react_dj/build/images
