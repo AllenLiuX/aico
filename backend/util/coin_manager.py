@@ -6,7 +6,7 @@ This module handles all coin-related operations, ensuring consistency across the
 
 import json
 import logging
-from util.redis_api import get_hash, write_hash, get_user_data, set_user_data, redis_version
+from util.redis_api import get_hash, write_hash, get_user_data, set_user_data, redis_version, redis_client
 from util import user_logging
 
 # Set up logging
@@ -210,3 +210,36 @@ def check_coin_balance(username):
         logger.error(f"Error checking coin balance for user {username}: {str(e)}")
         result["error"] = str(e)
         return result
+
+def get_all_user_coins():
+    """
+    Get the coin balance for all existing users in the system.
+    
+    Returns:
+        dict: Dictionary mapping usernames to their coin balances
+    """
+    try:
+        # Get all user keys from Redis
+        user_keys = []
+        cursor = 0
+        pattern = "user:*"
+        
+        # Use scan_iter to get all user keys
+        while True:
+            cursor, keys = redis_client.scan(cursor, match=pattern, count=100)
+            user_keys.extend(keys)
+            if cursor == 0:
+                break
+        
+        # Extract usernames from keys and get their coin balances
+        result = {}
+        for key in user_keys:
+            username = key.decode('utf-8').split(':')[1]
+            coins = get_user_coins(username)
+            result[username] = coins
+            
+        logger.info(f"Retrieved coin balances for {len(result)} users")
+        return result
+    except Exception as e:
+        logger.error(f"Error getting all user coins: {str(e)}")
+        return {}

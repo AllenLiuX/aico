@@ -3003,8 +3003,7 @@ def google_login():
             username = email.split('@')[0]
             
             # Check if user already exists
-            user_key = f"user:{username}"
-            user_exists = redis_api.redis_client.hexists(f"users{redis_version}", user_key)
+            user_exists = get_hash(f"users{redis_version}", username)
             
             # Get user agent and IP for logging
             user_agent = request.headers.get('User-Agent', 'Unknown')
@@ -3021,8 +3020,13 @@ def google_login():
                     "google_picture": picture
                 }
                 
-                # Store user in Redis
-                redis_api.write_hash(f"users{redis_version}", user_key, json.dumps(profile))
+                # Store user profile in user_profiles{redis_version}
+                write_hash(f"user_profiles{redis_version}", username, json.dumps(profile))
+                
+                # Store a placeholder password hash for Google users
+                # This ensures consistency with regular user accounts
+                google_password_hash = hash_password(f"google_auth_{secrets.token_hex(16)}")
+                write_hash(f"users{redis_version}", username, google_password_hash)
                 
                 # Set initial coins using the unified coin management system
                 set_user_coins(username, 1000, "Initial allocation for new Google user")
@@ -3036,14 +3040,26 @@ def google_login():
                 
                 logger.info(f"Created new user account for Google user: {username}")
             else:
-                # Update existing user with Google info
-                user_data = redis_api.get_hash(f"users{redis_version}", user_key)
-                profile = json.loads(user_data)
+                # Get existing user profile
+                profile_json = get_hash(f"user_profiles{redis_version}", username)
+                
+                if profile_json:
+                    profile = json.loads(profile_json)
+                else:
+                    # Create default profile if it doesn't exist
+                    profile = {
+                        "username": username,
+                        "email": email,
+                        "created_at": datetime.now().isoformat(),
+                        "has_avatar": False
+                    }
+                
+                # Update Google-specific information
                 profile["google_user"] = True
                 profile["google_picture"] = picture
                 
-                # Update user in Redis
-                redis_api.write_hash(f"users{redis_version}", user_key, json.dumps(profile))
+                # Update user profile in Redis
+                write_hash(f"user_profiles{redis_version}", username, json.dumps(profile))
                 
                 logger.info(f"Updated existing user account for Google user: {username}")
             
