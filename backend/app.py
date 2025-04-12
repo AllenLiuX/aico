@@ -899,6 +899,12 @@ def get_avatar(username):
     profile_json = get_hash(f"user_profiles{redis_version}", username)
     if profile_json:
         profile = json.loads(profile_json)
+        
+        # Check if user has a Google profile picture
+        if profile.get('google_user') and profile.get('google_picture'):
+            logger.info(f"Redirecting to Google profile picture for {username}")
+            return redirect(profile['google_picture'])
+            
         if profile.get('has_avatar'):
             # Find the most recent avatar file for this user
             try:
@@ -1025,7 +1031,7 @@ def get_user_rooms_helper(username):
         rooms_data.append({
             "name": room_name,
             "cover_image": cover_image,
-            "introduction": intro[:100] + '...' if intro and len(intro) > 100 else intro,  # Cap description
+            "introduction": intro[:100] + '...' if intro and len(intro) > 100 else intro,
             "song_count": len(playlist),
             "genre": settings.get('genre', ''),
             "occasion": settings.get('occasion', ''),

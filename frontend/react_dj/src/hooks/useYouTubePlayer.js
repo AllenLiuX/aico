@@ -16,6 +16,7 @@ const useYouTubePlayer = (playlist, socket, isHost, emitPlayerState) => {
   const [currentTime, setCurrentTime] = useState(0);
   const [playerError, setPlayerError] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [syncedWithHost, setSyncedWithHost] = useState(true); // Track if guest is synced with host
   
   const progressIntervalRef = useRef(null);
   const playerRef = useRef(null);
@@ -25,6 +26,7 @@ const useYouTubePlayer = (playlist, socket, isHost, emitPlayerState) => {
   const pendingSync = useRef(null);
   const playerReadyRef = useRef(false);
   const currentVideoIdRef = useRef(null);
+  const lastHostState = useRef(null); // Store the last state update from host
   
   // Don't update player state too frequently to avoid excessive network traffic
   const SYNC_THROTTLE_MS = 1000;
@@ -117,35 +119,41 @@ const useYouTubePlayer = (playlist, socket, isHost, emitPlayerState) => {
       
       console.log('Received player state update:', playerState);
       
-      // Store sync information for application
-      pendingSync.current = playerState;
+      // Store the last host state for sync functionality
+      lastHostState.current = playerState;
       
-      // Check if it's a track change
-      if (playerState.currentTrack !== undefined && 
-          playerState.currentTrack !== currentTrack) {
+      // If synced with host, apply the state update
+      if (syncedWithHost) {
+        // Store sync information for application
+        pendingSync.current = playerState;
         
-        // Update state immediately to update UI
-        setCurrentTrack(playerState.currentTrack);
-        
-        // Get the track info
-        const trackToPlay = playlist[playerState.currentTrack];
-        if (!trackToPlay) {
-          console.error('Track not found in playlist:', playerState.currentTrack);
-          return;
-        }
-        
-        const videoId = extractVideoId(trackToPlay.song_url);
-        if (!videoId) {
-          console.error('Could not extract video ID from URL:', trackToPlay.song_url);
-          return;
-        }
-        
-        // Force direct iframe control for track change
-        forcePlayVideo(videoId, playerState.currentTime || 0, playerState.isPlaying !== false);
-      } else {
-        // For play/pause and seek operations, use the normal sync
-        if (!lastStateUpdate.current) {
-          applyStateSync(playerState);
+        // Check if it's a track change
+        if (playerState.currentTrack !== undefined && 
+            playerState.currentTrack !== currentTrack) {
+          
+          // Update state immediately to update UI
+          setCurrentTrack(playerState.currentTrack);
+          
+          // Get the track info
+          const trackToPlay = playlist[playerState.currentTrack];
+          if (!trackToPlay) {
+            console.error('Track not found in playlist:', playerState.currentTrack);
+            return;
+          }
+          
+          const videoId = extractVideoId(trackToPlay.song_url);
+          if (!videoId) {
+            console.error('Could not extract video ID from URL:', trackToPlay.song_url);
+            return;
+          }
+          
+          // Force direct iframe control for track change
+          forcePlayVideo(videoId, playerState.currentTime || 0, playerState.isPlaying !== false);
+        } else {
+          // For play/pause and seek operations, use the normal sync
+          if (!lastStateUpdate.current) {
+            applyStateSync(playerState);
+          }
         }
       }
     };
@@ -157,7 +165,7 @@ const useYouTubePlayer = (playlist, socket, isHost, emitPlayerState) => {
     return () => {
       socket.off('player_state_update', handlePlayerStateUpdate);
     };
-  }, [socket, isHost, currentTrack, playlist]);
+  }, [socket, isHost, currentTrack, playlist, syncedWithHost]);
 
   // Extremely direct method to force video playback by manipulating the iframe directly
   const forcePlayVideo = (videoId, startSeconds = 0, autoplay = true) => {
@@ -402,6 +410,56 @@ const useYouTubePlayer = (playlist, socket, isHost, emitPlayerState) => {
     }
   };
 
+  // Function to sync with host's current state (for guests)
+  const syncWithHost = () => {
+    if (isHost || !lastHostState.current) return;
+    
+    console.log('Syncing with host state:', lastHostState.current);
+    setSyncedWithHost(true);
+    
+    const hostState = lastHostState.current;
+    
+    // Update track if different
+    if (hostState.currentTrack !== undefined && 
+        hostState.currentTrack !== currentTrack) {
+      
+      setCurrentTrack(hostState.currentTrack);
+      
+      // Get the track info
+      const trackToPlay = playlist[hostState.currentTrack];
+      if (!trackToPlay) {
+        console.error('Track not found in playlist:', hostState.currentTrack);
+        return;
+      }
+      
+      const videoId = extractVideoId(trackToPlay.song_url);
+      if (!videoId) {
+        console.error('Could not extract video ID from URL:', trackToPlay.song_url);
+        return;
+      }
+      
+      // Force direct iframe control for track change
+      forcePlayVideo(videoId, hostState.currentTime || 0, hostState.isPlaying !== false);
+    } else {
+      // Just sync time and play state
+      if (playerRef.current && playerReadyRef.current) {
+        // Sync time
+        if (hostState.currentTime !== undefined) {
+          playerRef.current.seekTo(hostState.currentTime, true);
+        }
+        
+        // Sync play state
+        if (hostState.isPlaying) {
+          playerRef.current.playVideo();
+        } else {
+          playerRef.current.pauseVideo();
+        }
+        
+        setIsPlaying(hostState.isPlaying);
+      }
+    }
+  };
+
   const extractVideoId = (url) => {
     if (!url) return '';
     
@@ -635,16 +693,26 @@ const useYouTubePlayer = (playlist, socket, isHost, emitPlayerState) => {
     }
   };
 
+  // Modified togglePlay to handle guest playback
   const togglePlay = () => {
-    // Only allow host to control playback
-    if (!isHost || !playerRef.current || !playerReadyRef.current) return;
+    if (!playerRef.current || !playerReadyRef.current) return;
     
-    if (isPlaying) {
-      playerRef.current.pauseVideo();
-    } else {
-      playerRef.current.playVideo();
-      // Log song play when resuming
-      logSongPlay(currentTrack);
+    try {
+      // If guest is synced with host, unsync when they manually control playback
+      if (!isHost && syncedWithHost) {
+        setSyncedWithHost(false);
+      }
+      
+      const currentState = playerRef.current.getPlayerState();
+      if (currentState === 1) { // Playing
+        playerRef.current.pauseVideo();
+      } else {
+        playerRef.current.playVideo();
+        // Log song play when resuming
+        logSongPlay(currentTrack);
+      }
+    } catch (error) {
+      console.error("Error toggling play state:", error);
     }
   };
 
@@ -788,26 +856,26 @@ const useYouTubePlayer = (playlist, socket, isHost, emitPlayerState) => {
     });
   }, [playlist]);
 
+  // Return values and functions
   return {
     currentTrack,
-    setCurrentTrack,
     isPlaying,
     progress,
     duration,
     currentTime,
-    playerError,
     playerContainerRef,
-    playerRef,
     togglePlay,
     playNext,
     playPrevious,
-    loadVideo,
     formatTime,
     handleProgressChange,
     playSpecificTrack,
     handlePinToTop,
     stopProgressTracking,
-    isHost // Make isHost available to components
+    isHost,
+    playerError,
+    syncWithHost, // New function to sync with host
+    syncedWithHost  // New state to track sync status
   };
 };
 

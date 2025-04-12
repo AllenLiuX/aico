@@ -259,7 +259,9 @@ function PlayRoom() {
     handlePinToTop: handlePinToTopPlayer,
     stopProgressTracking,
     isHost: playerIsHost, // This should match the isHost state
-    playerError: youtubePlayerError // Renamed to avoid conflict
+    playerError: youtubePlayerError, // Renamed to avoid conflict
+    syncWithHost, // New function to sync with host
+    syncedWithHost // New state to track sync status
   } = useYouTubePlayer(playlist, socket, isHost, emitPlayerState);
   
   // Update the local playerError state when the YouTube player error changes
@@ -606,6 +608,7 @@ function PlayRoom() {
                   showLyrics={showLyrics}
                   onToggleLyrics={handleToggleLyrics}
                   isHost={isHost} // Pass isHost to control component
+                  syncWithHost={syncWithHost} // Pass syncWithHost function
                 />
                 
                 {/* Integrated lyrics section within player */}

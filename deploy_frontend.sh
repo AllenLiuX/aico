@@ -48,6 +48,8 @@ echo "🔨 Building React application..."
 npm run build
 check_status "React build"
 
+sudo chown -R ec2-user:ec2-user /home/ec2-user/aico/frontend/react_dj/build/images
+
 # Step 4: Deploy to Nginx
 echo "🚀 Deploying to Nginx..."
 cp -r "$BUILD_DIR"/* "$NGINX_DIR"/

@@ -1212,8 +1212,75 @@ body.play-room-active {
   box-sizing: border-box;
 }
 
+
+/* Guest controls with sync button */
+.sync-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: rgba(3, 218, 198, 0.1);
+  border: 1px solid rgba(3, 218, 198, 0.3);
+  border-radius: 20px;
+  padding: 6px 12px;
+  transition: all 0.2s ease;
+}
+
+.sync-button:hover {
+  background-color: rgba(3, 218, 198, 0.2);
+  border-color: rgba(3, 218, 198, 0.5);
+}
+
+.sync-button svg {
+  color: #03dac6;
+}
+
+.sync-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #03dac6;
+}
+
+.guest-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 8px;
+  padding: 6px 12px;
+  background-color: rgba(0, 0, 0, 0.2);
+  border-radius: 20px;
+  width: fit-content;
+}
+
+.sync-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #03dac6;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(3, 218, 198, 0.7);
+  }
+  
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(3, 218, 198, 0);
+  }
+  
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(3, 218, 198, 0);
+  }
+}
+
 /* Make sure the player controls are responsive for lyrics toggle */
 @media (max-width: 768px) {
+  /*======= NOTICE: The following styles are Important for Phone View! */
   .player-playlist-grid {
     display: flex !important;
     flex-direction: column !important;
