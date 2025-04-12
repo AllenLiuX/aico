@@ -9,3 +9,4 @@ export { default as QRCodeModal } from './QRCodeModal';
 export { default as LyricsSection } from '../LyricsSection';
 export {default as MobileResponsiveWrapper} from "./MobileResponsiveWrapper";
 export {default as SocialActionButtons} from "./SocialActionButtons";
+export { default as PinPriceSettings } from './PinPriceSettings';

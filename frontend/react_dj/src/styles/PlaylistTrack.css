@@ -378,3 +378,147 @@
     padding-bottom: max(12px, env(safe-area-inset-bottom));
   }
 }
+
+/* Pin confirmation dialog styles */
+.pin-confirmation-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000; /* Ensure it's above everything else */
+  animation: fadeIn 0.2s ease;
+}
+
+.pin-confirmation-dialog {
+  background-color: #2d2d2d;
+  border-radius: 8px;
+  padding: 24px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  position: relative;
+  animation: slideUp 0.3s ease;
+  /* Ensure the dialog is not affected by parent styling */
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.close-dialog {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: transparent;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.close-dialog:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.pin-confirmation-dialog h3 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  color: #fff;
+  font-size: 18px;
+}
+
+.pin-confirmation-dialog p {
+  margin-bottom: 12px;
+  color: #ccc;
+  font-size: 14px;
+}
+
+.pin-cost {
+  font-weight: bold;
+  color: #03dac6 !important;
+  font-size: 16px !important;
+}
+
+.pin-balance {
+  color: #999 !important;
+  font-size: 13px !important;
+  margin-bottom: 20px !important;
+}
+
+.pin-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.cancel-pin, .confirm-pin {
+  padding: 10px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+}
+
+.cancel-pin {
+  background-color: transparent;
+  border: 1px solid #666;
+  color: #ccc;
+}
+
+.cancel-pin:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: #999;
+}
+
+.confirm-pin {
+  background-color: #03dac6;
+  border: none;
+  color: #000;
+}
+
+.confirm-pin:hover {
+  background-color: #00c4b4;
+}
+
+.confirm-pin:disabled, .cancel-pin:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Mobile responsiveness for pin dialog */
+@media (max-width: 480px) {
+  .pin-confirmation-dialog {
+    width: 95%;
+    padding: 20px;
+  }
+  
+  .pin-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .cancel-pin, .confirm-pin {
+    width: 100%;
+  }
+}

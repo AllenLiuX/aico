@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Trash2, ArrowUp, Heart } from 'lucide-react';
+import React, { useState, useEffect, useContext } from 'react';
+import ReactDOM from 'react-dom';
+import { Trash2, ArrowUp, Heart, X } from 'lucide-react';
 import { API_URL } from '../config';
 import '../styles/PlaylistTrack.css';
+import { UserContext } from '../contexts/UserContext';
 
 const PlaylistTrack = ({ 
   track = {},
@@ -20,6 +22,33 @@ const PlaylistTrack = ({
   const [isFavoriting, setIsFavoriting] = useState(false);
   const [isFavorited, setIsFavorited] = useState(false);
   const [error, setError] = useState(null);
+  const [showPinConfirmation, setShowPinConfirmation] = useState(false);
+  const [pinPrice, setPinPrice] = useState(10); // Default pin price is 10 coins
+  
+  const { user, token } = useContext(UserContext);
+
+  // Fetch pin price when component mounts
+  useEffect(() => {
+    const fetchPinPrice = async () => {
+      if (!roomName) return;
+      
+      try {
+        const response = await fetch(`${API_URL}/api/coins/get-pin-price?room_name=${roomName}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch pin price');
+        }
+        
+        const data = await response.json();
+        setPinPrice(data.price);
+      } catch (err) {
+        console.error('Error fetching pin price:', err);
+        // Keep default price if fetch fails
+      }
+    };
+    
+    fetchPinPrice();
+  }, [roomName]);
 
   // Check if song is already favorited when component mounts
   useEffect(() => {
@@ -98,21 +127,56 @@ const PlaylistTrack = ({
   const handlePinToTop = async (e) => {
     e.stopPropagation(); // Prevent triggering track click
     
-    if (!isHost || isPinning) return;
+    // If user is host, pin directly without confirmation
+    if (isHost) {
+      try {
+        setIsPinning(true);
+        setError(null);
+        
+        // Call the parent function to get the actual index
+        onPinToTop(index, currentPlayingIndex);
+        
+      } catch (err) {
+        setError('Failed to pin track');
+        console.error('Pin error:', err);
+      } finally {
+        setIsPinning(false);
+      }
+      return;
+    }
     
+    // For guests, show confirmation dialog
+    if (!user) {
+      setError('Please log in to pin tracks');
+      return;
+    }
+    
+    if (isPinning) return;
+    
+    // Show confirmation dialog
+    setShowPinConfirmation(true);
+  };
+  
+  const confirmPinToTop = async () => {
     try {
       setIsPinning(true);
       setError(null);
       
-      // Call the parent function first to get the actual index
-      onPinToTop(index, currentPlayingIndex);
+      // Call the parent function to get the actual index
+      // The backend will handle coin deduction and host rewards
+      onPinToTop(index, currentPlayingIndex, true); // Pass true to indicate guest pin
       
     } catch (err) {
       setError('Failed to pin track');
       console.error('Pin error:', err);
     } finally {
       setIsPinning(false);
+      setShowPinConfirmation(false);
     }
+  };
+  
+  const cancelPinToTop = () => {
+    setShowPinConfirmation(false);
   };
 
   const handleFavorite = async (e) => {
@@ -164,6 +228,42 @@ const PlaylistTrack = ({
     }
   };
 
+  // Render the pin confirmation dialog in a portal
+  const renderPinConfirmationPortal = () => {
+    if (!showPinConfirmation) return null;
+    
+    return ReactDOM.createPortal(
+      <div className="pin-confirmation-overlay">
+        <div className="pin-confirmation-dialog">
+          <button className="close-dialog" onClick={cancelPinToTop}>
+            <X size={20} />
+          </button>
+          <h3>Pin Track</h3>
+          <p>Pin "{track.title}" to play after the current track?</p>
+          <p className="pin-cost">Cost: {pinPrice} Aico Coins</p>
+          <p className="pin-balance">Your balance: {user?.coins || 0} Coins</p>
+          <div className="pin-actions">
+            <button 
+              className="cancel-pin" 
+              onClick={cancelPinToTop}
+              disabled={isPinning}
+            >
+              Cancel
+            </button>
+            <button 
+              className="confirm-pin" 
+              onClick={confirmPinToTop}
+              disabled={isPinning || (user?.coins || 0) < pinPrice}
+            >
+              {isPinning ? 'Processing...' : 'Confirm'}
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    );
+  };
+
   return (
     <li 
       className={`${isCurrentTrack ? 'track-item active' : 'track-item'}`}
@@ -201,28 +301,31 @@ const PlaylistTrack = ({
           <Heart className={`heart-icon ${isFavorited ? 'filled' : ''}`} color="#ff4081" />
         </button>
         
-        {/* Host-only actions */}
+        {/* Pin button - available to all users */}
+        <button
+          onClick={handlePinToTop}
+          disabled={isPinning}
+          className="pin-button"
+          title={isHost ? "Pin after current track" : `Pin after current track (${pinPrice} coins)`}
+        >
+          <ArrowUp className="pin-icon" />
+        </button>
+        
+        {/* Delete button - host only */}
         {isHost && (
-          <>
-            <button
-              onClick={handlePinToTop}
-              disabled={isPinning}
-              className="pin-button"
-              title="Pin after current track"
-            >
-              <ArrowUp className="pin-icon" />
-            </button>
-            <button
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className="delete-button"
-              title="Delete track"
-            >
-              <Trash2 className="trash-icon" />
-            </button>
-          </>
+          <button
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="delete-button"
+            title="Delete track"
+          >
+            <Trash2 className="trash-icon" />
+          </button>
         )}
       </div>
+      
+      {/* Render pin confirmation dialog in a portal */}
+      {renderPinConfirmationPortal()}
     </li>
   );
 };

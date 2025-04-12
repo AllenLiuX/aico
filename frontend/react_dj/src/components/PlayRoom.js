@@ -12,7 +12,8 @@ import {
   PendingRequestsSection, 
   PlaylistInfoSection, 
   QRCodeModal,
-  LyricsSection
+  LyricsSection,
+  PinPriceSettings
 } from './playroom-components';
 import RequestNotificationModal from './RequestNotificationModal';
 import { ToggleLeft, ToggleRight, Edit, RefreshCw, PlusCircle } from 'lucide-react';
@@ -373,18 +374,32 @@ function PlayRoom() {
   };
 
   // Handle pin to top action (requires updating playlist state)
-  const handlePinTrack = async (selectedIndex, currentPlayingIndex) => {
-    // Only allow host to pin tracks
-    if (!isHost) return;
+  const handlePinTrack = async (selectedIndex, currentPlayingIndex, isGuestPin = false) => {
+    // If user is host, pin directly
+    if (isHost) {
+      // Convert page-relative index to absolute index in the full playlist
+      const actualIndex = (currentPage - 1) * SONGS_PER_PAGE + selectedIndex;
+      
+      // Pass the actual index to the backend
+      const newPlaylist = await handlePinToTop(actualIndex, currentPlayingIndex);
+      if (newPlaylist) {
+        setPlaylist(newPlaylist);
+        showNotificationMessage('Track Pinned', 'Track will play after the current song', 'success');
+      }
+      return;
+    }
     
-    // Convert page-relative index to absolute index in the full playlist
-    const actualIndex = (currentPage - 1) * SONGS_PER_PAGE + selectedIndex;
-    
-    // Pass the actual index to the backend
-    const newPlaylist = await handlePinToTop(actualIndex, currentPlayingIndex);
-    if (newPlaylist) {
-      setPlaylist(newPlaylist);
-      showNotificationMessage('Track Pinned', 'Track will play after the current song', 'success');
+    // For guests, use the coin-based pinning
+    if (isGuestPin) {
+      // Convert page-relative index to absolute index in the full playlist
+      const actualIndex = (currentPage - 1) * SONGS_PER_PAGE + selectedIndex;
+      
+      // Pass the actual index to the backend with guest flag
+      const newPlaylist = await handlePinToTop(actualIndex, currentPlayingIndex, true);
+      if (newPlaylist) {
+        setPlaylist(newPlaylist);
+        showNotificationMessage('Track Pinned', 'Track will play after the current song', 'success');
+      }
     }
   };
 
@@ -676,44 +691,54 @@ function PlayRoom() {
             
             {/* Right Column: Playlist with Pagination */}
             <div className="right-column">
-              <PlaylistSection
-                playlist={getCurrentPageSongs()}
-                fullPlaylistLength={playlist.length}
-                isHost={isHost}
-                currentTrack={getPageRelativeCurrentTrack()}
-                roomName={roomName}
-                onTrackClick={handlePlaySpecificTrack}
-                onTrackDelete={handleTrackDelete}
-                onPinToTop={handlePinTrack}
-                stopProgressTracking={stopProgressTracking}
-                onAddMusicClick={handleSearchMusic}
-                onGeneratePlaylistClick={handleGeneratePlaylist}
-                onRefreshPlaylist={refreshPlaylist}
-                isRefreshing={refreshingPlaylist}
-              />
-              
-              {/* Pagination Controls */}
-              {playlist.length > SONGS_PER_PAGE && (
-                <div className="pagination-controls">
-                  <button 
-                    className="pagination-button" 
-                    onClick={handlePrevPage}
-                    disabled={currentPage === 1}
-                  >
-                    Previous
-                  </button>
-                  <span className="pagination-info">
-                    Page {currentPage} of {totalPages}
-                  </span>
-                  <button 
-                    className="pagination-button" 
-                    onClick={handleNextPage}
-                    disabled={currentPage === totalPages}
-                  >
-                    Next
-                  </button>
-                </div>
-              )}
+              <div className="playlist-container">
+                <PlaylistSection
+                  playlist={getCurrentPageSongs()}
+                  fullPlaylistLength={playlist.length}
+                  isHost={isHost}
+                  currentTrack={getPageRelativeCurrentTrack()}
+                  roomName={roomName}
+                  onTrackClick={handlePlaySpecificTrack}
+                  onTrackDelete={handleTrackDelete}
+                  onPinToTop={handlePinTrack}
+                  stopProgressTracking={stopProgressTracking}
+                  onAddMusicClick={handleSearchMusic}
+                  onGeneratePlaylistClick={handleGeneratePlaylist}
+                  onRefreshPlaylist={refreshPlaylist}
+                  isRefreshing={refreshingPlaylist}
+                />
+                
+                {/* Pin Price Settings (Host Only) */}
+                {isHost && (
+                  <PinPriceSettings 
+                    roomName={roomName}
+                    isHost={isHost}
+                  />
+                )}
+                
+                {/* Pagination Controls */}
+                {playlist.length > SONGS_PER_PAGE && (
+                  <div className="pagination-controls">
+                    <button 
+                      className="pagination-button" 
+                      onClick={handlePrevPage}
+                      disabled={currentPage === 1}
+                    >
+                      Previous
+                    </button>
+                    <span className="pagination-info">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <button 
+                      className="pagination-button" 
+                      onClick={handleNextPage}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

@@ -1,0 +1,149 @@
+.pin-price-settings {
+  margin-top: 12px;
+}
+
+.settings-toggle-button {
+  background-color: #2d2d2d;
+  border: 1px solid #444;
+  color: #03dac6;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  transition: background-color 0.2s ease;
+}
+
+.settings-toggle-button:hover {
+  background-color: #3d3d3d;
+}
+
+.pin-settings-panel {
+  background-color: #2d2d2d;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 16px;
+  position: relative;
+  margin-top: 8px;
+  animation: fadeIn 0.2s ease;
+}
+
+.close-settings {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: transparent;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.close-settings:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.pin-settings-panel h4 {
+  margin-top: 0;
+  margin-bottom: 8px;
+  color: #fff;
+  font-size: 16px;
+}
+
+.settings-description {
+  color: #aaa;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.price-input-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.price-input-container label {
+  color: #ccc;
+  font-size: 14px;
+}
+
+.price-input-container input {
+  background-color: #222;
+  border: 1px solid #444;
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 4px;
+  width: 80px;
+  font-size: 14px;
+}
+
+.price-input-container input:focus {
+  outline: none;
+  border-color: #03dac6;
+}
+
+.settings-error {
+  color: #cf6679;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.settings-success {
+  color: #03dac6;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.save-settings {
+  background-color: #03dac6;
+  color: #000;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.save-settings:hover {
+  background-color: #00c4b4;
+}
+
+.save-settings:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 480px) {
+  .pin-settings-panel {
+    padding: 12px;
+  }
+  
+  .price-input-container {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  
+  .price-input-container input {
+    width: 100%;
+  }
+}

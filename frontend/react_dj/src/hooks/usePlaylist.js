@@ -232,7 +232,7 @@ const usePlaylist = (roomName, isHost) => {
   };
 
   // Handle pin to top action
-  const handlePinToTop = async (actualIndex, currentPlayingIndex) => {
+  const handlePinToTop = async (actualIndex, currentPlayingIndex, isGuestPin = false) => {
     try {
       const trackToPin = playlist[actualIndex];
       
@@ -241,12 +241,14 @@ const usePlaylist = (roomName, isHost) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': localStorage.getItem('token') // Add token for guest authentication
         },
         body: JSON.stringify({
           room_name: roomName,
           track_id: trackToPin.song_id,
           current_playing_index: currentPlayingIndex,
-          selected_index: actualIndex
+          selected_index: actualIndex,
+          is_guest_pin: isGuestPin // Flag to indicate if this is a guest pin
         })
       });
 

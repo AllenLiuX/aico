@@ -39,8 +39,9 @@ import werkzeug.utils
 from werkzeug.utils import secure_filename
 from routes.activity_routes import activity_routes
 from routes.payment_routes import payment_routes
+from routes.coin_routes import coin_routes
 from placeholder import init_placeholder_routes
-from util.coin_manager import get_user_coins, set_user_coins, add_user_coins
+from util.coin_manager import get_user_coins, set_user_coins, add_user_coins, use_user_coins
 
 # Import the example prompts
 from data.example_prompts import EXAMPLE_PROMPTS
@@ -70,8 +71,9 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 CORS(app, supports_credentials=True)
 
 # Register blueprints
-app.register_blueprint(activity_routes, url_prefix='/api/user-activity')
+app.register_blueprint(activity_routes, url_prefix='/api/activity')
 app.register_blueprint(payment_routes, url_prefix='/api/payments')
+app.register_blueprint(coin_routes, url_prefix='/api/coins')
 
 # Initialize placeholder routes
 init_placeholder_routes(app)
@@ -2422,34 +2424,130 @@ def pin_track():
         track_id = data.get('track_id')
         current_playing_index = data.get('current_playing_index')
         selected_index = data.get('selected_index')
-
+        is_guest_pin = data.get('is_guest_pin', False)
+        
         if not all([room_name, track_id]):
             return jsonify({"error": "Missing required parameters"}), 400
-
+        
         # Get current playlist from Redis
         playlist_json = get_hash(f"room_playlists{redis_version}", room_name)
         if not playlist_json:
             return jsonify({"error": "Playlist not found"}), 404
-
+        
         playlist = json.loads(playlist_json)
-
+        
+        # If this is a guest pin, verify user authentication and deduct coins
+        if is_guest_pin:
+            # Get auth token from header
+            auth_header = request.headers.get('Authorization')
+            if not auth_header:
+                return jsonify({"error": "Authentication required for guest pinning"}), 401
+            
+            # Extract token from Authorization header
+            auth_token = auth_header
+            if auth_header.startswith('Bearer '):
+                auth_token = auth_header[7:]  # Remove 'Bearer ' prefix
+            
+            # Get username from token
+            username = get_hash(f"sessions{redis_version}", auth_token)
+            if not username:
+                return jsonify({"error": "Invalid session"}), 401
+            
+            # Get pin price for this room
+            pin_price_key = f"room_pin_price{redis_version}"
+            pin_price = get_hash(pin_price_key, room_name)
+            
+            # If no price is set, use default (10 coins)
+            if not pin_price:
+                pin_price = 10
+            else:
+                pin_price = int(pin_price)
+            
+            # Get room host
+            room_host = get_hash(f"room_hosts{redis_version}", room_name)
+            if not room_host:
+                return jsonify({"error": "Room host not found"}), 404
+                
+            # Use coins for pinning
+            result = use_user_coins(
+                username=username,
+                amount=pin_price,
+                feature=f"Pin track in room {room_name}"
+            )
+            
+            if not result["success"]:
+                return jsonify({
+                    "error": "Insufficient coins",
+                    "current_coins": result.get("coins", 0),
+                    "required_coins": pin_price
+                }), 400
+            
+            # Add 50% of the coins to the host's balance
+            host_reward = pin_price // 2  # Integer division to get 50%
+            if host_reward > 0 and room_host != username:  # Don't reward if pinning in own room
+                add_user_coins(
+                    username=room_host,
+                    amount=host_reward,
+                    reason=f"Reward for guest pinning track in room {room_name}"
+                )
+                
+                # Log the host reward
+                user_logging.log_user_activity(
+                    username=room_host,
+                    action="receive_pin_reward",
+                    details={
+                        "room_name": room_name,
+                        "track_id": track_id,
+                        "coins_received": host_reward,
+                        "from_user": username
+                    }
+                )
+            
+            # Log the pin action
+            user_logging.log_user_activity(
+                username=username,
+                action="pin_track",
+                details={
+                    "room_name": room_name,
+                    "track_id": track_id,
+                    "coins_used": pin_price,
+                    "host_reward": host_reward
+                }
+            )
+        else:
+            # For host pins, verify that the user is the host
+            auth_header = request.headers.get('Authorization')
+            if auth_header:
+                if auth_header.startswith('Bearer '):
+                    auth_token = auth_header[7:]  # Remove 'Bearer ' prefix
+                else:
+                    auth_token = auth_header
+                
+                username = get_hash(f"sessions{redis_version}", auth_token)
+                if username:
+                    # Check if user is the host
+                    room_host = get_hash(f"room_hosts{redis_version}", room_name)
+                    if room_host and room_host != username:
+                        # Non-host users must use coins
+                        return jsonify({"error": "Only the host can pin tracks without coins"}), 403
+        
         # Calculate the actual position to insert the track (after current playing track)
         insert_position = current_playing_index + 1
-
+        
         # Remove the track from its current position
         track_to_pin = playlist.pop(selected_index)
-
+        
         # Insert the track after the currently playing track
         playlist.insert(insert_position, track_to_pin)
-
+        
         # Update Redis with the new playlist order
         redis_api.write_hash(f"room_playlists{redis_version}", room_name, json.dumps(playlist))
-
+        
         return jsonify({
             "message": "Track pinned successfully",
             "playlist": playlist
         })
-
+        
     except Exception as e:
         logger.error(f"Error pinning track: {str(e)}")
         return jsonify({"error": "Failed to pin track"}), 500
@@ -3021,7 +3119,7 @@ def google_login():
                     "username": username,
                     "email": email,
                     "created_at": datetime.now().isoformat(),
-                    "has_avatar": False,
+                    "has_avatar": False,  # Initialize with no avatar
                     "google_user": True,
                     "google_picture": picture
                 }
