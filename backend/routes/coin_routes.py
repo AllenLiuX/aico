@@ -1,5 +1,6 @@
 import logging
 import json
+from datetime import datetime
 from flask import Blueprint, request, jsonify
 from util.redis_api import get_hash, write_hash, redis_version
 from util.coin_manager import get_user_coins, add_user_coins, use_user_coins
@@ -7,32 +8,72 @@ from util.coin_manager import get_user_coins, add_user_coins, use_user_coins
 # Set up logging
 logger = logging.getLogger(__name__)
 
-coin_routes = Blueprint('coin_routes', __name__)
+# Constants
+DEFAULT_PIN_PRICE = 10  # Default price for pinning tracks (in coins)
 
-# Default pin price
-DEFAULT_PIN_PRICE = 10
+# Create blueprint
+coin_routes = Blueprint('coin_routes', __name__)
 
 @coin_routes.route('/get-pin-price', methods=['GET'])
 def get_pin_price():
-    """Get the current pin price for a specific room"""
+    """Get the pin price for a specific room"""
     room_name = request.args.get('room_name')
-    
     if not room_name:
-        return jsonify({"error": "Room name is required"}), 400
+        return jsonify({"error": "Missing room_name parameter"}), 400
     
     try:
         # Get pin price from Redis
         pin_price_key = f"room_pin_price{redis_version}"
-        pin_price = get_hash(pin_price_key, room_name)
+        price = get_hash(pin_price_key, room_name)
         
-        # If no price is set, use default
-        if not pin_price:
-            return jsonify({"price": DEFAULT_PIN_PRICE})
+        # Default price if not set
+        if not price:
+            price = "10"  # Default to 10 coins
+            
+            # Set default price in Redis
+            write_hash(pin_price_key, room_name, price)
         
-        return jsonify({"price": int(pin_price)})
+        # Get room host
+        room_host_data = get_hash(f"room_hosts{redis_version}", room_name)
+        host_username = None
+        host_avatar = None
+        
+        # Parse host data - could be a string username or a JSON object
+        if room_host_data:
+            try:
+                # Try to parse as JSON
+                host_data = json.loads(room_host_data)
+                if isinstance(host_data, dict) and 'username' in host_data:
+                    host_username = host_data['username']
+                    host_avatar = host_data.get('avatar', '/images/default_avatar.png')
+                else:
+                    host_username = room_host_data
+            except json.JSONDecodeError:
+                # If not JSON, assume it's just the username
+                host_username = room_host_data
+        
+        # Get auth token to check if user is the host
+        auth_header = request.headers.get('Authorization')
+        is_host = False
+        
+        if auth_header:
+            auth_token = auth_header
+            if auth_header.startswith('Bearer '):
+                auth_token = auth_header[7:]  # Remove 'Bearer ' prefix
+                
+            username = get_hash(f"sessions{redis_version}", auth_token)
+            if username and host_username == username:
+                is_host = True
+        
+        return jsonify({
+            "price": int(price),
+            "host": host_username,
+            "host_avatar": host_avatar,
+            "is_host": is_host
+        })
     except Exception as e:
         logger.error(f"Error getting pin price: {str(e)}")
-        return jsonify({"error": "Failed to get pin price", "price": DEFAULT_PIN_PRICE}), 500
+        return jsonify({"error": f"Failed to get pin price: {str(e)}"}), 500
 
 @coin_routes.route('/set-pin-price', methods=['POST'])
 def set_pin_price():
@@ -42,9 +83,11 @@ def set_pin_price():
         return jsonify({"error": "Authentication required"}), 401
 
     # Extract token from Authorization header
-    auth_token = auth_header
+    auth_token = None
     if auth_header.startswith('Bearer '):
         auth_token = auth_header[7:]  # Remove 'Bearer ' prefix
+    else:
+        auth_token = auth_header
 
     username = get_hash(f"sessions{redis_version}", auth_token)
     if not username:
@@ -66,9 +109,66 @@ def set_pin_price():
         except ValueError:
             return jsonify({"error": "Price must be a valid number"}), 400
         
+        # Check if room exists in playlist
+        playlist_data = get_hash(f"room_playlists{redis_version}", room_name)
+        if not playlist_data:
+            return jsonify({"error": "Room not found"}), 404
+        
         # Check if user is the host of the room
-        room_host = get_hash(f"room_hosts{redis_version}", room_name)
-        if not room_host or room_host != username:
+        room_host_data = get_hash(f"room_hosts{redis_version}", room_name)
+        host_username = None
+        
+        # Parse host data - could be a string username or a JSON object
+        if room_host_data:
+            try:
+                # Try to parse as JSON
+                host_data = json.loads(room_host_data)
+                if isinstance(host_data, dict) and 'username' in host_data:
+                    host_username = host_data['username']
+                else:
+                    host_username = room_host_data
+            except json.JSONDecodeError:
+                # If not JSON, assume it's just the username
+                host_username = room_host_data
+        
+        # If no host is set, set the current user as the host
+        if not host_username:
+            # Get user's avatar URL
+            user_data = get_hash(f"user_profiles{redis_version}", username)
+            avatar = None
+            if user_data:
+                try:
+                    user_profile = json.loads(user_data)
+                    avatar = user_profile.get('avatar_url')
+                except:
+                    pass
+            
+            # Set the current user as the host
+            host_data = {
+                "username": username,
+                "avatar": avatar or "/images/default_avatar.png",
+                "created_at": datetime.now().isoformat()
+            }
+            write_hash(f"room_hosts{redis_version}", room_name, json.dumps(host_data))
+            
+            # Add host info to room metadata
+            room_metadata_key = f"room_metadata{redis_version}"
+            room_metadata = get_hash(room_metadata_key, room_name)
+            
+            if room_metadata:
+                try:
+                    metadata = json.loads(room_metadata)
+                    metadata['host'] = username
+                    metadata['host_avatar'] = avatar
+                    write_hash(room_metadata_key, room_name, json.dumps(metadata))
+                except:
+                    pass
+            
+            logger.info(f"Set {username} as host for room {room_name}")
+            host_username = username
+        
+        # Check if user is the host
+        if host_username != username:
             return jsonify({"error": "Only the room host can set the pin price"}), 403
         
         # Set pin price in Redis
@@ -79,7 +179,7 @@ def set_pin_price():
         return jsonify({"success": True, "price": price})
     except Exception as e:
         logger.error(f"Error setting pin price: {str(e)}")
-        return jsonify({"error": "Failed to set pin price"}), 500
+        return jsonify({"error": f"Failed to set pin price: {str(e)}"}), 500
 
 @coin_routes.route('/get-room-pin-settings', methods=['GET'])
 def get_room_pin_settings():
@@ -101,12 +201,43 @@ def get_room_pin_settings():
             pin_price = int(pin_price)
         
         # Get room host
-        room_host = get_hash(f"room_hosts{redis_version}", room_name)
+        room_host_data = get_hash(f"room_hosts{redis_version}", room_name)
+        host_username = None
+        host_avatar = None
+        
+        # Parse host data - could be a string username or a JSON object
+        if room_host_data:
+            try:
+                # Try to parse as JSON
+                host_data = json.loads(room_host_data)
+                if isinstance(host_data, dict) and 'username' in host_data:
+                    host_username = host_data['username']
+                    host_avatar = host_data.get('avatar', '/images/default_avatar.png')
+                else:
+                    host_username = room_host_data
+            except json.JSONDecodeError:
+                # If not JSON, assume it's just the username
+                host_username = room_host_data
+        
+        # Check if user is the host
+        auth_header = request.headers.get('Authorization')
+        is_host = False
+        
+        if auth_header and host_username:
+            auth_token = auth_header
+            if auth_header.startswith('Bearer '):
+                auth_token = auth_header[7:]  # Remove 'Bearer ' prefix
+                
+            username = get_hash(f"sessions{redis_version}", auth_token)
+            if username and host_username == username:
+                is_host = True
         
         return jsonify({
             "pin_price": pin_price,
-            "host": room_host
+            "host": host_username,
+            "host_avatar": host_avatar,
+            "is_host": is_host
         })
     except Exception as e:
         logger.error(f"Error getting room pin settings: {str(e)}")
-        return jsonify({"error": "Failed to get room pin settings"}), 500
+        return jsonify({"error": f"Failed to get room pin settings: {str(e)}"}), 500

@@ -2464,7 +2464,22 @@ def pin_track():
                 pin_price = int(pin_price)
             
             # Get room host
-            room_host = get_hash(f"room_hosts{redis_version}", room_name)
+            room_host_data = get_hash(f"room_hosts{redis_version}", room_name)
+            room_host = None
+            
+            # Parse host data - could be a string username or a JSON object
+            if room_host_data:
+                try:
+                    # Try to parse as JSON
+                    host_data = json.loads(room_host_data)
+                    if isinstance(host_data, dict) and 'username' in host_data:
+                        room_host = host_data['username']
+                    else:
+                        room_host = room_host_data
+                except json.JSONDecodeError:
+                    # If not JSON, assume it's just the username
+                    room_host = room_host_data
+                    
             if not room_host:
                 return jsonify({"error": "Room host not found"}), 404
                 
@@ -2526,7 +2541,22 @@ def pin_track():
                 username = get_hash(f"sessions{redis_version}", auth_token)
                 if username:
                     # Check if user is the host
-                    room_host = get_hash(f"room_hosts{redis_version}", room_name)
+                    room_host_data = get_hash(f"room_hosts{redis_version}", room_name)
+                    room_host = None
+                    
+                    # Parse host data - could be a string username or a JSON object
+                    if room_host_data:
+                        try:
+                            # Try to parse as JSON
+                            host_data = json.loads(room_host_data)
+                            if isinstance(host_data, dict) and 'username' in host_data:
+                                room_host = host_data['username']
+                            else:
+                                room_host = room_host_data
+                        except json.JSONDecodeError:
+                            # If not JSON, assume it's just the username
+                            room_host = room_host_data
+                            
                     if room_host and room_host != username:
                         # Non-host users must use coins
                         return jsonify({"error": "Only the host can pin tracks without coins"}), 403
@@ -2983,8 +3013,8 @@ def log_song_play():
         if auth_token:
             # Extract token from Bearer format
             if auth_token.startswith('Bearer '):
-                auth_token = auth_token[7:]
-                
+                auth_token = auth_token[7:]  # Remove 'Bearer ' prefix
+            
             token_username = get_hash(f"sessions{redis_version}", auth_token)
             if token_username:
                 username = token_username
