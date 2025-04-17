@@ -71,7 +71,7 @@ ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 CORS(app, supports_credentials=True)
 
 # Register blueprints
-app.register_blueprint(activity_routes, url_prefix='/api/activity')
+app.register_blueprint(activity_routes, url_prefix='/api/user-activity')
 app.register_blueprint(payment_routes, url_prefix='/api/payments')
 app.register_blueprint(coin_routes, url_prefix='/api/coins')
 
@@ -308,8 +308,8 @@ def deduplicate_playlist(existing_playlist, new_playlist):
 def generate_playlist():
     data = request.json
     prompt = data.get('prompt')
-    genre = data.get('genre')
-    occasion = data.get('occasion')
+    genre = data.get('genre', '')
+    occasion = data.get('occasion', '')
     room_name = data.get('room_name')
     song_count = data.get('song_count', 20)  # Default to 20 if not provided
     append_to_room = data.get('append_to_room', False)  # New parameter to handle append mode
@@ -518,6 +518,26 @@ def search_music():
 
     if search_type == 'artist':
         results = youtube_music.search_artist_tracks(query, max_results=50)
+    elif search_type == 'prompt':
+        # Use the LLM to generate song recommendations based on the prompt
+        try:
+            # Default to 10 songs for prompt-based search
+            song_count = 10
+            titles, artists, _, _ = llm.llm_generate_playlist(query, "", "", song_count)
+            
+            results = []
+            for title, artist in zip(titles, artists):
+                try:
+                    logger.info(f'getting links for {title}...')
+                    song_info = youtube_music.get_song_info(song_name=title, artist_name=artist)
+                    results.append(song_info)
+                except Exception as e:
+                    logger.info(f'----failed for {title}, {artist}', e)
+            
+            logger.info(f"Prompt search results: {results}")
+        except Exception as e:
+            logger.error(f"Error in prompt search: {str(e)}")
+            results = []
     else:
         results = youtube_music.search_song_tracks(query, max_results=30)
         
@@ -2790,212 +2810,220 @@ def get_room_logs(room_name):
         logger.error(f"Error getting room logs: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
-# Helper function to check admin status
-def check_admin_status():
-    """Check if the current user has admin status"""
-    try:
-        # Get auth token from request
-        auth_token = request.headers.get('Authorization')
-        if not auth_token:
-            logger.warning("Admin check: No token provided")
-            return False, jsonify({"error": "No token provided"}), 401
+# # Helper function to check admin status
+# def check_admin_status():
+#     """Check if the current user has admin status"""
+#     try:
+#         # Get auth token from request
+#         auth_header = request.headers.get('Authorization')
+#         if not auth_header:
+#             logger.warning("Admin check: No token provided")
+#             return False, jsonify({"error": "No token provided"}), 401
         
-        # Get username from session
-        # redis_version = os.environ.get('REDIS_VERSION', '')
-        username = redis_api.get_hash(f"sessions{redis_version}", auth_token)
-        logger.info(f"Admin check: Username from token: {username}")
+#         # Extract token from Bearer format
+#         if auth_header.startswith('Bearer '):
+#             auth_token = auth_header[7:]  # Remove 'Bearer ' prefix
+#         else:
+#             auth_token = auth_header
+            
+#         logger.info(f"Admin check: Processing token: {auth_token[:10]}...")
         
-        if not username:
-            logger.warning(f"Admin check: Invalid or expired token: {auth_token[:10]}...")
-            return False, jsonify({"error": "Invalid or expired token"}), 401
+#         # Get username from session
+#         # redis_version = os.environ.get('REDIS_VERSION', '')
+#         username = redis_api.get_hash(f"sessions{redis_version}", auth_token)
+#         logger.info(f"Admin check: Username from token: {username}")
         
-        # Check if user is in admin list
-        if username in ADMIN_USERS:
-            logger.info(f"Admin check: {username} is in admin list")
-            return True, username, None
+#         if not username:
+#             logger.warning(f"Admin check: Invalid or expired token: {auth_token[:10]}...")
+#             return False, jsonify({"error": "Invalid or expired token"}), 401
         
-        # Check user data for admin status
-        user_data = redis_api.get_user_data(username)
-        is_admin = user_data.get('is_admin', False)
+#         # Check if user is in admin list
+#         if username in ADMIN_USERS:
+#             logger.info(f"Admin check: {username} is in admin list")
+#             return True, username, None
         
-        if not is_admin:
-            logger.warning(f"Admin check: {username} is not an admin")
-            return False, jsonify({"error": "Unauthorized access"}), 403
+#         # Check user data for admin status
+#         user_data = redis_api.get_user_data(username)
+#         is_admin = user_data.get('is_admin', False)
         
-        logger.info(f"Admin check: {username} is an admin from user data")
-        return True, username, None
-    except Exception as e:
-        logger.error(f"Error checking admin status: {str(e)}")
-        return False, jsonify({"error": str(e)}), 500
+#         if not is_admin:
+#             logger.warning(f"Admin check: {username} is not an admin")
+#             return False, jsonify({"error": "Unauthorized access"}), 403
+        
+#         logger.info(f"Admin check: {username} is an admin from user data")
+#         return True, username, None
+#     except Exception as e:
+#         logger.error(f"Error checking admin status: {str(e)}")
+#         return False, jsonify({"error": str(e)}), 500
 
-# Admin Dashboard API Endpoints
-@app.route('/api/user-activity/export/song-interactions', methods=['GET'])
-def export_song_interactions():
-    """Export song interactions data for admin dashboard"""
-    logger.info("Admin endpoint: Exporting song interactions")
+# # Admin Dashboard API Endpoints
+# @app.route('/api/user-activity/export/song-interactions', methods=['GET'])
+# def export_song_interactions():
+#     """Export song interactions data for admin dashboard"""
+#     logger.info("Admin endpoint: Exporting song interactions")
     
-    # Check admin status
-    is_admin, response, status_code = check_admin_status()
-    if not is_admin:
-        return response, status_code
+#     # Check admin status
+#     is_admin, response, status_code = check_admin_status()
+#     if not is_admin:
+#         return response, status_code
     
-    # Return dummy data for testing
-    return jsonify({
-        "success": True,
-        "data": [
-            {
-                "song_id": "youtube_dQw4w9WgXcQ",
-                "title": "Rick Astley - Never Gonna Give You Up",
-                "username": "vincentliux",
-                "action": "play",
-                "timestamp": "2025-03-19T10:30:00"
-            },
-            {
-                "song_id": "youtube_9bZkp7q19f0",
-                "title": "PSY - GANGNAM STYLE",
-                "username": "vincentliux",
-                "action": "favorite",
-                "timestamp": "2025-03-19T11:15:00"
-            },
-            {
-                "song_id": "youtube_kJQP7kiw5Fk",
-                "title": "Luis Fonsi - Despacito ft. Daddy Yankee",
-                "username": "user123",
-                "action": "add",
-                "timestamp": "2025-03-19T12:00:00"
-            }
-        ]
-    })
+#     # Return dummy data for testing
+#     return jsonify({
+#         "success": True,
+#         "data": [
+#             {
+#                 "song_id": "youtube_dQw4w9WgXcQ",
+#                 "title": "Rick Astley - Never Gonna Give You Up",
+#                 "username": "vincentliux",
+#                 "action": "play",
+#                 "timestamp": "2025-03-19T10:30:00"
+#             },
+#             {
+#                 "song_id": "youtube_9bZkp7q19f0",
+#                 "title": "PSY - GANGNAM STYLE",
+#                 "username": "vincentliux",
+#                 "action": "favorite",
+#                 "timestamp": "2025-03-19T11:15:00"
+#             },
+#             {
+#                 "song_id": "youtube_kJQP7kiw5Fk",
+#                 "title": "Luis Fonsi - Despacito ft. Daddy Yankee",
+#                 "username": "user123",
+#                 "action": "add",
+#                 "timestamp": "2025-03-19T12:00:00"
+#             }
+#         ]
+#     })
 
-@app.route('/api/user-activity/export/room-interactions', methods=['GET'])
-def export_room_interactions():
-    """Export room interactions data for admin dashboard"""
-    logger.info("Admin endpoint: Exporting room interactions")
+# @app.route('/api/user-activity/export/room-interactions', methods=['GET'])
+# def export_room_interactions():
+#     """Export room interactions data for admin dashboard"""
+#     logger.info("Admin endpoint: Exporting room interactions")
     
-    # Check admin status
-    is_admin, response, status_code = check_admin_status()
-    if not is_admin:
-        return response, status_code
+#     # Check admin status
+#     is_admin, response, status_code = check_admin_status()
+#     if not is_admin:
+#         return response, status_code
     
-    # Return dummy data for testing
-    return jsonify({
-        "success": True,
-        "data": [
-            {
-                "room_name": "Marvel",
-                "username": "vincentliux",
-                "action": "join_room",
-                "timestamp": "2025-03-19T09:30:00"
-            },
-            {
-                "room_name": "favorites_vincentliux",
-                "username": "vincentliux",
-                "action": "create_room",
-                "timestamp": "2025-03-19T09:41:04"
-            },
-            {
-                "room_name": "Marvel",
-                "username": "user123",
-                "action": "favorite_room",
-                "timestamp": "2025-03-19T10:15:00"
-            }
-        ]
-    })
+#     # Return dummy data for testing
+#     return jsonify({
+#         "success": True,
+#         "data": [
+#             {
+#                 "room_name": "Marvel",
+#                 "username": "vincentliux",
+#                 "action": "join_room",
+#                 "timestamp": "2025-03-19T09:30:00"
+#             },
+#             {
+#                 "room_name": "favorites_vincentliux",
+#                 "username": "vincentliux",
+#                 "action": "create_room",
+#                 "timestamp": "2025-03-19T09:41:04"
+#             },
+#             {
+#                 "room_name": "Marvel",
+#                 "username": "user123",
+#                 "action": "favorite_room",
+#                 "timestamp": "2025-03-19T10:15:00"
+#             }
+#         ]
+#     })
 
-@app.route('/api/user-activity/export/song-features', methods=['GET'])
-def export_song_features():
-    """Export song features data for admin dashboard"""
-    logger.info("Admin endpoint: Exporting song features")
+# @app.route('/api/user-activity/export/song-features', methods=['GET'])
+# def export_song_features():
+#     """Export song features data for admin dashboard"""
+#     logger.info("Admin endpoint: Exporting song features")
     
-    # Check admin status
-    is_admin, response, status_code = check_admin_status()
-    if not is_admin:
-        return response, status_code
+#     # Check admin status
+#     is_admin, response, status_code = check_admin_status()
+#     if not is_admin:
+#         return response, status_code
     
-    # Return dummy data for testing
-    return jsonify({
-        "success": True,
-        "data": [
-            {
-                "song_id": "youtube_dQw4w9WgXcQ",
-                "title": "Rick Astley - Never Gonna Give You Up",
-                "play_count": 42,
-                "favorite_count": 15,
-                "add_count": 20,
-                "remove_count": 5
-            },
-            {
-                "song_id": "youtube_9bZkp7q19f0",
-                "title": "PSY - GANGNAM STYLE",
-                "play_count": 38,
-                "favorite_count": 12,
-                "add_count": 18,
-                "remove_count": 3
-            },
-            {
-                "song_id": "youtube_kJQP7kiw5Fk",
-                "title": "Luis Fonsi - Despacito ft. Daddy Yankee",
-                "play_count": 35,
-                "favorite_count": 10,
-                "add_count": 15,
-                "remove_count": 2
-            }
-        ]
-    })
+#     # Return dummy data for testing
+#     return jsonify({
+#         "success": True,
+#         "data": [
+#             {
+#                 "song_id": "youtube_dQw4w9WgXcQ",
+#                 "title": "Rick Astley - Never Gonna Give You Up",
+#                 "play_count": 42,
+#                 "favorite_count": 15,
+#                 "add_count": 20,
+#                 "remove_count": 5
+#             },
+#             {
+#                 "song_id": "youtube_9bZkp7q19f0",
+#                 "title": "PSY - GANGNAM STYLE",
+#                 "play_count": 38,
+#                 "favorite_count": 12,
+#                 "add_count": 18,
+#                 "remove_count": 3
+#             },
+#             {
+#                 "song_id": "youtube_kJQP7kiw5Fk",
+#                 "title": "Luis Fonsi - Despacito ft. Daddy Yankee",
+#                 "play_count": 35,
+#                 "favorite_count": 10,
+#                 "add_count": 15,
+#                 "remove_count": 2
+#             }
+#         ]
+#     })
 
-@app.route('/api/user-activity/export/room-features', methods=['GET'])
-def export_room_features():
-    """Export room features data for admin dashboard"""
-    logger.info("Admin endpoint: Exporting room features")
+# @app.route('/api/user-activity/export/room-features', methods=['GET'])
+# def export_room_features():
+#     """Export room features data for admin dashboard"""
+#     logger.info("Admin endpoint: Exporting room features")
     
-    # Check admin status
-    is_admin, response, status_code = check_admin_status()
-    if not is_admin:
-        return response, status_code
+#     # Check admin status
+#     is_admin, response, status_code = check_admin_status()
+#     if not is_admin:
+#         return response, status_code
     
-    # Return dummy data for testing
-    return jsonify({
-        "success": True,
-        "data": [
-            {
-                "room_name": "Marvel",
-                "join_count": 25,
-                "favorite_count": 10,
-                "song_count": 15,
-                "host": "vincentliux"
-            },
-            {
-                "room_name": "favorites_vincentliux",
-                "join_count": 15,
-                "favorite_count": 8,
-                "song_count": 12,
-                "host": "vincentliux"
-            },
-            {
-                "room_name": "Chill Vibes",
-                "join_count": 20,
-                "favorite_count": 12,
-                "song_count": 18,
-                "host": "user123"
-            }
-        ]
-    })
+#     # Return dummy data for testing
+#     return jsonify({
+#         "success": True,
+#         "data": [
+#             {
+#                 "room_name": "Marvel",
+#                 "join_count": 25,
+#                 "favorite_count": 10,
+#                 "song_count": 15,
+#                 "host": "vincentliux"
+#             },
+#             {
+#                 "room_name": "favorites_vincentliux",
+#                 "join_count": 15,
+#                 "favorite_count": 8,
+#                 "song_count": 12,
+#                 "host": "vincentliux"
+#             },
+#             {
+#                 "room_name": "Chill Vibes",
+#                 "join_count": 20,
+#                 "favorite_count": 12,
+#                 "song_count": 18,
+#                 "host": "user123"
+#             }
+#         ]
+#     })
 
-@app.route('/api/user-activity/export/dataset', methods=['GET'])
-def export_recommendation_dataset():
-    """Export complete dataset for recommendation system"""
-    logger.info("Admin endpoint: Exporting recommendation dataset")
+# @app.route('/api/user-activity/export/dataset', methods=['GET'])
+# def export_recommendation_dataset():
+#     """Export complete dataset for recommendation system"""
+#     logger.info("Admin endpoint: Exporting recommendation dataset")
     
-    # Check admin status
-    is_admin, response, status_code = check_admin_status()
-    if not is_admin:
-        return response, status_code
+#     # Check admin status
+#     is_admin, response, status_code = check_admin_status()
+#     if not is_admin:
+#         return response, status_code
     
-    # Return success message for testing
-    return jsonify({
-        "success": True,
-        "message": "Dataset export initiated. Download will start shortly."
-    })
+#     # Return success message for testing
+#     return jsonify({
+#         "success": True,
+#         "message": "Dataset export initiated. Download will start shortly."
+#     })
 
 @app.route('/api/songs/log-play', methods=['POST'])
 def log_song_play():

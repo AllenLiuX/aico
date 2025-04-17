@@ -1,7 +1,7 @@
 // SearchMusic.js - Updated with confirmation modal
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Search, ArrowLeft, Plus, Music, User } from 'lucide-react';
+import { Search, ArrowLeft, Plus, Music, User, Lightbulb } from 'lucide-react';
 import RequestNotificationModal from './RequestNotificationModal';
 import RequestConfirmModal from './RequestConfirmModal'; // Import the new component
 import { API_URL } from '../config';
@@ -197,7 +197,7 @@ function SearchMusic() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={`Search by ${searchType}`}
+              placeholder={`Search by ${searchType === 'artist' ? 'artist' : searchType === 'song' ? 'song' : 'prompt'}`}
               className="search-input"
             />
           </div>
@@ -224,6 +224,13 @@ function SearchMusic() {
           >
             <Music size={18} />
             Song
+          </button>
+          <button
+            className={`toggle-option ${searchType === 'prompt' ? 'active' : ''}`}
+            onClick={() => setSearchType('prompt')}
+          >
+            <Lightbulb size={18} />
+            Prompt
           </button>
         </div>
       </div>

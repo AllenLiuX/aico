@@ -33,7 +33,7 @@ function TabPanel(props) {
 }
 
 const AdminDashboard = () => {
-  const { user } = useContext(UserContext);
+  const { user, token } = useContext(UserContext);
   const navigate = useNavigate();
   const [tabValue, setTabValue] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -79,11 +79,11 @@ const AdminDashboard = () => {
     }
     
     // Load initial data if user is admin
-    if (user && user.is_admin) {
+    if (user && user.is_admin && token) {
       fetchSongFeatures();
       fetchRoomFeatures();
     }
-  }, [user, navigate]);
+  }, [user, navigate, token]);
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
@@ -105,7 +105,12 @@ const AdminDashboard = () => {
       setLoading(true);
       setError(null);
       
-      const token = localStorage.getItem('token');
+      if (!token) {
+        setError("Authentication token missing. Please log in again.");
+        setLoading(false);
+        return;
+      }
+      
       const response = await axios.get('/api/user-activity/export/song-interactions', {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -113,10 +118,11 @@ const AdminDashboard = () => {
       if (response.data.success) {
         setSongInteractions(response.data.data);
       } else {
-        setError("Failed to load song interactions");
+        setError(response.data.error || "Failed to load song interactions");
       }
     } catch (err) {
-      setError(err.message || "Failed to load song interactions");
+      console.error('Error fetching song interactions:', err);
+      setError(err.response?.data?.error || err.message || "Failed to load song interactions");
     } finally {
       setLoading(false);
     }
@@ -127,7 +133,12 @@ const AdminDashboard = () => {
       setLoading(true);
       setError(null);
       
-      const token = localStorage.getItem('token');
+      if (!token) {
+        setError("Authentication token missing. Please log in again.");
+        setLoading(false);
+        return;
+      }
+      
       const response = await axios.get('/api/user-activity/export/room-interactions', {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -135,10 +146,11 @@ const AdminDashboard = () => {
       if (response.data.success) {
         setRoomInteractions(response.data.data);
       } else {
-        setError("Failed to load room interactions");
+        setError(response.data.error || "Failed to load room interactions");
       }
     } catch (err) {
-      setError(err.message || "Failed to load room interactions");
+      console.error('Error fetching room interactions:', err);
+      setError(err.response?.data?.error || err.message || "Failed to load room interactions");
     } finally {
       setLoading(false);
     }
@@ -149,7 +161,12 @@ const AdminDashboard = () => {
       setLoading(true);
       setError(null);
       
-      const token = localStorage.getItem('token');
+      if (!token) {
+        setError("Authentication token missing. Please log in again.");
+        setLoading(false);
+        return;
+      }
+      
       console.log('Fetching song features with token:', token ? `${token.substring(0, 10)}...` : 'No token');
       
       const response = await axios.get('/api/user-activity/export/song-features', {
@@ -180,11 +197,11 @@ const AdminDashboard = () => {
         }));
       } else {
         console.error("Failed to load song features:", response.data.error || "Unknown error");
-        setError("Failed to load song features");
+        setError(response.data.error || "Failed to load song features");
       }
     } catch (err) {
       console.error('Error fetching song features:', err);
-      setError(err.message || "Failed to load song features");
+      setError(err.response?.data?.error || err.message || "Failed to load song features");
     } finally {
       setLoading(false);
     }
@@ -195,7 +212,12 @@ const AdminDashboard = () => {
       setLoading(true);
       setError(null);
       
-      const token = localStorage.getItem('token');
+      if (!token) {
+        setError("Authentication token missing. Please log in again.");
+        setLoading(false);
+        return;
+      }
+      
       console.log('Fetching room features with token:', token ? `${token.substring(0, 10)}...` : 'No token');
       
       const response = await axios.get('/api/user-activity/export/room-features', {
@@ -225,11 +247,11 @@ const AdminDashboard = () => {
         }));
       } else {
         console.error("Failed to load room features:", response.data.error || "Unknown error");
-        setError("Failed to load room features");
+        setError(response.data.error || "Failed to load room features");
       }
     } catch (err) {
       console.error('Error fetching room features:', err);
-      setError(err.message || "Failed to load room features");
+      setError(err.response?.data?.error || err.message || "Failed to load room features");
     } finally {
       setLoading(false);
     }
@@ -240,6 +262,12 @@ const AdminDashboard = () => {
       setLoading(true);
       setError(null);
       
+      if (!token) {
+        setError("Authentication token missing. Please log in again.");
+        setLoading(false);
+        return;
+      }
+      
       // Create a download link
       const link = document.createElement('a');
       link.href = `/api/user-activity/export/dataset?format=${format}&download=true`;
@@ -247,9 +275,16 @@ const AdminDashboard = () => {
       
       // Use fetch with credentials
       fetch(link.href, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        headers: { Authorization: `Bearer ${token}` }
       })
-      .then(response => response.blob())
+      .then(response => {
+        if (!response.ok) {
+          return response.json().then(data => {
+            throw new Error(data.error || `HTTP error! status: ${response.status}`);
+          });
+        }
+        return response.blob();
+      })
       .then(blob => {
         const url = window.URL.createObjectURL(blob);
         link.href = url;
@@ -259,44 +294,44 @@ const AdminDashboard = () => {
         window.URL.revokeObjectURL(url);
       })
       .catch(err => {
+        console.error('Error downloading dataset:', err);
         setError(err.message || "Failed to download dataset");
       })
       .finally(() => {
         setLoading(false);
       });
     } catch (err) {
+      console.error('Error initiating download:', err);
       setError(err.message || "Failed to download dataset");
       setLoading(false);
     }
   };
 
   // Sorting functions
-  const handleSortRequest = (table, property) => {
-    const isAsc = table.orderBy === property && table.order === 'asc';
-    
-    switch(table.name) {
-      case 'songInteractions':
-        setSongInteractionsOrder({
-          orderBy: property,
-          order: isAsc ? 'desc' : 'asc'
-        });
-        break;
-      case 'roomInteractions':
-        setRoomInteractionsOrder({
-          orderBy: property,
-          order: isAsc ? 'desc' : 'asc'
-        });
-        break;
-      case 'songFeatures':
+  const handleSortRequest = (property) => {
+    switch(tabValue) {
+      case 0: // Song Analytics
         setSongFeaturesOrder({
           orderBy: property,
-          order: isAsc ? 'desc' : 'asc'
+          order: songFeaturesOrder.orderBy === property && songFeaturesOrder.order === 'asc' ? 'desc' : 'asc'
         });
         break;
-      case 'roomFeatures':
+      case 1: // Room Analytics
         setRoomFeaturesOrder({
           orderBy: property,
-          order: isAsc ? 'desc' : 'asc'
+          order: roomFeaturesOrder.orderBy === property && roomFeaturesOrder.order === 'asc' ? 'desc' : 'asc'
+        });
+        break;
+      case 2: // Song Interactions
+        setSongInteractionsOrder({
+          orderBy: property,
+          order: songInteractionsOrder.orderBy === property && songInteractionsOrder.order === 'asc' ? 'desc' : 'asc'
+        });
+        break;
+      case 3: // Room Interactions
+        setRoomInteractionsOrder({
+          orderBy: property,
+          order: roomInteractionsOrder.orderBy === property && roomInteractionsOrder.order === 'asc' ? 'desc' : 'asc'
         });
         break;
       default:
@@ -391,8 +426,8 @@ const AdminDashboard = () => {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Typography variant="h4" gutterBottom>
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }} className="admin-dashboard">
+      <Typography variant="h4" gutterBottom className="dashboard-header">
         Admin Dashboard - User Activity Analysis
       </Typography>
       
@@ -405,48 +440,48 @@ const AdminDashboard = () => {
       {/* Stats Cards */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid item xs={12} sm={6} md={3}>
-          <Card>
+          <Card className="stats-card">
             <CardContent>
-              <Typography color="textSecondary" gutterBottom>
+              <Typography color="textSecondary" gutterBottom className="stats-card-title">
                 Total Songs
               </Typography>
-              <Typography variant="h5">
+              <Typography variant="h5" className="stats-card-value">
                 {stats.totalSongs}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <Card>
+          <Card className="stats-card">
             <CardContent>
-              <Typography color="textSecondary" gutterBottom>
+              <Typography color="textSecondary" gutterBottom className="stats-card-title">
                 Total Rooms
               </Typography>
-              <Typography variant="h5">
+              <Typography variant="h5" className="stats-card-value">
                 {stats.totalRooms}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <Card>
+          <Card className="stats-card">
             <CardContent>
-              <Typography color="textSecondary" gutterBottom>
+              <Typography color="textSecondary" gutterBottom className="stats-card-title">
                 Total Interactions
               </Typography>
-              <Typography variant="h5">
+              <Typography variant="h5" className="stats-card-value">
                 {stats.totalInteractions}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
-          <Card>
+          <Card className="stats-card">
             <CardContent>
-              <Typography color="textSecondary" gutterBottom>
+              <Typography color="textSecondary" gutterBottom className="stats-card-title">
                 Unique Users
               </Typography>
-              <Typography variant="h5">
+              <Typography variant="h5" className="stats-card-value">
                 {stats.uniqueUsers}
               </Typography>
             </CardContent>
@@ -455,7 +490,7 @@ const AdminDashboard = () => {
       </Grid>
       
       {/* Download Buttons */}
-      <Box sx={{ mb: 3, display: 'flex', gap: 2 }}>
+      <Box sx={{ mb: 3, display: 'flex', gap: 2 }} className="download-buttons">
         <Button 
           variant="contained" 
           color="primary" 
@@ -491,46 +526,48 @@ const AdminDashboard = () => {
         </Tabs>
         
         {/* Song Analytics Tab */}
-        <TabPanel value={tabValue} index={0}>
+        <TabPanel value={tabValue} index={0} className="tab-panel">
           <Typography variant="h6" gutterBottom>
             Top Songs by Popularity
           </Typography>
           
           {loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }} className="loading-container">
               <CircularProgress />
             </Box>
           ) : (
             <>
-              <ResponsiveContainer width="100%" height={400}>
-                <BarChart
-                  data={topSongsData}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="plays" fill="#8884d8" name="Play Count" />
-                  <Bar dataKey="favorites" fill="#82ca9d" name="Favorite Count" />
-                  <Bar dataKey="adds" fill="#ffc658" name="Add Count" />
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="chart-container">
+                <ResponsiveContainer width="100%" height={400}>
+                  <BarChart
+                    data={topSongsData}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="plays" fill="#8884d8" name="Play Count" />
+                    <Bar dataKey="favorites" fill="#82ca9d" name="Favorite Count" />
+                    <Bar dataKey="adds" fill="#ffc658" name="Add Count" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
               
               <Typography variant="h6" gutterBottom sx={{ mt: 4 }}>
                 Song Details
               </Typography>
               
               <TableContainer component={Paper}>
-                <Table>
+                <Table className="data-table">
                   <TableHead>
                     <TableRow>
                       <TableCell>
                         <TableSortLabel
                           active={songFeaturesOrder.orderBy === 'title'}
                           direction={songFeaturesOrder.order}
-                          onClick={() => handleSortRequest({ name: 'songFeatures', orderBy: 'title', order: songFeaturesOrder.order }, 'title')}
+                          onClick={() => handleSortRequest('title')}
                         >
                           Title
                         </TableSortLabel>
@@ -539,7 +576,7 @@ const AdminDashboard = () => {
                         <TableSortLabel
                           active={songFeaturesOrder.orderBy === 'artist'}
                           direction={songFeaturesOrder.order}
-                          onClick={() => handleSortRequest({ name: 'songFeatures', orderBy: 'artist', order: songFeaturesOrder.order }, 'artist')}
+                          onClick={() => handleSortRequest('artist')}
                         >
                           Artist
                         </TableSortLabel>
@@ -548,7 +585,7 @@ const AdminDashboard = () => {
                         <TableSortLabel
                           active={songFeaturesOrder.orderBy === 'play_count'}
                           direction={songFeaturesOrder.order}
-                          onClick={() => handleSortRequest({ name: 'songFeatures', orderBy: 'play_count', order: songFeaturesOrder.order }, 'play_count')}
+                          onClick={() => handleSortRequest('play_count')}
                         >
                           Plays
                         </TableSortLabel>
@@ -557,7 +594,7 @@ const AdminDashboard = () => {
                         <TableSortLabel
                           active={songFeaturesOrder.orderBy === 'favorite_count'}
                           direction={songFeaturesOrder.order}
-                          onClick={() => handleSortRequest({ name: 'songFeatures', orderBy: 'favorite_count', order: songFeaturesOrder.order }, 'favorite_count')}
+                          onClick={() => handleSortRequest('favorite_count')}
                         >
                           Favorites
                         </TableSortLabel>
@@ -566,7 +603,7 @@ const AdminDashboard = () => {
                         <TableSortLabel
                           active={songFeaturesOrder.orderBy === 'add_count'}
                           direction={songFeaturesOrder.order}
-                          onClick={() => handleSortRequest({ name: 'songFeatures', orderBy: 'add_count', order: songFeaturesOrder.order }, 'add_count')}
+                          onClick={() => handleSortRequest('add_count')}
                         >
                           Adds
                         </TableSortLabel>
@@ -575,7 +612,7 @@ const AdminDashboard = () => {
                         <TableSortLabel
                           active={songFeaturesOrder.orderBy === 'room_count'}
                           direction={songFeaturesOrder.order}
-                          onClick={() => handleSortRequest({ name: 'songFeatures', orderBy: 'room_count', order: songFeaturesOrder.order }, 'room_count')}
+                          onClick={() => handleSortRequest('room_count')}
                         >
                           Rooms
                         </TableSortLabel>
@@ -584,15 +621,20 @@ const AdminDashboard = () => {
                   </TableHead>
                   <TableBody>
                     {sortedSongFeatures.slice(0, 20).map((song) => (
-                      <TableRow key={song.song_id}>
-                        <TableCell>{song.title}</TableCell>
-                        <TableCell>{song.artist}</TableCell>
-                        <TableCell align="right">{song.play_count}</TableCell>
-                        <TableCell align="right">{song.favorite_count}</TableCell>
-                        <TableCell align="right">{song.add_count}</TableCell>
-                        <TableCell align="right">{song.room_count}</TableCell>
+                      <TableRow key={song.song_id || song.title}>
+                        <TableCell>{song.title || 'Unknown'}</TableCell>
+                        <TableCell>{song.artist || 'Unknown'}</TableCell>
+                        <TableCell align="right">{song.play_count || 0}</TableCell>
+                        <TableCell align="right">{song.favorite_count || 0}</TableCell>
+                        <TableCell align="right">{song.add_count || 0}</TableCell>
+                        <TableCell align="right">{song.room_count || 0}</TableCell>
                       </TableRow>
                     ))}
+                    {sortedSongFeatures.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={6} align="center">No song data available</TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </TableContainer>
