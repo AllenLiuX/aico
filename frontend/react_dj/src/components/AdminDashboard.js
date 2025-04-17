@@ -7,7 +7,7 @@ import {
   Button, CircularProgress, Alert, Grid, Card, 
   CardContent, CardHeader, List, ListItem, ListItemText,
   Divider, Table, TableBody, TableCell, TableContainer, 
-  TableHead, TableRow, Chip, TableSortLabel
+  TableHead, TableRow, Chip, TableSortLabel, Avatar
 } from '@mui/material';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import '../styles/AdminDashboard.css';
@@ -42,6 +42,7 @@ const AdminDashboard = () => {
   const [roomInteractions, setRoomInteractions] = useState([]);
   const [songFeatures, setSongFeatures] = useState([]);
   const [roomFeatures, setRoomFeatures] = useState([]);
+  const [userAnalytics, setUserAnalytics] = useState([]);
   const [stats, setStats] = useState({
     totalSongs: 0,
     totalRooms: 0,
@@ -67,6 +68,11 @@ const AdminDashboard = () => {
   
   const [roomFeaturesOrder, setRoomFeaturesOrder] = useState({
     orderBy: 'join_count',
+    order: 'desc'
+  });
+
+  const [userAnalyticsOrder, setUserAnalyticsOrder] = useState({
+    orderBy: 'join_date',
     order: 'desc'
   });
 
@@ -97,6 +103,8 @@ const AdminDashboard = () => {
       fetchSongInteractions();
     } else if (newValue === 3 && roomInteractions.length === 0) {
       fetchRoomInteractions();
+    } else if (newValue === 4 && userAnalytics.length === 0) {
+      fetchUserAnalytics();
     }
   };
 
@@ -257,6 +265,47 @@ const AdminDashboard = () => {
     }
   };
 
+  const fetchUserAnalytics = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      if (!token) {
+        setError("Authentication token missing. Please log in again.");
+        setLoading(false);
+        return;
+      }
+      
+      console.log('Fetching user analytics with token:', token ? `${token.substring(0, 10)}...` : 'No token');
+      
+      const response = await axios.get('/api/user-activity/export/user-analytics', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      console.log('User analytics response:', response.data);
+      
+      if (response.data.success) {
+        const users = response.data.data || [];
+        console.log(`Received ${users.length} user analytics records`);
+        setUserAnalytics(users);
+        
+        // Update stats
+        setStats(prev => ({
+          ...prev,
+          uniqueUsers: users.length
+        }));
+      } else {
+        console.error("Failed to load user analytics:", response.data.error || "Unknown error");
+        setError(response.data.error || "Failed to load user analytics");
+      }
+    } catch (err) {
+      console.error('Error fetching user analytics:', err);
+      setError(err.response?.data?.error || err.message || "Failed to load user analytics");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const downloadDataset = async (format = 'json') => {
     try {
       setLoading(true);
@@ -334,6 +383,12 @@ const AdminDashboard = () => {
           order: roomInteractionsOrder.orderBy === property && roomInteractionsOrder.order === 'asc' ? 'desc' : 'asc'
         });
         break;
+      case 4: // User Analytics
+        setUserAnalyticsOrder({
+          orderBy: property,
+          order: userAnalyticsOrder.orderBy === property && userAnalyticsOrder.order === 'asc' ? 'desc' : 'asc'
+        });
+        break;
       default:
         break;
     }
@@ -387,6 +442,12 @@ const AdminDashboard = () => {
     roomFeatures, 
     roomFeaturesOrder.orderBy, 
     roomFeaturesOrder.order
+  );
+
+  const sortedUserAnalytics = getSortedData(
+    userAnalytics,
+    userAnalyticsOrder.orderBy,
+    userAnalyticsOrder.order
   );
 
   // Prepare chart data
@@ -523,6 +584,7 @@ const AdminDashboard = () => {
           <Tab label="Room Analytics" />
           <Tab label="Song Interactions" />
           <Tab label="Room Interactions" />
+          <Tab label="User Analytics" />
         </Tabs>
         
         {/* Song Analytics Tab */}
@@ -927,6 +989,167 @@ const AdminDashboard = () => {
                 </TableBody>
               </Table>
             </TableContainer>
+          )}
+        </TabPanel>
+        
+        {/* User Analytics Tab */}
+        <TabPanel value={tabValue} index={4} className="tab-panel">
+          <Typography variant="h6" gutterBottom>
+            User Analytics
+          </Typography>
+          
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }} className="loading-container">
+              <CircularProgress />
+            </Box>
+          ) : (
+            <>
+              <Typography variant="subtitle1" gutterBottom>
+                Total Users: {userAnalytics.length}
+              </Typography>
+              
+              <TableContainer component={Paper}>
+                <Table className="data-table">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Avatar</TableCell>
+                      <TableCell>
+                        <TableSortLabel
+                          active={userAnalyticsOrder.orderBy === 'username'}
+                          direction={userAnalyticsOrder.order}
+                          onClick={() => handleSortRequest('username')}
+                        >
+                          Username
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell align="right">
+                        <TableSortLabel
+                          active={userAnalyticsOrder.orderBy === 'coins'}
+                          direction={userAnalyticsOrder.order}
+                          onClick={() => handleSortRequest('coins')}
+                        >
+                          Coins
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell align="right">
+                        <TableSortLabel
+                          active={userAnalyticsOrder.orderBy === 'rooms_count'}
+                          direction={userAnalyticsOrder.order}
+                          onClick={() => handleSortRequest('rooms_count')}
+                        >
+                          Rooms
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell align="right">
+                        <TableSortLabel
+                          active={userAnalyticsOrder.orderBy === 'play_count'}
+                          direction={userAnalyticsOrder.order}
+                          onClick={() => handleSortRequest('play_count')}
+                        >
+                          Plays
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell align="right">
+                        <TableSortLabel
+                          active={userAnalyticsOrder.orderBy === 'favorites_count'}
+                          direction={userAnalyticsOrder.order}
+                          onClick={() => handleSortRequest('favorites_count')}
+                        >
+                          Favorites
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell align="right">
+                        <TableSortLabel
+                          active={userAnalyticsOrder.orderBy === 'join_date'}
+                          direction={userAnalyticsOrder.order}
+                          onClick={() => handleSortRequest('join_date')}
+                        >
+                          Join Date
+                        </TableSortLabel>
+                      </TableCell>
+                      <TableCell align="center">Admin</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {sortedUserAnalytics.map((user) => (
+                      <TableRow key={user.username}>
+                        <TableCell>
+                          <Avatar 
+                            src={user.avatar} 
+                            alt={user.username}
+                            sx={{ width: 40, height: 40 }}
+                          />
+                        </TableCell>
+                        <TableCell>{user.username}</TableCell>
+                        <TableCell align="right">
+                          {user.coins !== undefined ? 
+                            <Chip 
+                              label={`${user.coins}`} 
+                              color="primary" 
+                              variant="outlined"
+                              icon={<span style={{ fontSize: '16px', marginRight: '4px' }}>🪙</span>}
+                            /> : 
+                            '0'
+                          }
+                        </TableCell>
+                        <TableCell align="right">{user.rooms_count || 0}</TableCell>
+                        <TableCell align="right">{user.play_count || 0}</TableCell>
+                        <TableCell align="right">{user.favorites_count || 0}</TableCell>
+                        <TableCell align="right">
+                          {user.join_date ? new Date(user.join_date).toLocaleDateString() : 'Unknown'}
+                        </TableCell>
+                        <TableCell align="center">
+                          {user.is_admin ? (
+                            <Chip 
+                              label="Admin" 
+                              color="primary" 
+                              size="small"
+                            />
+                          ) : null}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {sortedUserAnalytics.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={8} align="center">No user data available</TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+              
+              {/* User Analytics Chart */}
+              <Typography variant="h6" gutterBottom sx={{ mt: 4 }}>
+                Top Users by Activity
+              </Typography>
+              
+              <div className="chart-container">
+                <ResponsiveContainer width="100%" height={400}>
+                  <BarChart
+                    data={sortedUserAnalytics
+                      .sort((a, b) => (b.play_count + b.favorites_count) - (a.play_count + a.favorites_count))
+                      .slice(0, 10)
+                      .map(user => ({
+                        name: user.username,
+                        plays: user.play_count || 0,
+                        favorites: user.favorites_count || 0,
+                        rooms: user.rooms_count || 0,
+                        coins: user.coins || 0
+                      }))}
+                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="plays" fill="#8884d8" name="Play Count" />
+                    <Bar dataKey="favorites" fill="#82ca9d" name="Favorite Count" />
+                    <Bar dataKey="rooms" fill="#ffc658" name="Room Count" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </>
           )}
         </TabPanel>
       </Paper>

@@ -225,6 +225,160 @@ def export_recommendation_dataset():
         logger.error(f"Error exporting recommendation dataset: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+@activity_routes.route('/export/user-analytics', methods=['GET'])
+def export_user_analytics():
+    """API endpoint to export user analytics data for admin dashboard"""
+    try:
+        username, error = verify_admin_access()
+        if error:
+            return error
+            
+        # Get all usernames from user_profiles
+        all_users = []
+        user_keys = redis_api.redis_client.hkeys(f"user_profiles{redis_version}")
+        
+        logger.info(f"Found {len(user_keys)} user profiles")
+        
+        for user_key in user_keys:
+            try:
+                username_str = user_key.decode('utf-8') if isinstance(user_key, bytes) else user_key
+                logger.info(f"Processing user: {username_str}")
+                
+                # Get user profile data
+                profile_json = redis_api.get_hash(f"user_profiles{redis_version}", username_str)
+                if not profile_json:
+                    logger.warning(f"No profile found for user {username_str}")
+                    continue
+                
+                try:
+                    # Try to parse the profile JSON
+                    if isinstance(profile_json, bytes):
+                        profile_json = profile_json.decode('utf-8')
+                    
+                    profile = json.loads(profile_json)
+                    logger.info(f"Successfully parsed profile for {username_str}")
+                except json.JSONDecodeError as e:
+                    logger.error(f"Error parsing profile JSON for {username_str}: {str(e)}")
+                    continue
+                
+                # Get user avatar
+                avatar_url = profile.get('avatar', '')
+                if not avatar_url and profile.get('google_picture'):
+                    avatar_url = profile.get('google_picture')
+                elif not avatar_url:
+                    avatar_url = f"/api/avatar/{username_str}"
+                
+                # Get user coin balance
+                try:
+                    coins = get_user_coins(username_str)
+                    logger.info(f"User {username_str} has {coins} coins")
+                except Exception as e:
+                    logger.error(f"Error getting coins for user {username_str}: {str(e)}")
+                    coins = 0
+                
+                # Get user stats
+                created_rooms = profile.get('created_rooms', [])
+                
+                # Get favorites count
+                try:
+                    favorites_json = redis_api.get_hash(f"user_favorites{redis_version}", username_str)
+                    favorites = json.loads(favorites_json) if favorites_json else []
+                except Exception as e:
+                    logger.error(f"Error getting favorites for {username_str}: {str(e)}")
+                    favorites = []
+                
+                # Get play count from logs
+                play_count = 0
+                favorite_count = 0
+                
+                # Get user logs
+                try:
+                    user_logs = user_logging.get_user_logs(username_str, limit=1000)
+                    
+                    # Count plays and favorites
+                    for log in user_logs:
+                        if log.get('action') == 'play_song':
+                            play_count += 1
+                        elif log.get('action') == 'favorite_song':
+                            favorite_count += 1
+                    
+                    logger.info(f"User {username_str} has {play_count} plays and {favorite_count} favorites")
+                except Exception as e:
+                    logger.error(f"Error getting logs for {username_str}: {str(e)}")
+                
+                # Create user analytics object
+                user_data = {
+                    "username": username_str,
+                    "avatar": avatar_url,
+                    "coins": coins,
+                    "rooms_count": len(created_rooms),
+                    "rooms": created_rooms,
+                    "favorites_count": len(favorites),
+                    "play_count": play_count,
+                    "favorite_count": favorite_count,
+                    "join_date": profile.get('created_at', ''),
+                    "last_login": profile.get('last_login', ''),
+                    "is_admin": username_str in ADMIN_USERS or profile.get('is_admin', False),
+                    "email": profile.get('email', ''),
+                    "google_user": profile.get('google_user', False)
+                }
+                
+                all_users.append(user_data)
+                logger.info(f"Successfully added user {username_str} to analytics")
+            except Exception as e:
+                logger.error(f"Error processing user {user_key}: {str(e)}")
+                continue
+        
+        # Sort users by join date (newest first)
+        all_users.sort(key=lambda x: x.get('join_date', ''), reverse=True)
+        
+        logger.info(f"Returning {len(all_users)} users in analytics data")
+        
+        return jsonify({
+            "success": True,
+            "data": all_users,
+            "count": len(all_users)
+        })
+    except Exception as e:
+        logger.error(f"Error exporting user analytics: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+def get_user_coins(username):
+    """
+    Get a user's current coin balance.
+    
+    Args:
+        username (str): Username to get coins for
+        
+    Returns:
+        int: Current coin balance
+    """
+    try:
+        # Get user data (primary storage)
+        user_data = redis_api.get_user_data(username)
+        
+        # If coins exists in user_data, return that value
+        if 'coins' in user_data:
+            return int(user_data.get('coins', 0))
+        
+        # Fallback to user_profiles if not in user_data
+        profile_json = redis_api.get_hash(f"user_profiles{redis_version}", username)
+        if profile_json:
+            profile = json.loads(profile_json) if isinstance(profile_json, str) else json.loads(profile_json.decode('utf-8'))
+            coins = profile.get('coins', 0)
+            
+            # Sync to user_data for future requests
+            user_data['coins'] = coins
+            redis_api.set_user_data(username, user_data)
+            
+            return int(coins)
+        
+        # Default to 0 if no coins found
+        return 0
+    except Exception as e:
+        logger.error(f"Error getting coins for user {username}: {str(e)}")
+        return 0
+
 @activity_routes.route('/auth/user', methods=['GET'])
 def get_current_user():
     """Get current user data"""
