@@ -419,6 +419,132 @@ def get_top_played_songs(limit=10):
         logger.error(f"Error getting top played songs: {str(e)}")
         return []
 
+
+def get_room_ai_moderation_settings(room_name):
+    """
+    Get AI moderation settings for a room from Redis.
+    
+    Args:
+        room_name (str): Name of the room
+        
+    Returns:
+        dict: AI moderation settings or default settings if not found
+    """
+    try:
+        settings_key = f"ai_moderation{redis_version}"
+        settings_json = get_hash(settings_key, room_name)
+        
+        if settings_json:
+            return json.loads(settings_json)
+        else:
+            # Return default settings if none exist
+            return {
+                "enabled": False,
+                "description": "",
+                "strictness_level": "medium",
+                "created_at": datetime.now().isoformat(),
+                "updated_at": datetime.now().isoformat()
+            }
+    except Exception as e:
+        logger.error(f"Error getting AI moderation settings for room {room_name}: {str(e)}")
+        return {
+            "enabled": False,
+            "description": "",
+            "strictness_level": "medium",
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat()
+        }
+
+
+def update_room_ai_moderation_settings(room_name, settings):
+    """
+    Update AI moderation settings for a room in Redis.
+    
+    Args:
+        room_name (str): Name of the room
+        settings (dict): AI moderation settings to update
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    try:
+        # Get current settings
+        current_settings = get_room_ai_moderation_settings(room_name)
+        
+        # Update with new settings
+        current_settings.update(settings)
+        
+        # Always update the timestamp
+        current_settings["updated_at"] = datetime.now().isoformat()
+        
+        # Save to Redis
+        settings_key = f"ai_moderation{redis_version}"
+        write_hash(settings_key, room_name, json.dumps(current_settings))
+        
+        logger.info(f"Updated AI moderation settings for room {room_name}: {current_settings}")
+        return True
+    except Exception as e:
+        logger.error(f"Error updating AI moderation settings for room {room_name}: {str(e)}")
+        return False
+
+
+def get_room_ai_moderation_history(room_name):
+    """
+    Get AI moderation history for a room from Redis.
+    
+    Args:
+        room_name (str): Name of the room
+        
+    Returns:
+        list: List of moderation decisions
+    """
+    try:
+        history_key = f"ai_moderation_history{redis_version}"
+        history_json = get_hash(history_key, room_name)
+        
+        if history_json:
+            return json.loads(history_json)
+        else:
+            return []
+    except Exception as e:
+        logger.error(f"Error getting AI moderation history for room {room_name}: {str(e)}")
+        return []
+
+
+def add_room_ai_moderation_decision(room_name, decision):
+    """
+    Add an AI moderation decision to a room's history in Redis.
+    
+    Args:
+        room_name (str): Name of the room
+        decision (dict): Moderation decision to add
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    try:
+        # Get current history
+        history = get_room_ai_moderation_history(room_name)
+        
+        # Add timestamp if not present
+        if "timestamp" not in decision:
+            decision["timestamp"] = datetime.now().isoformat()
+            
+        # Add to history (limit to 100 most recent decisions)
+        history.append(decision)
+        if len(history) > 100:
+            history = history[-100:]
+        
+        # Save to Redis
+        history_key = f"ai_moderation_history{redis_version}"
+        write_hash(history_key, room_name, json.dumps(history))
+        
+        logger.info(f"Added AI moderation decision for room {room_name}: {decision}")
+        return True
+    except Exception as e:
+        logger.error(f"Error adding AI moderation decision for room {room_name}: {str(e)}")
+        return False
+
 if __name__ == '__main__':
     # write_hash('test', 'test_val', 123)
     # print(get_hash("test", "test_val"))

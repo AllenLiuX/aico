@@ -624,25 +624,76 @@ def add_to_playlist():
         logger.info(f"Processing track addition for room {room_name} by {username or 'Guest'}")
         logger.info(f"Track info: {json.dumps(track)}")
         
-        # Fetch the existing playlist for the given room_name from Redis
-        # playlist_json = redis_client.get(f"playlist:{room_name}")
-
-        # if playlist_json:
-        #     playlist = json.loads(playlist_json.decode('utf-8'))
-        # else:
-        #     playlist = []
-
-        playlist = json.loads(redis_api.get_hash(f"room_playlists{redis_version}", room_name))
+        # Check if the user is the host of the room
+        host_info = get_room_host(room_name)
+        is_host = False
+        if host_info and username and username == host_info.get('username'):
+            is_host = True
+        
+        # Get room settings to check moderation status
+        settings_json = get_hash(f"settings{redis_version}", room_name)
+        settings = json.loads(settings_json) if settings_json else {}
+        moderation_enabled = settings.get('moderation_enabled', False)
+        
+        # If moderation is enabled and user is not the host, check if AI moderation is enabled
+        if moderation_enabled and not is_host:
+            # Get AI moderation settings
+            ai_moderation_settings = get_room_ai_moderation_settings(room_name)
+            ai_moderation_enabled = ai_moderation_settings.get('enabled', False)
+            
+            if ai_moderation_enabled:
+                # Get song details for moderation
+                song_title = track.get('title', '')
+                song_artist = track.get('artist', '')
+                
+                # Use LLM to check if song matches moderation criteria
+                moderation_result = llm.llm_moderate_song(
+                    song_title=song_title,
+                    song_artist=song_artist,
+                    moderation_description=ai_moderation_settings.get('description', ''),
+                    strictness_level=ai_moderation_settings.get('strictness_level', 'medium')
+                )
+                
+                # Record the moderation decision
+                moderation_decision = {
+                    "timestamp": datetime.now().isoformat(),
+                    "song_title": song_title,
+                    "song_artist": song_artist,
+                    "requested_by": username or "Guest",
+                    "approved": moderation_result.get('approved', False),
+                    "score": moderation_result.get('score', 0),
+                    "reasoning": moderation_result.get('reasoning', ''),
+                    "attributes": moderation_result.get('song_attributes', {})
+                }
+                
+                # Add the decision to moderation history
+                add_room_ai_moderation_decision(room_name, moderation_decision)
+                
+                # If song is not approved, return rejection message
+                if not moderation_result.get('approved', False):
+                    logger.info(f"AI moderation rejected song '{song_title}' by '{song_artist}' for room {room_name}")
+                    return jsonify({
+                        "error": "Song rejected by AI moderation",
+                        "moderation_result": moderation_result
+                    }), 403
+                
+                logger.info(f"AI moderation approved song '{song_title}' by '{song_artist}' for room {room_name}")
+            elif not is_host:
+                # Regular moderation is enabled but AI moderation is not
+                # In this case, the host needs to manually approve songs
+                logger.info(f"Song '{track.get('title')}' needs manual approval from host for room {room_name}")
+                return jsonify({"error": "This room requires host approval for songs"}), 403
+        
+        # Fetch the existing playlist
+        playlist_json = get_hash(f"room_playlists{redis_version}", room_name)
+        playlist = json.loads(playlist_json) if playlist_json else []
 
         # Add the new track to the playlist
         playlist.append(track)
-        logger.info(f'added track:{track} in room:{room_name}')
-        logger.info(f'new playlist:{playlist}')
+        logger.info(f'Added track: {track.get("title")} by {track.get("artist")} in room: {room_name}')
 
         # Update the playlist in Redis
-        # redis_client.set(f"playlist:{room_name}", json.dumps(playlist))
-        
-        redis_api.write_hash(f"room_playlists{redis_version}", room_name, json.dumps(playlist))
+        write_hash(f"room_playlists{redis_version}", room_name, json.dumps(playlist))
 
         # Log user activity if logged in
         if username:
@@ -654,15 +705,19 @@ def add_to_playlist():
                 details={
                     "title": track.get('title'),
                     "artist": track.get('artist'),
-                    "source": "manual_add"
+                    "source": "manual_add",
+                    "ai_moderated": moderation_enabled and ai_moderation_enabled if not is_host else False
                 }
             )
 
-        return jsonify({"message": "Track added successfully"})
+        return jsonify({
+            "message": "Track added successfully",
+            "ai_moderated": moderation_enabled and ai_moderation_enabled if not is_host else False
+        })
 
     except Exception as e:
         logger.error(f"Error adding track to playlist: {str(e)}")
-        return jsonify({"error": "Failed to add track to playlist"}), 500
+        return jsonify({"error": f"Failed to add track to playlist: {str(e)}"}), 500
 
 @app.route('/api/remove-from-playlist', methods=['POST'])
 def remove_from_playlist():
@@ -2119,42 +2174,44 @@ def update_room_moderation():
     # Verify if user is the host of the room
     if not room_name:
         return jsonify({"error": "Room name is required"}), 400
-    
     username = None
     if auth_token:
         username = get_hash(f"sessions{redis_version}", auth_token)
     
-    # Check if user is host
-    host_data = get_room_host(room_name)
-    is_host = False
-    logger.info(f'host_data:{host_data}')
-    
-    if host_data and username:
-        try:
-            if isinstance(host_data, str):
-                host_data = json.loads(host_data)
-            
-            if host_data.get('username') == username:
-                is_host = True
-        except Exception as e:
-            logger.error(f"Error parsing host data: {str(e)}")
-            pass
-    
-    if not is_host:
-        return jsonify({"error": "Only room hosts can update moderation settings"}), 403
+    # Get the room host
+    host_info = get_room_host(room_name)
+    if not host_info or not username or username != host_info.get('username'):
+        return jsonify({"error": "Only the host can update moderation settings"}), 403
     
     try:
-        # Get existing settings
-        settings_json = get_hash(f"settings{redis_version}", room_name)
-        settings = json.loads(settings_json) if settings_json else {}
+        # Get current settings
+        settings_key = f"settings{redis_version}"
+        settings_json = get_hash(settings_key, room_name)
         
-        # Update moderation setting - Make sure it's using a boolean value
-        settings['moderation_enabled'] = bool(moderation_enabled)
+        if settings_json:
+            settings = json.loads(settings_json)
+        else:
+            settings = {}
         
-        # Save updated settings
-        write_hash(f"settings{redis_version}", room_name, json.dumps(settings))
+        # Update moderation setting
+        settings['moderation_enabled'] = moderation_enabled
         
-        logger.info(f"Updated moderation for room {room_name} to {moderation_enabled}")
+        # If AI moderation is disabled, also disable it in AI moderation settings
+        if not moderation_enabled:
+            ai_moderation_settings = get_room_ai_moderation_settings(room_name)
+            ai_moderation_settings['enabled'] = False
+            update_room_ai_moderation_settings(room_name, ai_moderation_settings)
+        
+        # Save settings back to Redis
+        write_hash(settings_key, room_name, json.dumps(settings))
+        
+        # Log the moderation setting change
+        user_logging.log_user_activity(
+            username=username,
+            action="update_moderation",
+            room_name=room_name,
+            details={"moderation_enabled": moderation_enabled}
+        )
         
         return jsonify({
             "message": "Moderation settings updated successfully",
@@ -2164,6 +2221,155 @@ def update_room_moderation():
     except Exception as e:
         logger.error(f"Error updating moderation settings: {str(e)}")
         return jsonify({"error": "Failed to update moderation settings"}), 500
+
+
+@app.route('/api/room/update-ai-moderation', methods=['POST'])
+def update_room_ai_moderation():
+    data = request.json
+    room_name = data.get('room_name')
+    enabled = data.get('enabled', False)
+    description = data.get('description', '')
+    strictness_level = data.get('strictness_level', 'medium')
+    auth_token = request.headers.get('Authorization')
+    
+    # Verify if user is the host of the room
+    if not room_name:
+        return jsonify({"error": "Room name is required"}), 400
+    
+    username = None
+    if auth_token:
+        username = get_hash(f"sessions{redis_version}", auth_token)
+    
+    # Get the room host
+    host_info = get_room_host(room_name)
+    if not host_info or not username or username != host_info.get('username'):
+        return jsonify({"error": "Only the host can update AI moderation settings"}), 403
+    
+    try:
+        # First check if regular moderation is enabled
+        settings_key = f"settings{redis_version}"
+        settings_json = get_hash(settings_key, room_name)
+        
+        if settings_json:
+            settings = json.loads(settings_json)
+        else:
+            settings = {}
+        
+        # AI moderation requires regular moderation to be enabled
+        if enabled and not settings.get('moderation_enabled', False):
+            # Enable regular moderation if AI moderation is being enabled
+            settings['moderation_enabled'] = True
+            write_hash(settings_key, room_name, json.dumps(settings))
+            
+            logger.info(f"Automatically enabling regular moderation for room {room_name} as AI moderation is being enabled")
+        
+        # Update AI moderation settings
+        ai_settings = {
+            "enabled": enabled,
+            "description": description,
+            "strictness_level": strictness_level
+        }
+        
+        # Save AI moderation settings
+        update_room_ai_moderation_settings(room_name, ai_settings)
+        
+        # Log the AI moderation setting change
+        user_logging.log_user_activity(
+            username=username,
+            action="update_ai_moderation",
+            room_name=room_name,
+            details={
+                "enabled": enabled,
+                "strictness_level": strictness_level
+            }
+        )
+        
+        return jsonify({
+            "message": "AI moderation settings updated successfully",
+            "settings": get_room_ai_moderation_settings(room_name)
+        })
+    
+    except Exception as e:
+        logger.error(f"Error updating AI moderation settings: {str(e)}")
+        return jsonify({"error": "Failed to update AI moderation settings"}), 500
+
+
+@app.route('/api/room/get-ai-moderation', methods=['GET'])
+def get_room_ai_moderation():
+    room_name = request.args.get('room_name')
+    
+    if not room_name:
+        return jsonify({"error": "Room name is required"}), 400
+    
+    try:
+        # Get AI moderation settings
+        settings = get_room_ai_moderation_settings(room_name)
+        
+        return jsonify({
+            "settings": settings
+        })
+    
+    except Exception as e:
+        logger.error(f"Error getting AI moderation settings: {str(e)}")
+        return jsonify({"error": "Failed to get AI moderation settings"}), 500
+
+
+@app.route('/api/room/ai-moderation-hints', methods=['GET'])
+def get_ai_moderation_hints():
+    room_name = request.args.get('room_name')
+    
+    if not room_name:
+        return jsonify({"error": "Room name is required"}), 400
+    
+    try:
+        # Get room playlist data
+        playlist_json = get_hash(f"playlist{redis_version}", room_name)
+        playlist = json.loads(playlist_json) if playlist_json else []
+        
+        # Get room description if available
+        room_data = get_room_data(room_name)
+        host_description = room_data.get('description', '')
+        
+        # Generate moderation hints using LLM
+        hints = llm.llm_generate_moderation_hints(room_name, playlist, host_description)
+        
+        return jsonify({
+            "hints": hints
+        })
+    
+    except Exception as e:
+        logger.error(f"Error generating AI moderation hints: {str(e)}")
+        return jsonify({"error": "Failed to generate AI moderation hints"}), 500
+
+
+@app.route('/api/room/ai-moderation-history', methods=['GET'])
+def get_ai_moderation_history():
+    room_name = request.args.get('room_name')
+    auth_token = request.headers.get('Authorization')
+    
+    if not room_name:
+        return jsonify({"error": "Room name is required"}), 400
+    
+    username = None
+    if auth_token:
+        username = get_hash(f"sessions{redis_version}", auth_token)
+    
+    # Get the room host
+    host_info = get_room_host(room_name)
+    if not host_info or not username or username != host_info.get('username'):
+        return jsonify({"error": "Only the host can view AI moderation history"}), 403
+    
+    try:
+        # Get AI moderation history
+        history = get_room_ai_moderation_history(room_name)
+        
+        return jsonify({
+            "history": history
+        })
+    
+    except Exception as e:
+        logger.error(f"Error getting AI moderation history: {str(e)}")
+        return jsonify({"error": "Failed to get AI moderation history"}), 500
 
     
     # Add this endpoint to app.py to support playlist info editing

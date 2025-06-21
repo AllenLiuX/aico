@@ -265,6 +265,101 @@ const usePlaylist = (roomName, isHost) => {
     }
   };
 
+  // AI moderation settings fetch method
+  const fetchAiModerationSettings = async (roomName) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/room/get-ai-moderation?room_name=${roomName}`, {
+        headers: {
+          'Authorization': token || ''
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch AI moderation settings');
+      }
+
+      const data = await response.json();
+      return data.settings;
+    } catch (error) {
+      console.error('Error fetching AI moderation settings:', error);
+      throw error;
+    }
+  };
+
+  // AI moderation settings update method
+  const updateAiModerationSettings = async (roomName, enabled, description, strictnessLevel) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/room/update-ai-moderation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token || ''
+        },
+        body: JSON.stringify({
+          room_name: roomName,
+          enabled: enabled,
+          description: description,
+          strictness_level: strictnessLevel
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update AI moderation settings');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Error updating AI moderation settings:', error);
+      throw error;
+    }
+  };
+
+  // Fetch AI moderation hints method
+  const fetchAiModerationHints = async (roomName) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/room/ai-moderation-hints?room_name=${roomName}`, {
+        headers: {
+          'Authorization': token || ''
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch AI moderation hints');
+      }
+
+      const data = await response.json();
+      return data.hints;
+    } catch (error) {
+      console.error('Error fetching AI moderation hints:', error);
+      throw error;
+    }
+  };
+
+  // Fetch AI moderation history method
+  const fetchAiModerationHistory = async (roomName) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${API_URL}/api/room/ai-moderation-history?room_name=${roomName}`, {
+        headers: {
+          'Authorization': token || ''
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch AI moderation history');
+      }
+
+      const data = await response.json();
+      return data.history;
+    } catch (error) {
+      console.error('Error fetching AI moderation history:', error);
+      throw error;
+    }
+  };
+
   // Return all necessary methods and states
   return {
     playlist,
@@ -283,6 +378,11 @@ const usePlaylist = (roomName, isHost) => {
     updateRoomModeration,
     updatePlaylistInfo,
     handlePinToTop,
+    // New AI moderation methods
+    fetchAiModerationSettings,
+    updateAiModerationSettings,
+    fetchAiModerationHints,
+    fetchAiModerationHistory
   };
 };
 

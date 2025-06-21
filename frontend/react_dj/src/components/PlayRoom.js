@@ -13,10 +13,11 @@ import {
   PlaylistInfoSection, 
   QRCodeModal,
   LyricsSection,
-  PinPriceSettings
+  PinPriceSettings,
+  AIModerationSettings
 } from './playroom-components';
 import RequestNotificationModal from './RequestNotificationModal';
-import { ToggleLeft, ToggleRight, Edit, RefreshCw, PlusCircle } from 'lucide-react';
+import { ToggleLeft, ToggleRight, Edit, RefreshCw, PlusCircle, Sparkles } from 'lucide-react';
 
 import '../styles/PlayRoom.css';
 import { API_URL } from '../config';
@@ -72,6 +73,13 @@ function PlayRoom() {
   const [connectedUsers, setConnectedUsers] = useState([]);
   const [showConnectionError, setShowConnectionError] = useState(false);
   const [playerError, setPlayerError] = useState(null);
+  
+  // AI moderation state
+  const [showAiModerationSettings, setShowAiModerationSettings] = useState(false);
+  const [aiModerationEnabled, setAiModerationEnabled] = useState(false);
+  const [aiModerationDescription, setAiModerationDescription] = useState('');
+  const [aiModerationStrictness, setAiModerationStrictness] = useState('medium');
+  const [loadingAiSettings, setLoadingAiSettings] = useState(false);
   
   // Add a ref to preserve current line index when toggling lyrics
   const currentLineIndexRef = useRef(-1);
@@ -183,23 +191,27 @@ function PlayRoom() {
     fetchRoomSettings();
   }, [roomName, navigate, isHostParam, initialModeration]);
 
-  // Use our custom hooks
-  const {
-    playlist,
-    setPlaylist,
-    pendingRequests,
-    fetchPendingRequests,
-    introduction,
-    settings,
-    hostData,
-    loading,
-    error,
-    handleTrackDelete,
-    handleApproveRequest,
-    handleRejectRequest,
+  // Get playlist data and management functions
+  const { 
+    playlist, 
+    setPlaylist, 
+    pendingRequests, 
+    fetchPendingRequests, 
+    introduction, 
+    settings, 
+    hostData, 
+    loading, 
+    error, 
+    handleTrackDelete, 
+    handleApproveRequest, 
+    handleRejectRequest, 
     updateRoomModeration,
     updatePlaylistInfo,
-    handlePinToTop
+    handlePinToTop,
+    fetchAiModerationSettings,
+    updateAiModerationSettings,
+    fetchAiModerationHints,
+    fetchAiModerationHistory
   } = usePlaylist(roomName, isHost);
 
   // Initialize socket connection
@@ -413,43 +425,103 @@ function PlayRoom() {
     navigate(`/playlist?room_name=${encodeURIComponent(roomName)}&moderation=${moderationEnabled ? 'yes' : 'no'}&append=True&is_host=${isHost ? 'True' : 'False'}`);
   };
 
-  // Toggle moderation setting
-  const toggleModeration = async () => {
+  // Handle moderation change (three-state toggle: off, on, ai)
+  const handleModerationChange = async (newState) => {
     // Only allow host to change moderation settings
     if (!isHost) return;
     
-    const newModerationState = !moderationEnabled;
+    // Prevent duplicate state changes
+    if ((newState === 'off' && !moderationEnabled) || 
+        (newState === 'on' && moderationEnabled && !aiModerationEnabled) ||
+        (newState === 'ai' && moderationEnabled && aiModerationEnabled)) {
+      return; // No change needed
+    }
+    
+    // newState can be: 'off', 'on', 'ai'
+    const newModerationEnabled = newState !== 'off';
     
     try {
       // Update UI state first for immediate feedback
-      setModerationEnabled(newModerationState);
+      setModerationEnabled(newModerationEnabled);
       
       // Update URL parameter
       const params = new URLSearchParams(location.search);
-      params.set('moderation', newModerationState ? 'True' : 'False');
+      params.set('moderation', newModerationEnabled ? 'True' : 'False');
       navigate(`${location.pathname}?${params.toString()}`, { replace: true });
       
       // Update backend setting
       if (updateRoomModeration) {
-        await updateRoomModeration(roomName, newModerationState);
+        await updateRoomModeration(roomName, newModerationEnabled);
+        
+        // If switching to AI moderation
+        if (newState === 'ai') {
+          // Set AI moderation enabled first
+          setAiModerationEnabled(true);
+          
+          // Update backend with a single call - only if we're changing to AI mode
+          await updateAiModerationSettings(roomName, true, aiModerationDescription, aiModerationStrictness);
+          
+          // Open AI moderation settings modal after backend is updated
+          setShowAiModerationSettings(true);
+        } else {
+          // If AI moderation was enabled but now we're turning it off
+          if (aiModerationEnabled && newState !== 'ai') {
+            setAiModerationEnabled(false);
+            await updateAiModerationSettings(roomName, false, aiModerationDescription, aiModerationStrictness);
+          }
+        }
+        
         showNotificationMessage(
           'Moderation Setting Updated', 
-          newModerationState 
-            ? 'Song requests will now require approval' 
-            : 'Song requests will be added directly to the playlist',
+          newState === 'off' 
+            ? 'Song requests will be added directly to the playlist' 
+            : newState === 'on'
+              ? 'Song requests will now require manual approval'
+              : 'Song requests will be automatically moderated by AI',
           'success'
         );
       }
     } catch (err) {
       console.error('Failed to update moderation setting:', err);
       // Revert UI state if backend update fails
-      setModerationEnabled(!newModerationState);
+      setModerationEnabled(moderationEnabled);
+      setAiModerationEnabled(aiModerationEnabled);
       showNotificationMessage(
         'Error', 
         'Failed to update moderation setting',
         'error'
       );
     }
+  };
+  
+  // Legacy toggle moderation function for compatibility
+  const toggleModeration = () => {
+    handleModerationChange(moderationEnabled ? 'off' : 'on');
+  };
+  
+  // Toggle AI moderation settings modal
+  const toggleAiModerationSettings = () => {
+    // Only allow host to change AI moderation settings
+    if (!isHost || !moderationEnabled) return;
+    
+    setShowAiModerationSettings(!showAiModerationSettings);
+  };
+  
+  // Handle AI moderation settings update
+  const handleAiModerationUpdate = async (settings) => {
+    setAiModerationEnabled(settings.enabled);
+    setAiModerationDescription(settings.description);
+    setAiModerationStrictness(settings.strictnessLevel);
+    
+    setShowAiModerationSettings(false);
+    
+    showNotificationMessage(
+      'AI Moderation Updated',
+      settings.enabled 
+        ? 'AI will now automatically moderate song requests based on your criteria' 
+        : 'AI moderation has been disabled',
+      'success'
+    );
   };
 
   // Pagination handlers
@@ -636,37 +708,60 @@ function PlayRoom() {
               {/* Moderation Section - with improved controls - only visible to host */}
               {isHost && (
                 <div className="moderation-section">
-                  <div className="moderation-header">
+                  <div className="moderation-controls">
                     <h3>Moderation</h3>
-                    <div className="moderation-controls">
+                    
+                    {/* Three-state Moderation Toggle */}
+                    <div className="moderation-toggle-group">
                       <button 
-                        className={`moderation-toggle ${moderationEnabled ? 'enabled' : 'disabled'}`}
-                        onClick={toggleModeration}
-                        title={moderationEnabled ? "Moderation On" : "Moderation Off"}
+                        className={`moderation-toggle-option ${!moderationEnabled ? 'active' : ''}`}
+                        onClick={() => handleModerationChange('off')}
+                        title="Moderation Off"
                       >
-                        {moderationEnabled ? (
-                          <>
-                            <ToggleRight size={isMobile ? 16 : 20} /> 
-                            <span>On</span>
-                          </>
-                        ) : (
-                          <>
-                            <ToggleLeft size={isMobile ? 16 : 20} /> 
-                            <span>Off</span>
-                          </>
-                        )}
+                        <ToggleLeft size={isMobile ? 16 : 20} /> 
+                        <span>Off</span>
                       </button>
                       
-                      {/* Refresh button for pending requests */}
                       <button 
-                        onClick={manualFetchPendingRequests}
-                        className="refresh-button"
-                        disabled={refreshing}
-                        title="Refresh pending requests"
+                        className={`moderation-toggle-option ${moderationEnabled && !aiModerationEnabled ? 'active' : ''}`}
+                        onClick={() => handleModerationChange('on')}
+                        title="Manual Moderation"
                       >
-                        <RefreshCw size={isMobile ? 16 : 18} className={refreshing ? 'spinning' : ''} />
+                        <ToggleRight size={isMobile ? 16 : 20} /> 
+                        <span>Manual</span>
+                      </button>
+                      
+                      <button 
+                        className={`moderation-toggle-option ${aiModerationEnabled ? 'active' : ''}`}
+                        onClick={() => handleModerationChange('ai')}
+                        title="AI Moderation"
+                      >
+                        <Sparkles size={isMobile ? 14 : 16} />
+                        <span>AI</span>
                       </button>
                     </div>
+                    
+                    {/* AI Settings button - only shown when AI moderation is enabled */}
+                    {aiModerationEnabled && (
+                      <button 
+                        className="ai-settings-button"
+                        onClick={toggleAiModerationSettings}
+                        title="Configure AI Moderation Settings"
+                      >
+                        <Edit size={isMobile ? 14 : 16} />
+                        <span>AI Settings</span>
+                      </button>
+                    )}
+                    
+                    {/* Refresh button for pending requests */}
+                    <button 
+                      onClick={manualFetchPendingRequests}
+                      className="refresh-button"
+                      disabled={refreshing}
+                      title="Refresh pending requests"
+                    >
+                      <RefreshCw size={isMobile ? 16 : 18} className={refreshing ? 'spinning' : ''} />
+                    </button>
                   </div>
                   
                   <PendingRequestsSection
@@ -848,6 +943,22 @@ function PlayRoom() {
                 if (error) window.location.reload();
               }} className="close-error">×</button>
             </div>
+          </div>
+        )}
+        
+        {/* AI Moderation Settings Modal */}
+        {showAiModerationSettings && (
+          <div className="ai-moderation-settings-overlay">
+            <AIModerationSettings
+              roomName={roomName}
+              isHost={isHost}
+              moderationEnabled={moderationEnabled}
+              fetchAiModerationSettings={fetchAiModerationSettings}
+              updateAiModerationSettings={updateAiModerationSettings}
+              fetchAiModerationHints={fetchAiModerationHints}
+              onAiModerationUpdate={handleAiModerationUpdate}
+              onClose={toggleAiModerationSettings}
+            />
           </div>
         )}
       </div>
