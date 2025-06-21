@@ -158,23 +158,41 @@ function PlayRoom() {
     // Fetch room settings to get actual moderation status
     const fetchRoomSettings = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/room-playlist?room_name=${encodeURIComponent(roomName)}`);
+        // First get room playlist which includes basic settings
+        const playlistResponse = await fetch(`${API_URL}/api/room-playlist?room_name=${encodeURIComponent(roomName)}`);
         
-        if (!response.ok) {
+        if (!playlistResponse.ok) {
           throw new Error('Failed to fetch room settings');
         }
         
-        const data = await response.json();
+        const playlistData = await playlistResponse.json();
         
         // Get actual moderation status from settings
-        const actualModerationEnabled = data.settings?.moderation_enabled !== undefined 
-          ? data.settings.moderation_enabled 
+        const actualModerationEnabled = playlistData.settings?.moderation_enabled !== undefined 
+          ? playlistData.settings.moderation_enabled 
           : true; // Default to true if not specified
         
         console.log(`Actual moderation status from server: ${actualModerationEnabled}`);
         
         // Update state with actual moderation status
         setModerationEnabled(actualModerationEnabled);
+        
+        // Now fetch AI moderation settings to get AI moderation status
+        const aiSettingsResponse = await fetch(`${API_URL}/api/get-room-ai-moderation?room_name=${encodeURIComponent(roomName)}`);
+        
+        if (aiSettingsResponse.ok) {
+          const aiData = await aiSettingsResponse.json();
+          const aiEnabled = aiData.settings?.enabled || false;
+          
+          console.log(`AI moderation status from server: ${aiEnabled}`);
+          setAiModerationEnabled(aiEnabled);
+          
+          // If AI settings exist, store them
+          if (aiData.settings) {
+            setAiModerationDescription(aiData.settings.description || '');
+            setAiModerationStrictness(aiData.settings.strictness_level || 'medium');
+          }
+        }
         
         // Update URL to reflect actual moderation status if different
         if (initialModeration !== actualModerationEnabled) {
@@ -705,55 +723,79 @@ function PlayRoom() {
                 <div ref={playerContainerRef} id="youtube-player" style={{ display: 'none' }}></div>
               </div>
               
-              {/* Moderation Section - with improved controls - only visible to host */}
-              {isHost && (
-                <div className="moderation-section">
-                  <div className="moderation-controls">
-                    <h3>Moderation</h3>
-                    
-                    {/* Three-state Moderation Toggle */}
-                    <div className="moderation-toggle-group">
-                      <button 
-                        className={`moderation-toggle-option ${!moderationEnabled ? 'active' : ''}`}
-                        onClick={() => handleModerationChange('off')}
-                        title="Moderation Off"
-                      >
-                        <ToggleLeft size={isMobile ? 16 : 20} /> 
-                        <span>Off</span>
-                      </button>
-                      
-                      <button 
-                        className={`moderation-toggle-option ${moderationEnabled && !aiModerationEnabled ? 'active' : ''}`}
-                        onClick={() => handleModerationChange('on')}
-                        title="Manual Moderation"
-                      >
-                        <ToggleRight size={isMobile ? 16 : 20} /> 
-                        <span>Manual</span>
-                      </button>
-                      
-                      <button 
-                        className={`moderation-toggle-option ${aiModerationEnabled ? 'active' : ''}`}
-                        onClick={() => handleModerationChange('ai')}
-                        title="AI Moderation"
-                      >
-                        <Sparkles size={isMobile ? 14 : 16} />
-                        <span>AI</span>
-                      </button>
+              {/* Moderation Section - controls for host, status for guests */}
+              <div className="moderation-section">
+                <div className="moderation-controls">
+                  <h3>Moderation</h3>
+                  
+                  {isHost ? (
+                    /* Three-state Moderation Toggle - only for hosts */
+                    <>
+                      <div className="moderation-toggle-group">
+                        <button 
+                          className={`moderation-toggle-option ${!moderationEnabled ? 'active' : ''}`}
+                          onClick={() => handleModerationChange('off')}
+                          title="Moderation Off"
+                        >
+                          <ToggleLeft size={isMobile ? 16 : 20} /> 
+                          <span>Off</span>
+                        </button>
+                        
+                        <button 
+                          className={`moderation-toggle-option ${moderationEnabled && !aiModerationEnabled ? 'active' : ''}`}
+                          onClick={() => handleModerationChange('on')}
+                          title="Manual Moderation"
+                        >
+                          <ToggleRight size={isMobile ? 16 : 20} /> 
+                          <span>Manual</span>
+                        </button>
+                        
+                        <button 
+                          className={`moderation-toggle-option ${aiModerationEnabled ? 'active' : ''}`}
+                          onClick={() => handleModerationChange('ai')}
+                          title="AI Moderation"
+                        >
+                          <Sparkles size={isMobile ? 14 : 16} />
+                          <span>AI</span>
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    /* Moderation Status Display - for guests */
+                    <div className="moderation-status-display">
+                      <div className="moderation-status-indicator">
+                        <span className="moderation-status-label">Status:</span>
+                        {!moderationEnabled ? (
+                          <span className="moderation-status-value off">
+                            <ToggleLeft size={16} /> Off
+                          </span>
+                        ) : aiModerationEnabled ? (
+                          <span className="moderation-status-value ai">
+                            <Sparkles size={14} /> AI Moderation
+                          </span>
+                        ) : (
+                          <span className="moderation-status-value on">
+                            <ToggleRight size={16} /> Manual Moderation
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    
-                    {/* AI Settings button - only shown when AI moderation is enabled */}
-                    {aiModerationEnabled && (
-                      <button 
-                        className="ai-settings-button"
-                        onClick={toggleAiModerationSettings}
-                        title="Configure AI Moderation Settings"
-                      >
-                        <Edit size={isMobile ? 14 : 16} />
-                        <span>AI Settings</span>
-                      </button>
-                    )}
-                    
-                    {/* Refresh button for pending requests */}
+                  )}
+                  
+                  {/* AI Settings button - only shown when AI moderation is enabled */}
+                  {isHost && aiModerationEnabled && (
+                    <button 
+                      className="ai-settings-button"
+                      onClick={toggleAiModerationSettings}
+                      title="Configure AI Moderation Settings"
+                    >
+                      <Edit size={isMobile ? 14 : 16} />
+                      <span>AI Settings</span>
+                    </button>
+                  )}
+                  
+                  {/* Refresh button for pending requests - only visible to host */}
+                  {isHost && (
                     <button 
                       onClick={manualFetchPendingRequests}
                       className="refresh-button"
@@ -762,16 +804,19 @@ function PlayRoom() {
                     >
                       <RefreshCw size={isMobile ? 16 : 18} className={refreshing ? 'spinning' : ''} />
                     </button>
-                  </div>
-                  
+                  )}
+                </div>
+                
+                {/* Pending Requests Section - only visible to host */}
+                {isHost && (
                   <PendingRequestsSection
                     pendingRequests={pendingRequests}
                     roomName={roomName}
                     onApprove={handleApproveRequest}
                     onReject={handleRejectRequest}
                   />
-                </div>
-              )}
+                )}
+              </div>
             </div>
             
             {/* Right Column: Playlist with Pagination */}

@@ -5,8 +5,10 @@
   padding: 20px;
   width: 100%;
   max-width: 600px;
+  max-height: 80vh;
   margin: 0 auto;
   color: #ffffff;
+  overflow-y: auto;
 }
 
 .ai-moderation-header {

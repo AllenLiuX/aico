@@ -1790,7 +1790,12 @@ def request_track():
         # Default to moderation enabled (true) if not specified for safety
         moderation_enabled = settings.get('moderation_enabled', True)
         
-        logger.info(f"Moderation setting for room {room_name}: {moderation_enabled}")
+        # Get AI moderation settings for logging
+        ai_settings = get_room_ai_moderation_settings(room_name)
+        ai_enabled = ai_settings.get('enabled', False)
+        
+        logger.info(f"Moderation settings for room {room_name}: moderation={moderation_enabled}, ai_moderation={ai_enabled}")
+        logger.info(f"Full AI moderation settings: {ai_settings}")
         
         # Generate a unique request ID
         request_id = str(uuid.uuid4())
@@ -1832,16 +1837,111 @@ def request_track():
                 "moderated": False
             })
         
-        # With moderation enabled, store as pending request
-        logger.info(f"Moderation is on, adding track to pending requests for {room_name}")
-        track['status'] = 'pending'
+        # With moderation enabled, check if AI moderation is also enabled
+        ai_moderation_settings = get_room_ai_moderation_settings(room_name)
+        ai_moderation_enabled = ai_moderation_settings.get('enabled', False)
         
-        # Convert track to JSON for storage
-        track_json = json.dumps(track)
-        
-        # Store the request in Redis
-        write_hash(f"track_requests{redis_version}", request_id, track_json)
-        logger.info(f"Stored track request with ID {request_id} in track_requests{redis_version}")
+        # If AI moderation is enabled, check the song against AI criteria
+        if ai_moderation_enabled:
+            logger.info(f"AI Moderation is enabled for room {room_name}, checking song against AI criteria")
+            song_title = track.get('title', '')
+            song_artist = track.get('artist', '')
+            
+            # Use LLM to check if song matches moderation criteria
+            logger.info(f"Calling LLM to moderate song: '{song_title}' by '{song_artist}'")
+            logger.info(f"Using description: '{ai_moderation_settings.get('description', '')}'")
+            logger.info(f"Using strictness level: '{ai_moderation_settings.get('strictness_level', 'medium')}'")
+            
+            try:
+                moderation_result = llm.llm_moderate_song(
+                    song_title=song_title,
+                    song_artist=song_artist,
+                    moderation_description=ai_moderation_settings.get('description', ''),
+                    strictness_level=ai_moderation_settings.get('strictness_level', 'medium')
+                )
+                logger.info(f"LLM moderation result: {moderation_result}")
+            except Exception as e:
+                logger.error(f"Error during LLM moderation: {str(e)}")
+                # Default to manual moderation if LLM fails
+                moderation_result = {
+                    'approved': False,
+                    'score': 0,
+                    'reasoning': f'Error during AI moderation: {str(e)}',
+                    'song_attributes': {}
+                }
+
+            logger.info(f"AI moderation settings for room {room_name}: {ai_moderation_settings}")
+            logger.info(f"AI moderation result for song '{song_title}' by '{song_artist}' for room {room_name}: {moderation_result}")   
+            
+            # Record the moderation decision
+            moderation_decision = {
+                "timestamp": datetime.now().isoformat(),
+                "song_title": song_title,
+                "song_artist": song_artist,
+                "requested_by": username or "Guest",
+                "approved": moderation_result.get('approved', False),
+                "score": moderation_result.get('score', 0),
+                "reasoning": moderation_result.get('reasoning', ''),
+                "attributes": moderation_result.get('song_attributes', {})
+            }
+            
+            # Add the decision to moderation history
+            add_room_ai_moderation_decision(room_name, moderation_decision)
+            
+            # If song is approved by AI, add directly to playlist
+            if moderation_result.get('approved', False):
+                logger.info(f"AI moderation approved song '{song_title}' by '{song_artist}' for room {room_name}, adding to playlist")
+                
+                # Get existing playlist
+                playlist_json = get_hash(f"room_playlists{redis_version}", room_name)
+                if not playlist_json:
+                    logger.warning(f"No playlist found for room {room_name}, creating new playlist")
+                    playlist = []
+                else:
+                    try:
+                        playlist = json.loads(playlist_json)
+                    except json.JSONDecodeError:
+                        logger.error(f"Invalid JSON in playlist for room {room_name}: {playlist_json}")
+                        playlist = []
+                
+                # Add the track to the playlist
+                playlist.append(track)
+                
+                # Update the playlist in Redis
+                redis_api.write_hash(f"room_playlists{redis_version}", room_name, json.dumps(playlist))
+
+                logger.info(f"Track added directly to playlist for room {room_name} (AI moderation approved)")
+                
+                return jsonify({
+                    "message": "Track approved by AI moderation and added to playlist",
+                    "request_id": request_id,
+                    "moderated": True,
+                    "ai_moderated": True,
+                    "approved": True
+                })
+            else:
+                # If rejected by AI, still add to pending requests for host review
+                logger.info(f"AI moderation rejected song '{song_title}' by '{song_artist}' for room {room_name}, adding to pending requests")
+                track['status'] = 'pending'
+                track['ai_moderation_result'] = moderation_result
+                
+                # Convert track to JSON for storage
+                track_json = json.dumps(track)
+                
+                # Store the request in Redis
+                write_hash(f"track_requests{redis_version}", request_id, track_json)
+                logger.info(f"Stored track request with ID {request_id} in track_requests{redis_version} (rejected by AI moderation)")
+        else:
+            # Regular moderation without AI
+            logger.info(f"Regular moderation is on (no AI), adding track to pending requests for {room_name}")
+            track['status'] = 'pending'
+            
+            # Convert track to JSON for storage
+            track_json = json.dumps(track)
+            
+            # Store the request in Redis
+            write_hash(f"track_requests{redis_version}", request_id, track_json)
+            logger.info(f"Stored track request with ID {request_id} in track_requests{redis_version}")
         
         # Associate request with user if logged in
         if username:
@@ -1876,10 +1976,12 @@ def request_track():
         write_hash(f"room_requests{redis_version}", room_name, json.dumps(requests_list))
         logger.info(f"Associated request {request_id} with room {room_name}, requests list now: {requests_list}")
         
+        # Return appropriate response for moderated requests
         return jsonify({
             "message": "Track requested successfully",
             "request_id": request_id,
-            "moderated": True
+            "moderated": True,
+            "ai_moderated": ai_moderation_enabled
         })
     except Exception as e:
         logger.error(f"Error requesting track: {str(e)}")
@@ -2225,28 +2327,34 @@ def update_room_moderation():
 
 @app.route('/api/room/update-ai-moderation', methods=['POST'])
 def update_room_ai_moderation():
+    """Update AI moderation settings for a room"""
     data = request.json
     room_name = data.get('room_name')
-    enabled = data.get('enabled', False)
-    description = data.get('description', '')
+    enabled = data.get('enabled')
+    description = data.get('description')
     strictness_level = data.get('strictness_level', 'medium')
-    auth_token = request.headers.get('Authorization')
     
-    # Verify if user is the host of the room
+    logger.info(f"Updating AI moderation for room {room_name}: enabled={enabled}, strictness={strictness_level}")
+    logger.info(f"Description: {description}")
+    
     if not room_name:
         return jsonify({"error": "Room name is required"}), 400
     
-    username = None
-    if auth_token:
-        username = get_hash(f"sessions{redis_version}", auth_token)
+    # Verify if user is the host of the room
+    auth_token = request.headers.get('Authorization')
+    if not auth_token:
+        return jsonify({"error": "Authorization required"}), 401
     
-    # Get the room host
+    username = get_hash(f"sessions{redis_version}", auth_token)
+    if not username:
+        return jsonify({"error": "Invalid authorization"}), 401
+    
     host_info = get_room_host(room_name)
-    if not host_info or not username or username != host_info.get('username'):
-        return jsonify({"error": "Only the host can update AI moderation settings"}), 403
+    if not host_info or not isinstance(host_info, dict) or host_info.get('username') != username:
+        return jsonify({"error": "Only room hosts can update AI moderation settings"}), 403
     
     try:
-        # First check if regular moderation is enabled
+        # First check if regular moderation is enabled when enabling AI moderation
         settings_key = f"settings{redis_version}"
         settings_json = get_hash(settings_key, room_name)
         
@@ -2305,6 +2413,7 @@ def get_room_ai_moderation():
         # Get AI moderation settings
         settings = get_room_ai_moderation_settings(room_name)
         
+        logger.info(f"Returning AI moderation settings for room {room_name}: {settings}")
         return jsonify({
             "settings": settings
         })
