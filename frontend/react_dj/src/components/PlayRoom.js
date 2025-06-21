@@ -541,17 +541,7 @@ function PlayRoom() {
     );
   }
 
-  if (error || playerError) {
-    return (
-      <div className="play-room error">
-        <h2>Something went wrong</h2>
-        <p>{error || playerError}</p>
-        <button onClick={() => navigate('/')} className="back-button">
-          Go Back
-        </button>
-      </div>
-    );
-  }
+  // We'll handle errors inline instead of replacing the entire component
 
   const currentSong = playlist[currentTrack] || {};
 
@@ -848,12 +838,15 @@ function PlayRoom() {
         )}
         
         {/* Player Error Message */}
-        {playerError && (
+        {(playerError || error) && (
           <div className="player-error-banner">
             <div className="error-content">
               <span className="error-icon">⚠️</span>
-              <span>{playerError}</span>
-              <button onClick={() => setPlayerError(null)} className="close-error">×</button>
+              <span>{playerError || error}</span>
+              <button onClick={() => {
+                setPlayerError(null);
+                if (error) window.location.reload();
+              }} className="close-error">×</button>
             </div>
           </div>
         )}

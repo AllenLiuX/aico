@@ -1437,6 +1437,68 @@ body.play-room-active {
   }
 }
 
+/* Player Error Banner */
+.player-error-banner {
+  position: fixed;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  width: auto;
+  max-width: 90%;
+  background-color: rgba(30, 30, 30, 0.9);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: slideDown 0.3s ease-out;
+  overflow: hidden;
+}
+
+.error-content {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  gap: 12px;
+}
+
+.error-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.close-error {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0 0 0 12px;
+  margin-left: auto;
+  transition: color 0.2s ease;
+}
+
+.close-error:hover {
+  color: #ffffff;
+}
+
+@keyframes slideDown {
+  from { transform: translate(-50%, -20px); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
+
+@media (max-width: 768px) {
+  .player-error-banner {
+    top: 60px;
+    max-width: 95%;
+  }
+  
+  .error-content {
+    padding: 10px 12px;
+  }
+}
+
 /* Fix for iOS viewport height issue and iOS-specific fixes */
 @supports (-webkit-touch-callout: none) {
   .play-room {

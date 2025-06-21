@@ -19,3 +19,5 @@ ytmusicapi
 Crypto
 flask_socketio
 eventlet
+stripe
+jwt
