@@ -246,22 +246,7 @@ const AIModerationSettings = ({
                     ))}
                   </div>
                   
-                  {hints.examples && hints.examples.length > 0 && (
-                    <>
-                      <h4>Example Descriptions</h4>
-                      <div className="hint-examples">
-                        {hints.examples.map((example, index) => (
-                          <div 
-                            key={`example-${index}`} 
-                            className="hint-example"
-                            onClick={() => handleUseHint(example)}
-                          >
-                            {example}
-                          </div>
-                        ))}
-                      </div>
-                    </>
-                  )}
+                  {/* Example Descriptions section removed to avoid duplication */}
                 </div>
               )}
             </div>
