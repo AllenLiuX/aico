@@ -41,7 +41,8 @@ function PlaylistGenerator() {
     customGenre: '',
     occasion: '',
     customOccasion: '',
-    songCount: 20 // Default to 20 songs
+    songCount: 20, // Default to 20 songs
+    nicheLevel: 50 // Default to middle (50%) - balanced between common and niche
   });
   
   // For detecting mobile view
@@ -118,6 +119,27 @@ function PlaylistGenerator() {
       setRoomName(value);
     } else if (name === 'moderation') {
       setModeration(checked ? 'yes' : 'no');
+    } else if (name === 'nicheLevel') {
+      // Snap nicheLevel to the nearest of 5 discrete values: 0, 25, 50, 75, 100
+      const numValue = parseInt(value);
+      let snappedValue;
+      
+      if (numValue <= 12) {
+        snappedValue = 0;
+      } else if (numValue <= 37) {
+        snappedValue = 25;
+      } else if (numValue <= 62) {
+        snappedValue = 50;
+      } else if (numValue <= 87) {
+        snappedValue = 75;
+      } else {
+        snappedValue = 100;
+      }
+      
+      setFormData(prev => ({
+        ...prev,
+        [name]: snappedValue
+      }));
     } else {
       setFormData(prev => ({
         ...prev,
@@ -170,6 +192,7 @@ function PlaylistGenerator() {
           room_name: roomName,
           moderation: moderation, // Include moderation setting
           song_count: parseInt(formData.songCount), // Add the song count to the request
+          niche_level: parseInt(formData.nicheLevel), // Add niche level preference
           append_to_room: isAppendMode // Add flag to indicate if we should append to existing room
         }),
       });
@@ -366,7 +389,55 @@ function PlaylistGenerator() {
         </button>
 
         {showAdvanced && (
-          <div className="advanced-options">
+          <div className={`advanced-options ${showAdvanced ? 'show' : ''}`}>
+            <div className="option-group">
+              <label className="option-label">
+                <Hash size={isMobile ? 16 : 18} className="icon" />
+                Number of Songs
+              </label>
+              <select
+                name="songCount"
+                value={formData.songCount}
+                onChange={handleInputChange}
+                className="option-select"
+              >
+                {SONG_COUNT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="option-group">
+              <label className="option-label">
+                <Music size={isMobile ? 16 : 18} className="icon" />
+                Music Selection
+              </label>
+              <div className="slider-container">
+                <span className="slider-label">Common</span>
+                <input
+                  type="range"
+                  name="nicheLevel"
+                  min="0"
+                  max="100"
+                  value={formData.nicheLevel}
+                  onChange={handleInputChange}
+                  className="niche-slider"
+                />
+                <span className="slider-label">Niche</span>
+              </div>
+              <div className="slider-description">
+                {formData.nicheLevel === 0 ? 
+                  'Mostly popular, well-known tracks' : 
+                  formData.nicheLevel === 25 ? 
+                  'Familiar with some less-known tracks' : 
+                  formData.nicheLevel === 50 ? 
+                  'Balanced mix of popular and niche music' : 
+                  formData.nicheLevel === 75 ? 
+                  'Mix of niche and obscure tracks' : 
+                  'Mostly niche, obscure, and unique tracks'}
+              </div>
+            </div>
+
             <div className="option-group">
               <label className="option-label">
                 <Tag size={isMobile ? 16 : 18} className="icon" />

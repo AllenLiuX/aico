@@ -314,6 +314,7 @@ def generate_playlist():
     song_count = data.get('song_count', 20)  # Default to 20 if not provided
     append_to_room = data.get('append_to_room', False)  # New parameter to handle append mode
     moderation = data.get('moderation', 'no')  # Get moderation setting from request
+    niche_level = data.get('niche_level', 50)  # Get niche level (0-100), default to 50 (balanced)
     
     # Validate song count
     if not isinstance(song_count, int) or song_count <= 0:
@@ -343,29 +344,73 @@ def generate_playlist():
         logger.info(f"Song count: {song_count}")
         logger.info(f"Append mode: {append_to_room}")
         logger.info(f"Moderation: {moderation}")
+        logger.info(f"Niche level: {niche_level}")
 
         settings = {
             "prompt": prompt,
             "genre": genre,
             "occasion": occasion,
             "song_count": song_count,
-            "moderation_enabled": moderation == 'yes'  # Convert string to boolean
+            "moderation_enabled": moderation == 'yes',  # Convert string to boolean
+            "niche_level": niche_level  # Store niche level in settings
         }
 
-        titles, artists, introduction, reply = llm.llm_generate_playlist(prompt, genre, occasion, song_count)
+        # Initialize variables for the song generation loop
+        all_titles = []
+        all_artists = []
+        unique_titles = set()
+        max_attempts = 3  # Maximum number of attempts to get enough songs
+        attempt = 0
+        current_prompt = prompt
+        target_song_count = song_count
         
+        # Keep requesting songs until we have enough unique ones or reach max attempts
+        while len(unique_titles) < target_song_count and attempt < max_attempts:
+            # Request 50% more songs than needed to account for duplicates
+            requested_count = int((target_song_count - len(unique_titles)) * 1.5)
+            
+            logger.info(f'Attempt {attempt+1}: Requesting {requested_count} songs. Current unique count: {len(unique_titles)}')
+            
+            # If this is not the first attempt, include existing songs in the prompt to avoid duplicates
+            if attempt > 0:
+                existing_songs = ', '.join([f'"{title}" by {artist}' for title, artist in zip(all_titles, all_artists)])
+                current_prompt = f"{prompt}\n\nPlease provide {requested_count} MORE songs that are DIFFERENT from these existing songs: {existing_songs}"
+                logger.info(f'Updated prompt with existing songs')
+            
+            # Get new songs from LLM
+            titles, artists, introduction, reply = llm.llm_generate_playlist(current_prompt, genre, occasion, requested_count, niche_level)
+            logger.info(f'LLM returned {len(titles)} songs')
+            logger.info(str(reply))
+            
+            # Add new songs to our lists, checking for duplicates by title only
+            for title, artist in zip(titles, artists):
+                title_lower = title.lower().strip()
+                if title_lower not in unique_titles:
+                    all_titles.append(title)
+                    all_artists.append(artist)
+                    unique_titles.add(title_lower)
+                else:
+                    logger.info(f'Skipping duplicate title: {title}')
+            
+            attempt += 1
+        
+        logger.info(f'Final unique song count: {len(unique_titles)} out of {target_song_count} requested')
+        
+        # Now get song info for all unique songs
         new_playlist = []
         
-        for title, artist in zip(titles, artists):
+        for title, artist in zip(all_titles, all_artists):
             try:
                 logger.info(f'getting links for {title}...')
                 song_info = youtube_music.get_song_info(song_name=title, artist_name=artist)
                 new_playlist.append(song_info)
-
             except Exception as e:
                 logger.info(f'----failed for {title}, {artist}', e)
         
         logger.info(str(new_playlist))
+
+        new_playlist = new_playlist[:song_count]
+        logger.info('--- new playlist after CAP:', str(new_playlist))
 
         # If append mode is enabled and room exists, append to existing playlist
         if append_to_room:

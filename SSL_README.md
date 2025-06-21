@@ -199,6 +199,76 @@ The error codes related to embedding restrictions are:
 - 101: "Video cannot be played in embedded players"
 - 150: "Video cannot be played in embedded players"
 
+## SSL Certificate Renewal
+
+Let's Encrypt SSL certificates are valid for 90 days. You'll need to renew your certificate before it expires. Here's how to renew your SSL certificate:
+
+### Step 1: Check Certificate Status
+
+Check the status of your current certificate to see if it needs renewal:
+
+```bash
+sudo certbot certificates
+```
+
+This will show you the expiration date of your certificate and whether it's still valid.
+
+### Step 2: Stop Nginx Temporarily
+
+Before running Certbot for renewal, stop Nginx to free up port 80/443:
+
+```bash
+sudo systemctl stop nginx
+```
+
+### Step 3: Renew the Certificate
+
+Run the following command to renew your SSL certificate:
+
+```bash
+sudo certbot renew
+```
+
+This command will automatically identify and renew any certificates that are due for renewal.
+
+### Step 4: Start Nginx Again
+
+After the renewal is complete, start Nginx again:
+
+```bash
+sudo systemctl start nginx
+```
+
+### Step 5: Verify Nginx Status
+
+Verify that Nginx is running properly with the renewed certificate:
+
+```bash
+sudo systemctl status nginx
+```
+
+### Automating Renewal (Optional)
+
+Certbot typically installs a cron job or systemd timer that automatically renews certificates before they expire. You can check if this is set up by running:
+
+```bash
+sudo systemctl list-timers | grep certbot
+```
+
+If you want to set up automatic renewal manually, you can add a cron job:
+
+```bash
+sudo crontab -e
+```
+
+Add the following line to run the renewal check twice daily (recommended by Let's Encrypt):
+
+```
+0 0,12 * * * certbot renew --quiet --deploy-hook "systemctl restart nginx"
+```
+
+This will attempt renewal twice a day and restart Nginx only when certificates are actually renewed.
+
 These errors occur when the video owner has specifically disabled the "Allow embedding" option in their YouTube video settings.
 
 ## Troubleshooting YouTube Player Issues
