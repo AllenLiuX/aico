@@ -3508,8 +3508,16 @@ def google_login():
         
         # Extract user information from the credential
         try:
-            # Decode the JWT token
-            decoded = jwt.decode(credential, options={"verify_signature": False})
+            # Decode the JWT token (fallback to manual decode if jwt.decode is unavailable)
+            try:
+                decoded = jwt.decode(credential, options={"verify_signature": False})
+            except AttributeError:
+                import base64
+                header, payload, signature = credential.split('.')
+                # Add padding to payload for base64 decoding
+                padded = payload + '=' * (-len(payload) % 4)
+                decoded_bytes = base64.urlsafe_b64decode(padded)
+                decoded = json.loads(decoded_bytes)
             
             # Extract user information
             email = decoded.get('email') or user_info.get('email')

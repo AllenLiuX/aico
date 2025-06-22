@@ -647,13 +647,7 @@ function PlayRoom() {
           roomInfo={settings}
         />
         
-        {/* Show connection status */}
-        {connectionError && showConnectionError && (
-          <div className="connection-error">
-            <p>{connectionError}</p>
-            <button onClick={() => setShowConnectionError(false)}>Dismiss</button>
-          </div>
-        )}
+
         
         {/* Show connected users for host */}
         {isHost && connectedUsers.length > 0 && (
@@ -966,13 +960,18 @@ function PlayRoom() {
           />
         )}
         
-        {/* Connection Error Modal */}
+        {/* Connection Error Banner */}
         {showConnectionError && (
-          <div className="modal-overlay">
-            <div className="modal-content error-modal">
-              <h3>Connection Error</h3>
-              <p>There was an error connecting to the room. Please try again later.</p>
-              <button onClick={() => navigate('/')}>Return to Home</button>
+          <div className="player-error-banner">
+            <div className="error-content">
+              <span className="error-icon">⚠️</span>
+              <span>{connectionError || 'There was an error connecting to the room. Please try again later.'}</span>
+              <button
+                className="close-error"
+                onClick={() => setShowConnectionError(false)}
+              >
+                ×
+              </button>
             </div>
           </div>
         )}

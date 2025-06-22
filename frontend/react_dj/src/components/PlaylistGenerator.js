@@ -390,22 +390,6 @@ function PlaylistGenerator() {
 
         {showAdvanced && (
           <div className={`advanced-options ${showAdvanced ? 'show' : ''}`}>
-            <div className="option-group">
-              <label className="option-label">
-                <Hash size={isMobile ? 16 : 18} className="icon" />
-                Number of Songs
-              </label>
-              <select
-                name="songCount"
-                value={formData.songCount}
-                onChange={handleInputChange}
-                className="option-select"
-              >
-                {SONG_COUNT_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>{option.label}</option>
-                ))}
-              </select>
-            </div>
             
             <div className="option-group">
               <label className="option-label">

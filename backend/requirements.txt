@@ -20,4 +20,4 @@ Crypto
 flask_socketio
 eventlet
 stripe
-jwt
+pyjwt==2.8.0
