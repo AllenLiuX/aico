@@ -508,6 +508,15 @@ def get_room_playlist():
             playlist = []
         else:
             playlist = json.loads(playlist_data)
+            # Deduplicate playlist based on song title (case-insensitive)
+            deduped_playlist = []
+            seen_titles = set()
+            for song in playlist:
+                title_key = song.get('title', '').strip().lower()
+                if title_key and title_key not in seen_titles:
+                    deduped_playlist.append(song)
+                    seen_titles.add(title_key)
+            playlist = deduped_playlist
         
         settings_data = get_hash(f"settings{redis_version}", room_name)
         if not settings_data:
