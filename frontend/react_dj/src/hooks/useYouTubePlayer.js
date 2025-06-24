@@ -717,21 +717,43 @@ const useYouTubePlayer = (playlist, socket, isHost, emitPlayerState) => {
   };
 
   const playNext = () => {
-    // Only allow host to control playback
-    if (!isHost || playlist.length === 0) return;
-    
+    if (playlist.length === 0) return;
+
     const nextIndex = (currentTrack + 1) % playlist.length;
     setCurrentTrack(nextIndex);
-    loadVideo(nextIndex);
+
+    if (isHost) {
+      // Host: use normal load which will propagate state to guests
+      loadVideo(nextIndex);
+    } else {
+      // Guest: break sync and play locally
+      if (syncedWithHost) setSyncedWithHost(false);
+      const nextTrack = playlist[nextIndex];
+      if (!nextTrack) return;
+      const videoId = extractVideoId(nextTrack.song_url);
+      if (videoId) {
+        forcePlayVideo(videoId, 0, true);
+      }
+    }
   };
 
   const playPrevious = () => {
-    // Only allow host to control playback
-    if (!isHost || playlist.length === 0) return;
-    
+    if (playlist.length === 0) return;
+
     const prevIndex = (currentTrack - 1 + playlist.length) % playlist.length;
     setCurrentTrack(prevIndex);
-    loadVideo(prevIndex);
+
+    if (isHost) {
+      loadVideo(prevIndex);
+    } else {
+      if (syncedWithHost) setSyncedWithHost(false);
+      const prevTrack = playlist[prevIndex];
+      if (!prevTrack) return;
+      const videoId = extractVideoId(prevTrack.song_url);
+      if (videoId) {
+        forcePlayVideo(videoId, 0, true);
+      }
+    }
   };
 
   const loadVideo = (index) => {
@@ -776,23 +798,40 @@ const useYouTubePlayer = (playlist, socket, isHost, emitPlayerState) => {
   };
 
   const handleProgressChange = (e) => {
-    // Only allow host to scrub the video
-    if (!isHost || !playerRef.current || !playerReadyRef.current) return;
-    
+    if (!playerRef.current || !playerReadyRef.current) return;
+
     const newProgress = parseFloat(e.target.value);
     setProgress(newProgress);
-    
+
     const seekTime = (newProgress / 100) * duration;
-    playerRef.current.seekTo(seekTime, true);
+
+    // Guests break sync when they manually seek
+    if (!isHost && syncedWithHost) setSyncedWithHost(false);
+
+    try {
+      playerRef.current.seekTo(seekTime, true);
+    } catch (err) {
+      console.error('Error seeking video:', err);
+    }
   };
 
   const playSpecificTrack = (index) => {
-    // Only allow host to play specific tracks
-    if (!isHost) return;
-    
+    if (!playlist[index]) return;
+
     console.log(`Playing specific track at index ${index}:`, playlist[index]?.title);
     setCurrentTrack(index);
-    loadVideo(index);
+
+    if (isHost) {
+      // Host: broadcast via normal loadVideo
+      loadVideo(index);
+    } else {
+      // Guest: break sync and play locally
+      if (syncedWithHost) setSyncedWithHost(false);
+      const videoId = extractVideoId(playlist[index].song_url);
+      if (videoId) {
+        forcePlayVideo(videoId, 0, true);
+      }
+    }
   };
 
   const handlePinToTop = (selectedIndex, currentPlayingIndex) => {

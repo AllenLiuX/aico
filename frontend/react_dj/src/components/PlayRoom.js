@@ -577,10 +577,9 @@ function PlayRoom() {
 
   // Fix for track selection - map index back to full playlist index
   const handlePlaySpecificTrack = (index) => {
-    // Only allow host to select tracks
-    if (!isHost) return;
-    
     const actualIndex = (currentPage - 1) * SONGS_PER_PAGE + index;
+
+    // If guest takes manual control, break sync inside hook
     playSpecificTrack(actualIndex);
   };
 
