@@ -1773,6 +1773,61 @@ def request_track():
     username = None
     if auth_token:
         username = get_hash(f"sessions{redis_version}", auth_token)
+
+    # ------------------------------------------------------------------
+    # Coin deduction & express request handling
+    # ------------------------------------------------------------------
+    express_request = bool(data.get('express', False))
+
+    # Determine room-specific request price (default→30)
+    price_key = f"room_request_price{redis_version}"
+    price_val = get_hash(price_key, room_name)
+    try:
+        base_price = int(price_val) if price_val else 30
+    except (TypeError, ValueError):
+        base_price = 30
+
+    # Express requests price = host-set request price + pin price (combined)
+    if express_request:
+        # Fetch pin price for the room (default 10 if not set)
+        pin_key = f"room_pin_price{redis_version}"
+        pin_val = get_hash(pin_key, room_name)
+        try:
+            pin_price = int(pin_val) if pin_val else 10
+        except (TypeError, ValueError):
+            pin_price = 10
+
+        request_price = base_price + pin_price
+    else:
+        request_price = base_price
+
+    # Enforce authentication – guests cannot submit paid requests
+    if not username:
+        return jsonify({"error": "Authentication required to request tracks"}), 401
+
+    # Deduct coins atomically from requester
+    coin_result = use_user_coins(
+        username=username,
+        amount=request_price,
+        feature="express_request" if express_request else "song_request"
+    )
+    if not coin_result.get("success"):
+        return jsonify({
+            "error": coin_result.get("error", "Insufficient coins"),
+            "coins": coin_result.get("coins", 0)
+        }), 402
+
+    # Credit coins to the room host (if different from requester)
+    host_info = get_room_host(room_name)
+    host_username = None
+    if host_info:
+        host_username = host_info.get("username") if isinstance(host_info, dict) else host_info
+    if host_username and host_username != username:
+        add_user_coins(host_username, request_price, reason="track_request_reward")
+
+    # Annotate track metadata
+    track['express'] = express_request
+    track['price'] = request_price
     
     if not all([room_name, track]):
         logger.error(f"Missing required fields: room_name={room_name}, track={'present' if track else 'missing'}")
@@ -1830,8 +1885,18 @@ def request_track():
                     logger.error(f"Invalid JSON in playlist for room {room_name}: {playlist_json}")
                     playlist = []
             
-            # Add the track to the playlist
-            playlist.append(track)
+            # Insert the track respecting express flag
+            if track.get('express'):
+                current_state = room_player_states.get(room_name, {}) if 'room_player_states' in globals() else {}
+                current_index = current_state.get('index', -1)
+                if current_index is not None and current_index >= 0 and current_index < len(playlist):
+                    insert_pos = current_index + 1
+                else:
+                    insert_pos = 1 if len(playlist) >= 1 else 0
+                playlist.insert(insert_pos, track)
+                logger.info(f"Inserted express track at position {insert_pos} in playlist for {room_name}")
+            else:
+                playlist.append(track)
             
             # Update the playlist in Redis
             # redis_client.set(f"playlist:{room_name}", json.dumps(playlist))
@@ -1913,8 +1978,18 @@ def request_track():
                         logger.error(f"Invalid JSON in playlist for room {room_name}: {playlist_json}")
                         playlist = []
                 
-                # Add the track to the playlist
-                playlist.append(track)
+                # Insert the track respecting express flag
+                if track.get('express'):
+                    current_state = room_player_states.get(room_name, {}) if 'room_player_states' in globals() else {}
+                    current_index = current_state.get('index', -1)
+                    if current_index is not None and current_index >= 0 and current_index < len(playlist):
+                        insert_pos = current_index + 1
+                    else:
+                        insert_pos = 1 if len(playlist) >= 1 else 0
+                    playlist.insert(insert_pos, track)
+                    logger.info(f"Inserted express track at position {insert_pos} in playlist for {room_name}")
+                else:
+                    playlist.append(track)
                 
                 # Update the playlist in Redis
                 redis_api.write_hash(f"room_playlists{redis_version}", room_name, json.dumps(playlist))
