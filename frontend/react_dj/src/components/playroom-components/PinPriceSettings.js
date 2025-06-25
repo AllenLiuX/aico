@@ -6,14 +6,16 @@ import '../../styles/PinPriceSettings.css';
 const PinPriceSettings = ({ roomName, isHost }) => {
   const [showSettings, setShowSettings] = useState(false);
   const [pinPrice, setPinPrice] = useState(10);
+  const [requestPrice, setRequestPrice] = useState(30);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
 
-  // Fetch current pin price when component mounts
+  // Fetch current prices when component mounts
   useEffect(() => {
     if (roomName) {
       fetchPinPrice();
+      fetchRequestPrice();
     }
   }, [roomName]);
 
@@ -34,63 +36,83 @@ const PinPriceSettings = ({ roomName, isHost }) => {
     }
   };
 
-  const handleSavePinPrice = async () => {
+  const fetchRequestPrice = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/coins/get-request-price?room_name=${roomName}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch request price');
+      }
+      const data = await response.json();
+      setRequestPrice(data.price);
+    } catch (err) {
+      console.error('Error fetching request price:', err);
+      setRequestPrice(30);
+    }
+  };
+
+  const handleSavePrices = async () => {
     if (!isHost) return;
-    
+
     try {
       setIsSaving(true);
       setError(null);
       setSuccess(false);
-      
-      // Validate price
-      const priceNum = parseInt(pinPrice, 10);
-      if (isNaN(priceNum) || priceNum < 1) {
-        setError('Price must be at least 1 coin');
+
+      // Validate prices
+      const pinPriceNum = parseInt(pinPrice, 10);
+      const requestPriceNum = parseInt(requestPrice, 10);
+      if (isNaN(pinPriceNum) || pinPriceNum < 1 || isNaN(requestPriceNum) || requestPriceNum < 1) {
+        setError('Prices must be at least 1 coin');
         setIsSaving(false);
         return;
       }
-      
-      // Get auth token from localStorage
+
+      // Get auth token
       const token = localStorage.getItem('token');
-      
       if (!token) {
         setError('Authentication required');
         setIsSaving(false);
         return;
       }
-      
-      const response = await fetch(`${API_URL}/api/coins/set-pin-price`, {
+
+      // Save pin price
+      const respPin = await fetch(`${API_URL}/api/coins/set-pin-price`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          room_name: roomName,
-          price: priceNum
-        })
+        body: JSON.stringify({ room_name: roomName, price: pinPriceNum })
       });
-  
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to save pin price');
+      if (!respPin.ok) {
+        const errData = await respPin.json();
+        throw new Error(errData.error || 'Failed to save pin price');
       }
-  
-      const data = await response.json();
+
+      // Save request price
+      const respReq = await fetch(`${API_URL}/api/coins/set-request-price`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ room_name: roomName, price: requestPriceNum })
+      });
+      if (!respReq.ok) {
+        const errData = await respReq.json();
+        throw new Error(errData.error || 'Failed to save request price');
+      }
+
       setSuccess(true);
-      
-      // Hide success message after 3 seconds
-      setTimeout(() => {
-        setSuccess(false);
-      }, 3000);
-      
+      setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      setError(err.message || 'Failed to save pin price');
-      console.error('Error saving pin price:', err);
+      setError(err.message || 'Failed to save prices');
+      console.error('Error saving prices:', err);
     } finally {
       setIsSaving(false);
     }
   };
+
 
   // Only show for host
   if (!isHost) return null;
@@ -114,12 +136,12 @@ const PinPriceSettings = ({ roomName, isHost }) => {
           >
             <X size={18} />
           </button>
-          <h4>Pin Price Settings</h4>
+          <h4>Price Settings</h4>
           <p className="settings-description">
-            Set the price for guests to pin songs to the top of the playlist
+            Set the prices that guests will pay for pinning or requesting songs
           </p>
           <div className="price-input-container">
-            <label htmlFor="pin-price">Price (coins):</label>
+            <label htmlFor="pin-price">Pin Price (coins):</label>
             <input
               id="pin-price"
               type="number"
@@ -129,11 +151,22 @@ const PinPriceSettings = ({ roomName, isHost }) => {
               disabled={isSaving}
             />
           </div>
+          <div className="price-input-container">
+            <label htmlFor="request-price">Request Price (coins):</label>
+            <input
+              id="request-price"
+              type="number"
+              min="1"
+              value={requestPrice}
+              onChange={(e) => setRequestPrice(e.target.value)}
+              disabled={isSaving}
+            />
+          </div>
           {error && <p className="settings-error">{error}</p>}
           {success && <p className="settings-success">Price updated successfully!</p>}
           <button
             className="save-settings"
-            onClick={handleSavePinPrice}
+            onClick={handleSavePrices}
             disabled={isSaving}
           >
             {isSaving ? 'Saving...' : (

@@ -24,6 +24,8 @@ function SearchMusic() {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [trackToRequest, setTrackToRequest] = useState(null);
   const [currentTrackPlaying, setCurrentTrackPlaying] = useState(null);
+  const [requestPrice, setRequestPrice] = useState(30);
+  const [pinPrice, setPinPrice] = useState(10);
   
   const location = useLocation();
   const navigate = useNavigate();
@@ -35,6 +37,26 @@ function SearchMusic() {
     // Check if user is host
     setIsHost(isHostParam === 'True');
     
+    // Fetch prices
+    const fetchPrices = async () => {
+      if (!roomName) return;
+      try {
+        const reqRes = await fetch(`${API_URL}/api/coins/get-request-price?room_name=${roomName}`);
+        if (reqRes.ok) {
+          const d = await reqRes.json();
+          if (d.price) setRequestPrice(d.price);
+        }
+        const pinRes = await fetch(`${API_URL}/api/coins/get-pin-price?room_name=${roomName}`);
+        if (pinRes.ok) {
+          const d2 = await pinRes.json();
+          if (d2.price) setPinPrice(d2.price);
+        }
+      } catch (e) {
+        console.error('Error fetching prices', e);
+      }
+    };
+    fetchPrices();
+
     // Check if device is mobile
     const checkMobile = () => {
       setIsMobile(window.innerWidth <= 768);
@@ -119,7 +141,7 @@ function SearchMusic() {
   };
 
   // Actual function to add track to playlist or request it
-  const addTrackToPlaylist = async (track) => {
+  const addTrackToPlaylist = async (track, reqType = 'normal') => {
     try {
       // Different endpoints for host vs. non-host
       const endpoint = isHost ? 'add-to-playlist' : 'request-track';
@@ -133,6 +155,7 @@ function SearchMusic() {
         body: JSON.stringify({
           room_name: roomName,
           track: track,
+          express: reqType === 'express'
         }),
       });
 
@@ -162,10 +185,10 @@ function SearchMusic() {
   };
 
   // Handler for confirmation modal's confirm button
-  const handleConfirmRequest = () => {
+  const handleChooseRequestType = (type) => {
     setShowConfirmModal(false);
     if (trackToRequest) {
-      addTrackToPlaylist(trackToRequest);
+      addTrackToPlaylist(trackToRequest, type);
     }
   };
 
@@ -293,9 +316,11 @@ function SearchMusic() {
       <RequestConfirmModal
         isOpen={showConfirmModal}
         onClose={() => setShowConfirmModal(false)}
-        onConfirm={handleConfirmRequest}
+        onChoose={handleChooseRequestType}
         requestedTrack={trackToRequest || {}}
         currentTrack={currentTrackPlaying}
+        requestPrice={requestPrice}
+        expressPrice={requestPrice + pinPrice}
       />
     </div>
   );

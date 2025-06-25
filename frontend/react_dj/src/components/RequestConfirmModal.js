@@ -2,7 +2,7 @@
 import React from 'react';
 import '../styles/RequestConfirmModal.css';
 
-const RequestConfirmModal = ({ isOpen, onClose, onConfirm, requestedTrack, currentTrack }) => {
+const RequestConfirmModal = ({ isOpen, onClose, onChoose, requestedTrack, currentTrack, requestPrice = 30, expressPrice = 130 }) => {
   if (!isOpen) return null;
 
   return (
@@ -59,15 +59,18 @@ const RequestConfirmModal = ({ isOpen, onClose, onConfirm, requestedTrack, curre
         </div>
 
         <div className="request-message">
-          <p>Your song request will be sent to the room host for approval.</p>
+          <p>Select how you'd like to request this song.</p>
         </div>
         
-        <div className="modal-buttons">
+        <div className="modal-buttons three-options">
           <button className="cancel-button" onClick={onClose}>
             Cancel
           </button>
-          <button className="confirm-button" onClick={onConfirm}>
-            Confirm
+          <button className="confirm-button normal" onClick={() => onChoose('normal')}>
+            Request – {requestPrice} Coins
+          </button>
+          <button className="confirm-button express" onClick={() => onChoose('express')}>
+            Express – {expressPrice} Coins
           </button>
         </div>
       </div>
