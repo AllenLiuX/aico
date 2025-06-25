@@ -2193,9 +2193,29 @@ def approve_track_request():
         track['approved_at'] = datetime.now().isoformat()
         write_hash(f"track_requests{redis_version}", request_id, json.dumps(track))
         
-        # Add the track to the room's playlist
-        playlist = json.loads(get_hash(f"room_playlists{redis_version}", room_name))
-        playlist.append(track)
+        # ------------------------------------------------------------------
+        # Add the track to the room's playlist – handle express insertion
+        # ------------------------------------------------------------------
+        playlist_json = get_hash(f"room_playlists{redis_version}", room_name)
+        try:
+            playlist = json.loads(playlist_json) if playlist_json else []
+        except Exception:
+            logger.error(f"Invalid JSON in playlist for room {room_name}: {playlist_json}")
+            playlist = []
+
+        # If express flag, insert right after currently playing song
+        if track.get("express"):
+            current_state = room_player_states.get(room_name, {}) if 'room_player_states' in globals() else {}
+            current_index = current_state.get('index', -1)
+            if current_index is not None and isinstance(current_index, int) and 0 <= current_index < len(playlist):
+                insert_pos = current_index + 1
+            else:
+                insert_pos = 1 if len(playlist) >= 1 else 0
+            playlist.insert(insert_pos, track)
+            logger.info(f"Approved EXPRESS request – inserted track at position {insert_pos} for room {room_name}")
+        else:
+            playlist.append(track)
+
         write_hash(f"room_playlists{redis_version}", room_name, json.dumps(playlist))
         
         # Create notification for the requester
