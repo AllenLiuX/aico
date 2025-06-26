@@ -116,6 +116,31 @@
   margin-right: 6px;  /* Move play indicator away from action buttons */
 }
 
+.requester-info {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.requester-avatar {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.track-requester {
+  color: #2CBDFB;
+  font-size: 11px;
+}
+
+.express-badge {
+  color: #ffb300; /* yellow */
+  font-size: 12px;
+  margin-left: 2px;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .delete-button,

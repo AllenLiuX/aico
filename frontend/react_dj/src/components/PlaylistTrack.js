@@ -284,6 +284,21 @@ const PlaylistTrack = ({
       <div className="track-details">
         <span className="track-title">{track.title}</span>
         <span className="track-artist">{track.artist}</span>
+        <div className="requester-info">
+          {track.requested_by_avatar && (
+            <img
+              src={track.requested_by_avatar}
+              alt={track.requested_by_username || "Guest"}
+              className="requester-avatar"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.style.display = "none";
+              }}
+            />
+          )}
+          <span className="track-requester">{track.requested_by_username || "Guest"}</span>
+          {track.express && (<span className="express-badge" title="Express request">⚡</span>)}
+        </div>
         {error && <span className="track-error">{error}</span>}
       </div>
       {isCurrentTrack && (

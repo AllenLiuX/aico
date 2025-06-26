@@ -1829,6 +1829,11 @@ def request_track():
     track['express'] = express_request
     track['price'] = request_price
     
+    # Store requester info (username & avatar) for UI display
+    track['requested_by_username'] = username if username else "Guest"
+    track['requested_by'] = username if username else "Guest"
+    track['requested_by_avatar'] = get_user_avatar_url(username) if username else None
+    
     if not all([room_name, track]):
         logger.error(f"Missing required fields: room_name={room_name}, track={'present' if track else 'missing'}")
         return jsonify({"error": "Missing required fields"}), 400

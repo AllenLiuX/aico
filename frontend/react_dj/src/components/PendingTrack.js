@@ -9,8 +9,7 @@ const PendingTrack = ({
   index,
   roomName,
   onApprove,
-  onReject,
-  requestedBy
+  onReject
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState(null);
@@ -33,7 +32,7 @@ const PendingTrack = ({
           room_name: roomName,
           track_id: track.song_id,
           request_id: track.request_id,
-          requester_id: requestedBy
+          requester_id: track.requested_by || track.requested_by_username
         })
       });
   
@@ -70,7 +69,7 @@ const PendingTrack = ({
           room_name: roomName,
           track_id: track.song_id,
           request_id: track.request_id,
-          requester_id: requestedBy
+          requester_id: track.requested_by || track.requested_by_username
         })
       });
   
@@ -106,7 +105,23 @@ const PendingTrack = ({
       <div className="track-details">
         <span className="track-title">{track.title}</span>
         <span className="track-artist">{track.artist}</span>
-        <span className="track-requester">Requested by: {requestedBy || "Guest"}</span>
+        <div className="requester-info">
+          {track.requested_by_avatar && (
+            <img
+              src={track.requested_by_avatar}
+              alt={track.requested_by_username || "Guest"}
+              className="requester-avatar"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.style.display = "none";
+              }}
+            />
+          )}
+          <span className="track-requester">{track.requested_by_username || "Guest"}</span>
+          {track.express && (
+            <span className="express-badge" title="Express request">⚡</span>
+          )}
+        </div>
         {error && <span className="track-error">{error}</span>}
       </div>
       

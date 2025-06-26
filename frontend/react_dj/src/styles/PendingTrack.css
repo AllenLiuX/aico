@@ -15,11 +15,29 @@
     background-color: #363636;
   }
   
+  .requester-info {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 2px;
+  }
+  
+  .requester-avatar {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  
   .track-requester {
-    display: block;
     color: #ffb300;
     font-size: 11px;
-    margin-top: 2px;
+  }
+  
+  .express-badge {
+    color: #ffb300;
+    font-size: 12px;
+    margin-left: 2px;
   }
   
   /* Track actions for approval/rejection */

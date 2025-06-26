@@ -28,7 +28,7 @@ const PendingRequestsSection = ({
               roomName={roomName}
               onApprove={onApprove}
               onReject={onReject}
-              requestedBy={track.requested_by || "Guest"}
+
             />
           ))}
         </ul>
