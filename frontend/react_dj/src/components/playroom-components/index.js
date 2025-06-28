@@ -11,3 +11,4 @@ export {default as MobileResponsiveWrapper} from "./MobileResponsiveWrapper";
 export {default as SocialActionButtons} from "./SocialActionButtons";
 export { default as PinPriceSettings } from './PinPriceSettings';
 export { default as AIModerationSettings } from './AIModerationSettings';
+export { default as MyRequestsSection } from './MyRequestsSection';

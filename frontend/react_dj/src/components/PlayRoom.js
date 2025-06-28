@@ -14,7 +14,8 @@ import {
   QRCodeModal,
   LyricsSection,
   PinPriceSettings,
-  AIModerationSettings
+  AIModerationSettings,
+  MyRequestsSection
 } from './playroom-components';
 import RequestNotificationModal from './RequestNotificationModal';
 import { ToggleLeft, ToggleRight, Edit, RefreshCw, PlusCircle, Sparkles } from 'lucide-react';
@@ -73,6 +74,10 @@ function PlayRoom() {
   const [connectedUsers, setConnectedUsers] = useState([]);
   const [showConnectionError, setShowConnectionError] = useState(false);
   const [playerError, setPlayerError] = useState(null);
+  // Guest user's own requests state
+  const [myRequests, setMyRequests] = useState([]);
+  const [loadingMyRequests, setLoadingMyRequests] = useState(false);
+  const [errorMyRequests, setErrorMyRequests] = useState(null);
   
   // AI moderation state
   const [showAiModerationSettings, setShowAiModerationSettings] = useState(false);
@@ -340,6 +345,41 @@ function PlayRoom() {
       clearInterval(pollInterval);
     };
   }, [roomName, fetchPendingRequests, isHost]);
+
+  // Fetch guest user's own requests
+  const fetchMyRequests = async () => {
+    if (isHost) return; // Hosts don't have personal requests
+
+    const token = localStorage.getItem('token');
+
+    setLoadingMyRequests(true);
+    try {
+      const response = await fetch(`${API_URL}/api/my-requests?room_name=${encodeURIComponent(roomName)}`, {
+        headers: token ? { 'Authorization': token } : {}
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch your requests');
+      }
+
+      const data = await response.json();
+      setMyRequests(Array.isArray(data.requests) ? data.requests : []);
+      setErrorMyRequests(null);
+    } catch (err) {
+      console.error('Error fetching my requests:', err);
+      setErrorMyRequests(err.message || 'Unknown error');
+    } finally {
+      setLoadingMyRequests(false);
+    }
+  };
+
+  // Fetch when component mounts or role changes
+  useEffect(() => {
+    if (!isHost) {
+      fetchMyRequests();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isHost]);
 
   // Manual fetch function for pending requests
   const manualFetchPendingRequests = async () => {
@@ -808,6 +848,17 @@ function PlayRoom() {
                     onApprove={handleApproveRequest}
                     onReject={handleRejectRequest}
                   />
+                )}
+
+                {/* My Requests Section - only visible to guests */}
+                {!isHost && (
+                  loadingMyRequests ? (
+                    <div className="my-requests-loading">Loading your requests...</div>
+                  ) : errorMyRequests ? (
+                    <div className="my-requests-error">{errorMyRequests}</div>
+                  ) : (
+                    <MyRequestsSection myRequests={myRequests} />
+                  )
                 )}
               </div>
             </div>

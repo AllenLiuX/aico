@@ -1832,6 +1832,7 @@ def request_track():
     # Store requester info (username & avatar) for UI display
     track['requested_by_username'] = username if username else "Guest"
     track['requested_by'] = username if username else "Guest"
+    track['room_name'] = room_name
     track['requested_by_avatar'] = get_user_avatar_url(username) if username else None
     
     if not all([room_name, track]):
@@ -1957,6 +1958,7 @@ def request_track():
                 "timestamp": datetime.now().isoformat(),
                 "song_title": song_title,
                 "song_artist": song_artist,
+                "room_name": room_name,
                 "requested_by": username or "Guest",
                 "approved": moderation_result.get('approved', False),
                 "score": moderation_result.get('score', 0),
@@ -2210,7 +2212,22 @@ def approve_track_request():
 
         # If express flag, insert right after currently playing song
         if track.get("express"):
-            current_state = room_player_states.get(room_name, {}) if 'room_player_states' in globals() else {}
+            # Determine the current playing index for express insertion
+            current_state = {}
+            # 1) Try in-memory state first
+            if 'room_player_states' in globals():
+                current_state = room_player_states.get(room_name, {})
+
+            # 2) Fallback to Redis if in-memory state is unavailable / empty (e.g. different process)
+            if not current_state:
+                current_state_json = get_hash(f"room_player_states{redis_version}", room_name)
+                if current_state_json:
+                    try:
+                        current_state = json.loads(current_state_json)
+                    except json.JSONDecodeError:
+                        logger.error(f"Invalid JSON in stored player state for room {room_name}: {current_state_json}")
+                        current_state = {}
+
             current_index = current_state.get('index', -1)
             if current_index is not None and isinstance(current_index, int) and 0 <= current_index < len(playlist):
                 insert_pos = current_index + 1
@@ -3734,6 +3751,164 @@ def health_check():
     """Simple health check endpoint."""
     logger.info("Health check endpoint called")
     return jsonify({"status": "ok"})
+
+@app.route('/api/my-requests', methods=['GET'])
+def get_my_requests():
+    """Get all track requests made by the authenticated user in a specific room.
+    Returns request status (pending/approved/rejected) and, for approved requests, the
+    relative playlist position (number of songs until it plays)."""
+    room_name = request.args.get('room_name')
+    auth_header = request.headers.get('Authorization')
+
+    # Determine username.
+    # If no auth header is provided, treat the caller as an anonymous guest and
+    # use the conventional "Guest" identifier that is stored in
+    # request_track.requested_by.  This lets guests retrieve their own
+    # requests without an account.
+    if not auth_header:
+        username = "Guest"
+    else:
+        # Accept both raw token and "Bearer <token>" formats
+        if auth_header.startswith('Bearer '):
+            auth_token = auth_header[7:]
+        else:
+            auth_token = auth_header
+
+        # Look up username from the session store
+        username = get_hash(f"sessions{redis_version}", auth_token)
+        if not username:
+            return jsonify({"error": "Invalid session"}), 401
+
+    if not room_name:
+        return jsonify({"error": "Room name is required"}), 400
+
+    try:
+        # --------------------------------------------------
+        # Retrieve the list of request IDs associated with this room.
+        room_requests_json = get_hash(f"room_requests{redis_version}", room_name)
+        logger.info(f"Room requests for {room_name}: {room_requests_json}")
+
+        if not room_requests_json:
+            logger.info(f"No requests found for room {room_name}")
+            return jsonify({"requests": []})
+
+        try:
+            room_request_ids = json.loads(room_requests_json)
+            logger.info(f"Request IDs: {room_request_ids}")
+        except json.JSONDecodeError:
+            logger.error(f"Invalid JSON in room_requests: {room_requests_json}")
+            return jsonify({"requests": [], "error": "Invalid data format"})
+
+        user_requests = []
+
+        # Pre-load playlist and player state once for efficiency
+        playlist_json = get_hash(f"room_playlists{redis_version}", room_name)
+        playlist = json.loads(playlist_json) if playlist_json else []
+        logger.info(f"Playlist for {room_name} ({username}): {playlist}")
+
+        current_state = room_player_states.get(room_name, {})
+        if not current_state:
+            current_state_json = get_hash(f"room_player_states{redis_version}", room_name)
+            if current_state_json:
+                try:
+                    current_state = json.loads(current_state_json)
+                except json.JSONDecodeError:
+                    current_state = {}
+        current_index = current_state.get('index', -1)
+
+        # Iterate through each request ID and build the response list for this user
+        for req_id in room_request_ids:
+            req_json = get_hash(f"track_requests{redis_version}", req_id)
+            logger.info(f"Processing request ID: {req_id}: {req_json}")
+            if not req_json:
+                logger.warning(f"No data found for request ID {req_id}")
+                continue
+
+            try:
+                req = json.loads(req_json)
+            except json.JSONDecodeError:
+                logger.error(f"Invalid JSON for request {req_id}: {req_json}")
+                continue
+
+            # Only include requests created by this user (guest or logged-in)
+            if req.get('requested_by') != username:
+                continue
+
+            status = req.get('status', 'pending')
+            playlist_position = None
+
+            if status == 'approved':
+                # Find the index of the approved track in the playlist
+                track_index = next(
+                    (i for i, t in enumerate(playlist)
+                     if t.get('request_id') == req_id or t.get('song_id') == req.get('song_id')),
+                    None
+                )
+                if track_index is not None and current_index is not None and track_index >= current_index:
+                    playlist_position = track_index - current_index
+
+            user_requests.append({
+                "request_id": req_id,
+                "track": {
+                    "title": req.get('title'),
+                    "artist": req.get('artist'),
+                    "song_id": req.get('song_id'),
+                    "image_url": req.get('image_url') or req.get('cover_img_url')
+                },
+                "status": status,
+                "playlist_position": playlist_position,
+                "express": req.get('express', False),
+                "requested_at": req.get('requested_at')
+            })
+
+        # --------------------------------------------------
+        # Also inspect the current playlist to ensure any already-approved
+        # requests by this user are included, even if their IDs were not
+        # in the room_requests hash (e.g. the host may have removed them
+        # from the pending list once approved).
+        collected_request_ids = set(r["request_id"] for r in user_requests)
+
+        for idx, track_in_list in enumerate(playlist):
+            req_id_in_track = track_in_list.get("request_id")
+            if not req_id_in_track or req_id_in_track in collected_request_ids:
+                continue
+
+            # Only include tracks requested by this user
+            if track_in_list.get("requested_by", "") != username and track_in_list.get("requested_by_username", "") != username:
+                continue
+
+            status = "approved"
+
+            playlist_position = None
+            if current_index is not None and idx >= current_index:
+                playlist_position = idx - current_index
+
+            user_requests.append({
+                "request_id": req_id_in_track,
+                "track": {
+                    "title": track_in_list.get("title"),
+                    "artist": track_in_list.get("artist"),
+                    "song_id": track_in_list.get("song_id"),
+                    "image_url": track_in_list.get("image_url") or track_in_list.get("cover_img_url")
+                },
+                "status": status,
+                "playlist_position": playlist_position,
+                "express": track_in_list.get("express", False),
+                "requested_at": track_in_list.get("requested_at")
+            })
+            collected_request_ids.add(req_id_in_track)
+            collected_request_ids.add(req_id_in_track)
+
+        # Sort by requested_at if available (ISO strings sort correctly chronologically)
+        user_requests.sort(key=lambda x: x.get('requested_at', ''))
+
+        return jsonify({"requests": user_requests})
+    except Exception as e:
+        logger.error(f"Error fetching user requests: {str(e)}")
+        import traceback
+        logger.error(traceback.format_exc())
+        return jsonify({"error": "Failed to fetch requests"}), 500
+
 
 if __name__ == '__main__':
     # app.run(port=3000, host='10.72.252.213', debug=True)
