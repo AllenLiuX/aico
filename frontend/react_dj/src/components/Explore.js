@@ -83,6 +83,7 @@ const RoomCard = ({ room }) => {
 // In Explore.js
 function Explore() {
     const [rooms, setRooms] = useState([]);
+    const [searchTerm, setSearchTerm] = useState('');
     const [loading, setLoading] = useState(false);
     const [hasMore, setHasMore] = useState(true);
     const [page, setPage] = useState(1);
@@ -91,26 +92,30 @@ function Explore() {
     const initialFetchDone = useRef(false);
     const PAGE_SIZE = 12;
   
-    const fetchRooms = async (pageNum) => {
-      if (loading || !hasMore) return;
+    const fetchRooms = async (pageNum, reset = false) => {
+      if (loading || (!hasMore && !reset)) return;
   
       try {
         setLoading(true);
         const response = await fetch(
-          `${API_URL}/api/explore/rooms?page=${pageNum}&limit=${PAGE_SIZE}`
+          `${API_URL}/api/explore/rooms?page=${pageNum}&limit=${PAGE_SIZE}&search=${encodeURIComponent(searchTerm)}`
         );
   
         if (!response.ok) throw new Error('Failed to fetch rooms');
   
         const data = await response.json();
         const newRooms = data.rooms;
+
+        if (reset) {
+          setRooms([]);
+        }
   
         // Filter out duplicates
         const uniqueNewRooms = newRooms.filter(
           newRoom => !rooms.some(existingRoom => existingRoom.name === newRoom.name)
         );
   
-        if (uniqueNewRooms.length > 0) {
+        if (uniqueNewRooms.length > 0 || reset) {
           setRooms(prevRooms => [...prevRooms, ...uniqueNewRooms]);
           setPage(pageNum + 1);
         }
@@ -134,7 +139,7 @@ function Explore() {
       if (target.isIntersecting && hasMore && !loading) {
         fetchRooms(page);
       }
-    }, [hasMore, loading, page]);
+    }, [hasMore, loading, page, searchTerm]);
   
     useEffect(() => {
       // Initial fetch only once
@@ -171,6 +176,22 @@ function Explore() {
         <div className="explore-wave"></div>
         
         <div className="explore-header">
+          <div className="search-bar">
+            <input
+              type="text"
+              placeholder="Search rooms..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  setPage(1);
+                  setHasMore(true);
+                  fetchRooms(1, true);
+                }
+              }}
+            />
+            <button onClick={() => { setPage(1); setHasMore(true); fetchRooms(1, true); }}>Search</button>
+          </div>
           <h1>Explore Music Rooms</h1>
           <p>Discover curated music experiences created by our community</p>
         </div>

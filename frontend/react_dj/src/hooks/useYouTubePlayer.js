@@ -18,6 +18,9 @@ const useYouTubePlayer = (playlist, socket, isHost, emitPlayerState) => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [syncedWithHost, setSyncedWithHost] = useState(true); // Track if guest is synced with host
   
+  // Ref to always have the latest playlist inside callbacks bound once (e.g., YouTube event listeners)
+  const playlistRef = useRef(playlist);
+  
   const progressIntervalRef = useRef(null);
   const playerRef = useRef(null);
   const playerContainerRef = useRef(null);
@@ -30,6 +33,11 @@ const useYouTubePlayer = (playlist, socket, isHost, emitPlayerState) => {
   
   // Don't update player state too frequently to avoid excessive network traffic
   const SYNC_THROTTLE_MS = 1000;
+
+  // Keep playlistRef up-to-date so callbacks bound once can access the latest list
+  useEffect(() => {
+    playlistRef.current = playlist;
+  }, [playlist]);
 
   // Initialize YouTube player when playlist is available
   useEffect(() => {
@@ -632,24 +640,51 @@ const useYouTubePlayer = (playlist, socket, isHost, emitPlayerState) => {
     startProgressTracking();
   };
 
-  const onPlayerStateChange = (event) => {
+  // Fetch the latest playlist from backend (host only)
+const refreshPlaylistFromBackend = useCallback(async () => {
+  if (!isHost) return;
+  const roomName = localStorage.getItem('currentRoom');
+  if (!roomName) return;
+  try {
+    const response = await axios.get(`${API_URL}/api/room-playlist`, {
+      params: { room_name: roomName }
+    });
+    if (response.status === 200 && Array.isArray(response.data.playlist)) {
+      playlistRef.current = response.data.playlist;
+    }
+  } catch (e) {
+    console.error('Failed to refresh playlist from backend:', e);
+  }
+}, [isHost]);
+
+const onPlayerStateChange = async (event) => {
     const playerState = event.data;
     
     if (playerState === 0) { // Video ended
+      // Always refresh playlist from backend first (host only)
+      await refreshPlaylistFromBackend();
       if (isHost) {
-        // Only host can automatically advance to the next track
+        // Host recalculates next track based on the CURRENT playlist order
         setCurrentTrack(prevTrack => {
-          const nextIndex = (prevTrack + 1) % playlist.length;
+          const currentVideoId = currentVideoIdRef.current;
+          // Find the index of the currently playing video using up-to-date playlistRef
+          let currentIndex = playlistRef.current.findIndex(t => extractVideoId(t.song_url) === currentVideoId);
+          if (currentIndex === -1) currentIndex = prevTrack; // Fallback to previous state
+
+          const nextIndex = (currentIndex + 1) % playlistRef.current.length;
+
+          // Slight delay to ensure YT player internal state settles
           setTimeout(() => {
-            if (playerRef.current && playlist[nextIndex]) {
-              const videoId = extractVideoId(playlist[nextIndex].song_url);
+            if (playerRef.current && playlistRef.current[nextIndex]) {
+              const videoId = extractVideoId(playlistRef.current[nextIndex].song_url);
               if (videoId) {
                 loadVideo(nextIndex);
               }
             }
-          }, 50);
-          return nextIndex;
-        });
+            }, 50);
+
+            return nextIndex;
+          });
       }
     }
     
@@ -713,40 +748,58 @@ const useYouTubePlayer = (playlist, socket, isHost, emitPlayerState) => {
       }
     } catch (error) {
       console.error("Error toggling play state:", error);
-    }
-  };
-
-  const playNext = () => {
-    if (playlist.length === 0) return;
-
-    const nextIndex = (currentTrack + 1) % playlist.length;
-    setCurrentTrack(nextIndex);
-
-    if (isHost) {
-      // Host: use normal load which will propagate state to guests
-      loadVideo(nextIndex);
-    } else {
       // Guest: break sync and play locally
       if (syncedWithHost) setSyncedWithHost(false);
-      const nextTrack = playlist[nextIndex];
+      const currentIndex = playlistRef.current.findIndex(t => extractVideoId(t.song_url) === currentVideoIdRef.current);
+      const nextIndex = (currentIndex + 1) % playlistRef.current.length;
+      const nextTrack = playlistRef.current[nextIndex];
       if (!nextTrack) return;
       const videoId = extractVideoId(nextTrack.song_url);
       if (videoId) {
         forcePlayVideo(videoId, 0, true);
       }
     }
+    // ...
   };
 
-  const playPrevious = () => {
-    if (playlist.length === 0) return;
+  // Play the next track in the playlist respecting the latest order
+const playNext = async () => {
+  // Refresh playlist from backend to ensure we use the latest order (host only)
+  await refreshPlaylistFromBackend();
+  if (playlistRef.current.length === 0) return;
 
-    const prevIndex = (currentTrack - 1 + playlist.length) % playlist.length;
+  const currentVideoId = currentVideoIdRef.current;
+  let currentIndex = playlistRef.current.findIndex(t => extractVideoId(t.song_url) === currentVideoId);
+  if (currentIndex === -1) currentIndex = currentTrack;
+
+  const nextIndex = (currentIndex + 1) % playlistRef.current.length;
+  setCurrentTrack(nextIndex);
+
+  if (isHost) {
+    loadVideo(nextIndex);
+  } else {
+    // Guest: break sync and play locally
+    if (syncedWithHost) setSyncedWithHost(false);
+    const nextTrack = playlistRef.current[nextIndex];
+    if (!nextTrack) return;
+    const videoId = extractVideoId(nextTrack.song_url);
+    if (videoId) {
+      forcePlayVideo(videoId, 0, true);
+    }
+  }
+};
+
+const playPrevious = () => {
+    if (playlistRef.current.length === 0) return;
+
+    const currentIndex = playlistRef.current.findIndex(t => extractVideoId(t.song_url) === currentVideoIdRef.current);
+    const prevIndex = (currentIndex - 1 + playlistRef.current.length) % playlistRef.current.length;
     setCurrentTrack(prevIndex);
 
     if (isHost) {
       loadVideo(prevIndex);
     } else {
-      if (syncedWithHost) setSyncedWithHost(false);
+      // ...
       const prevTrack = playlist[prevIndex];
       if (!prevTrack) return;
       const videoId = extractVideoId(prevTrack.song_url);
@@ -758,12 +811,12 @@ const useYouTubePlayer = (playlist, socket, isHost, emitPlayerState) => {
 
   const loadVideo = (index) => {
     // Only allow host to load videos directly
-    if (!isHost || !playerRef.current || !playlist[index] || !playerReadyRef.current) return;
+    if (!isHost || !playerRef.current || !playlistRef.current[index] || !playerReadyRef.current) return;
     
     // Update currentTrack first
     setCurrentTrack(index);
     
-    const videoId = extractVideoId(playlist[index].song_url);
+    const videoId = extractVideoId(playlistRef.current[index].song_url);
     if (!videoId) {
       setPlayerError("Invalid video URL");
       return;
@@ -786,7 +839,7 @@ const useYouTubePlayer = (playlist, socket, isHost, emitPlayerState) => {
     setIsPlaying(true);
     currentVideoIdRef.current = videoId;
     
-    // Log song play when loading a new video
+    // Log song play when loading a new video using latest playlist info
     logSongPlay(index);
   };
 

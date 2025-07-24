@@ -117,7 +117,7 @@ function Homepage() {
             <Zap size={20} />
             Create Room
           </button>
-          <Link to="/join_room" className="hero-button join-button">
+          <Link to="/explore" className="hero-button join-button">
             <Users size={20} />
             Join Room
           </Link>

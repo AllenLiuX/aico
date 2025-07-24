@@ -1488,6 +1488,7 @@ def get_explore_rooms():
         page = int(request.args.get('page', 1))
         limit = int(request.args.get('limit', 12))
         offset = (page - 1) * limit
+        search_query = request.args.get('search', '').strip().lower()
 
         # Get all rooms and their playlists
         all_rooms = get_all_hash(f"room_playlists{redis_version}")
@@ -1536,21 +1537,37 @@ def get_explore_rooms():
                 logger.error(f"Error processing room {room_name}: {str(e)}")
                 continue
 
+        # Optional search filter
+        if search_query:
+            room_data_list = [r for r in room_data_list if (
+                search_query in r['name'].lower() or
+                search_query in (r['introduction'] or '').lower() or
+                search_query in r.get('genre', '').lower() or
+                search_query in r.get('occasion', '').lower() or
+                (r.get('host', {}) or {}).get('username', '').lower().find(search_query) != -1
+            )]
+
         # Sort rooms by created_at (newest first)
         sorted_rooms = sorted(room_data_list, key=lambda x: x['created_at'], reverse=True)
         
         # Apply pagination after sorting
-        paginated_rooms = sorted_rooms[offset:offset + limit]
+        # If search is active, we may want to return all matches without pagination unless explicit limit is requested
+        if search_query:
+            paginated_rooms = sorted_rooms[offset:offset + limit]
+        else:
+            paginated_rooms = sorted_rooms[offset:offset + limit]
         
         # Remove the created_at field from the response (it's already in host data)
         for room in paginated_rooms:
             if 'created_at' in room:
                 del room['created_at']
 
+        # Adjust total counts for search results
+        total_filtered = len(sorted_rooms)
         res = {
             "rooms": paginated_rooms,
-            "total": total_rooms,
-            "hasMore": offset + limit < total_rooms
+            "total": total_filtered,
+            "hasMore": offset + limit < total_filtered
         }
         logger.info(str(res))
         return jsonify({
